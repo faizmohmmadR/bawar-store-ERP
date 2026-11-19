@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: __API_ORIGIN__; connect-src 'self' __API_ORIGIN__ __DEV_CONNECT_SOURCES__;" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mirbat Zada Detergent Production Co. — ERP</title>
+  <meta name="description" content="Mirbat Zada Detergent Production Co. ERP System" />
+  <meta name="author" content="Mirbat Zada Detergent Production Co." />
+  <link rel="icon" type="image/jpeg" href="/logo.jpeg" />
+  <meta name="theme-color" content="#F59E1A" />
+  <meta name="msapplication-TileColor" content="#F59E1A" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="MBZ ERP" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/logo.jpeg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600&family=Syne:wght@500;600;700;800&family=Vazirmatn:wght@400;500;600;700&display=swap" />
+
+  <meta property="og:title" content="Mirbat Zada Detergent Production Co. — ERP" />
+  <meta property="og:description" content="Mirbat Zada Detergent Production Co. ERP System" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/logo.jpeg" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="/logo.jpeg" />
+
+  <!-- Dev: clear stale service-worker caches so Vite HMR works without hard refresh -->
+  <script>
+    (function () {
+      var isLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+      if (!isLocal || !('serviceWorker' in navigator)) return;
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        regs.forEach(function (r) { r.unregister(); });
+      });
+      if (window.caches) {
+        caches.keys().then(function (keys) {
+          keys.forEach(function (k) { caches.delete(k); });
+        });
+      }
+    })();
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

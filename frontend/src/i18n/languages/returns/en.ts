@@ -1,0 +1,102 @@
+export const returnsEn = {
+  title: 'Returns Management',
+  addReturn: 'Create Return',
+  returnDetails: 'Return Details',
+  sales: 'Sales Order',
+  returnNumber: 'Return Number',
+  returnDate: 'Return Date',
+  reason: 'Reason',
+  currency: 'Currency',
+  totalAmount: 'Total Amount',
+  refundAmount: 'Refund Amount',
+  notes: 'Notes',
+  returnItems: 'Return Items',
+  salesItem: 'Sales Item',
+  quantity: 'Quantity',
+  returnPrice: 'Return Price',
+  returnAmount: 'Return Amount',
+  addItem: 'Add Item',
+  errorLoading: 'Error loading returns',
+  
+  // Sale Information
+  saleInformation: 'Sale Information',
+  invoiceNumber: 'Invoice Number',
+  saleDate: 'Sale Date',
+  customer: 'Customer',
+  originalPrice: 'Original Price',
+  soldQuantity: 'Sold Quantity',
+  returnQuantity: 'Return Quantity',
+  maxReturn: 'Max Return',
+  product: 'Product',
+  unitPrice: 'Unit Price',
+  
+  // Form labels
+  createReturnFor: 'Create Return for Sale',
+  returnInformation: 'Return Information',
+  itemsToReturn: 'Items to Return',
+  
+  // Validation
+  validation: {
+    sales: 'Sales order is required',
+    returnNumber: 'Return number is required',
+    currency: 'Currency is required',
+    items: 'At least one return item is required',
+  },
+  
+  // Placeholders
+  selectSales: 'Select sales order',
+  selectSalesItem: 'Select item',
+  selectCurrency: 'Select currency',
+  enterReturnNumber: 'Enter return number',
+  enterReason: 'Enter return reason',
+  enterNotes: 'Enter additional notes',
+  
+  // Messages
+  addReturnDesc: 'Fill in the return information below. Fields marked with * are required.',
+  editReturnDesc: 'Update the return information below. Fields marked with * are required.',
+  noReturns: 'No returns found',
+  returns: 'Returns',
+  company: 'Company',
+  companyInformation: 'Company Information',
+  summary: 'Summary',
+  netRefund: 'Net Refund',
+  noItems: 'No items to return',
+  
+  // AddReturn page
+  createReturn: 'Create Return',
+  returnForSale: 'Return for Sale',
+  returnDateRequired: 'Return Date *',
+  returnReason: 'Return reason',
+  additionalNotes: 'Additional notes',
+  maxQty: 'Max',
+  returnQty: 'Return Qty',
+  carton: 'Carton',
+  piece: 'Piece',
+  piecesPerCarton: 'Pieces / Carton',
+  pricePerCarton: 'Price / Carton',
+  itemsRequired: 'At least one return quantity is required',
+  qtyExceedsMax: 'Quantity exceeds maximum',
+  price: 'Price',
+  invoice: 'Invoice',
+  originalTotal: 'Original Total',
+  creatingReturn: 'Creating Return...',
+  
+  // List page
+  manageReturnTransactions: 'Manage return transactions',
+  filterBySale: 'Filter by sale',
+  filterByCompany: 'Filter by company',
+  actions: 'Actions',
+  
+  // UI Components - already has most translations, adding missing ones
+  viewDetails: 'View Details',
+  edit: 'Edit',
+  delete: 'Delete',
+  editReturn: 'Edit Return',
+  deleteReturn: 'Delete Return',
+  searchReturns: 'Search returns...',
+  clearFilters: 'Clear Filters',
+  noReturnsFound: 'No returns found',
+  tryAdjustingSearch: 'Try adjusting your search terms',
+  addFirstReturn: 'Add your first return to get started',
+  loadingReturns: 'Loading returns...',
+};

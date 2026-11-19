@@ -1,0 +1,17 @@
+# General sales and purchase payments
+
+Open Sales Payments or Purchase Payments and choose Add Payment. Select the party, currency, payment date and cash, bank or sarafi method, then enter any positive amount. No bill selection or allocation preview is required. The Pay one bill button retains the original bill-specific workflow.
+
+A receipt pays the party's oldest eligible bills first, using bill ID to break date ties. Eligible bills are active sales and received raw-material purchases. Draft, cancelled and deleted bills are excluded. Existing payments reduce the balance available on each bill. A receipt has one party, direction, currency and payment method; use separate receipts for other currencies or methods.
+
+Payments are allowed when the outstanding balance is zero and may exceed the outstanding balance. The excess is retained as customer credit or a supplier prepayment in that currency. Creating or updating a future eligible bill automatically uses available credit from the oldest receipts first. Its payment record shows the credit application; the bill never becomes overpaid. Cancelling, deleting or reducing a bill returns its applied advance to retained credit. Credit stays with its original party and currency.
+
+Receipts use GPAY-id. The General Payments page lists each receipt once and shows its retained credit. Receipt details show paid bills and remaining credit. Edit a receipt to recalculate its allocations and retained credit. Delete it to reverse its direct payments, original advance and subsequent credit applications together. Individual allocations cannot be edited or deleted through the bill-payment API. Party, direction and currency are fixed after creation.
+
+Direct bill settlements keep their existing payment journals. An advance has its own Payment record linked to the receipt, posting the original cash movement against Customer Advances (2300, liability) or Supplier Advances (1320, asset). Later credit applications transfer advances into accounts receivable/payable without another cash movement. Foreign-currency applications use the advance's original rate and the bill's carrying rate, with settlement FX posted on the later of the bill and receipt dates. Cash reports include original advances and exclude non-cash applications. Party summaries and histories include the original advance once, so credit remains visible even before there is a bill.
+
+Receipt creation, edits and deletion are atomic. General and bill-specific payments share a party lock. Application rechecks current invoice balances and available credit. A failed edit restores the original receipt, allocations and journals. Native payments use two decimal places; sub-cent bill residuals remain unpaid.
+
+API: `/general-payments/` supports list/create; `/general-payments/{id}/` supports retrieve/update/delete. Responses include `available_credit` and bill `allocations`. `/general-payments/balance/?payment_type=sale&party_id=1&currency=1` returns open bills and total due. Pass `exclude_general_payment={id}` to include the edited receipt's bill allocations in the balance. General payments use existing payments permissions.
+
+Migration `0019_general_payments` adds receipt headers and links existing payments. Migration `0020_payment_advance_credit` distinguishes original advances and later credit applications. Existing bill payments retain their history and behavior.
