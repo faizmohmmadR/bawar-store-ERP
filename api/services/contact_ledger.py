@@ -240,7 +240,7 @@ def get_customer_finance(customer, date_from=None, date_to=None):
 
 def get_vendor_finance(vendor, date_from=None, date_to=None):
     from api.models.data.loan import Loan
-    from api.models.data.raw_materials import RawMaterialPurchase
+    from api.models.data.purchases import Purchase as RawMaterialPurchase
 
     finance = {}
 
@@ -489,7 +489,7 @@ def query_vendor_transactions(vendor, *, search=None, date_from=None, date_to=No
 
     from api.models.data.loan import Loan, LoanPayment
     from api.models.data.payment import Payment
-    from api.models.data.raw_materials import RawMaterialPurchase
+    from api.models.data.purchases import Purchase as RawMaterialPurchase
 
     rows = []
     purchase_ct = ContentType.objects.get_for_model(RawMaterialPurchase)

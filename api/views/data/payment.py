@@ -10,7 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from api.models.data.payment import Payment
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.models.data.sales import Sales
 from api.serializers.data.payment import PaymentSerializer
 from api.services.accounting import sync_order_paid_amount, sync_payment_journal
@@ -55,11 +55,10 @@ class PaymentViewSet(DataRootViewSet):
         aliases = {
             'sales': 'sales',
             'sale': 'sales',
-            'rawmaterialpurchase': 'rawmaterialpurchase',
-            'raw_material_purchase': 'rawmaterialpurchase',
-            'raw-material-purchase': 'rawmaterialpurchase',
-            # Accept legacy name used by older clients; map to RM purchase model.
-            'purchase': 'rawmaterialpurchase',
+            'purchase': 'purchase',
+            'rawmaterialpurchase': 'purchase',
+            'raw_material_purchase': 'purchase',
+            'raw-material-purchase': 'purchase',
         }
         model = aliases.get((content_type_name or '').lower().strip())
         if not model:
@@ -121,7 +120,7 @@ class PaymentViewSet(DataRootViewSet):
             ct = self._resolve_content_type(name)
             object_id = serializers.IntegerField(min_value=1).run_validation(data.get('object_id'))
             if ct is None:
-                raise ValidationError({'content_type': 'Select sales or rawmaterialpurchase.'})
+                raise ValidationError({'content_type': 'Select sales or purchase.'})
             order = self._get_related_order(name, object_id)
             if order is None:
                 raise ValidationError({'object_id': 'Related order not found.'})

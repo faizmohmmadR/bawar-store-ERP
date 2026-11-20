@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 
 from api.models.data.journal import JournalEntry, JournalLine
 from api.models.data.vendors import Vendor
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.models.data.payment import Payment, GeneralPayment
 from api.models.data.sales import Sales
 from api.services.reporting.contracts import ReportScope

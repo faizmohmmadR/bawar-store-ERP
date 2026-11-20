@@ -1,5 +1,4 @@
 import { Route } from 'react-router-dom';
-import { Navigate } from 'react-router-dom';
 import { AppsHome } from '@/pages/AppsHome';
 import { Dashboard } from '@/pages/Dashboard';
 import { CustomerProfile } from '@/pages/profile/CustomerProfile';
@@ -19,14 +18,8 @@ import { expenseRoutes } from './expenseRoutes';
 import { loanRoutes } from './loanRoutes';
 import { withdrawalRoutes } from './withdrawalRoutes';
 import { equipmentRoutes } from './equipmentRoutes';
-import { rawMaterialRoutes } from './rawMaterialRoutes';
-import { rawMaterialPurchaseRoutes } from './rawMaterialPurchaseRoutes';
-import { rawMaterialStockRoutes } from './rawMaterialStockRoutes';
-import { rawMaterialProcessRoutes } from './rawMaterialProcessRoutes';
-import { rawMaterialSaleRoutes } from './rawMaterialSaleRoutes';
-import { storageTankRoutes } from './storageTankRoutes';
-import { packingRoutes } from './packingRoutes';
-import { damagedRoutes } from './damagedRoutes';
+import { productRoutes } from './productRoutes';
+import { purchaseRoutes } from './purchaseRoutes';
 
 import { accountRoutes } from './accountRoutes';
 import { userRoutes } from './userRoutes';
@@ -44,21 +37,11 @@ export const appRoutes = (
 
     {stockRoutes}
     {equipmentRoutes}
-    {/* Raw Materials */}
-    {rawMaterialRoutes}
-    {rawMaterialPurchaseRoutes}
-    {rawMaterialStockRoutes}
-    {rawMaterialSaleRoutes}
-    {/* Raw Material Production */}
-    {rawMaterialProcessRoutes}
-    {storageTankRoutes}
-    {packingRoutes}
-    {damagedRoutes}
+    {productRoutes}
+    {purchaseRoutes}
     {/* Sales */}
     {salesRoutes}
     {returnRoutes}
-    <Route path="products/*" element={<Navigate to="/stock" replace />} />
-    <Route path="purchases/*" element={<Navigate to="/raw-material-purchases" replace />} />
 
     {/* Customer, Vendor & Salesman Management */}
     {customerRoutes}

@@ -10,7 +10,7 @@ from api.models.data.employee import Employee
 from api.models.data.expenses import Expense, ExpenseCategory
 from api.models.data.journal import GLAccount, JournalEntry, JournalLine
 from api.models.data.payroll import Payroll
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.models.data.sales import Sales
 from api.models.data.vendors import Vendor
 from api.services.reporting.contracts import ReportScope

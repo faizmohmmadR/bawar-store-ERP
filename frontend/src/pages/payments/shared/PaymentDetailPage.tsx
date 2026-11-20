@@ -41,7 +41,7 @@ const PaymentDetailPage = ({ type }: PaymentDetailPageProps) => {
   const orderId = payment.related_object_details?.id;
   const orderPath =
     type === 'purchase'
-      ? `/raw-material-purchases/${orderId}`
+      ? `/purchases/${orderId}`
       : `/sales/${orderId}`;
   const partyName =
     type === 'purchase'

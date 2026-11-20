@@ -805,7 +805,7 @@ def _query_outstanding_loans(start_date, end_date, currency_code=None, *, loan_t
 
 def _query_purchase_invoices(start_date, end_date, currency_code=None, *, metric='total'):
     """Purchase invoice drill-downs with payment cutoff at end_date."""
-    from api.models.data.raw_materials import RawMaterialPurchase
+    from api.models.data.purchases import Purchase as RawMaterialPurchase
     from api.services.trade_reporting import invoice_balances
     from api.utils.date_filters import apply_date_range
 

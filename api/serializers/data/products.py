@@ -1,7 +1,7 @@
-from decimal import Decimal
 from rest_framework import serializers
 
-from api.models.data.products import Product
+from api.models.data.product_packaging import ProductBarcode, ProductPackaging, ProductPrice
+from api.models.data.products import Product, ProductCategory
 from api.serializers.data.base import DataRootSerializer
 
 
@@ -18,96 +18,145 @@ def product_image_url(product, request=None):
     return url
 
 
+class ProductPackagingSerializer(DataRootSerializer):
+    class Meta:
+        model = ProductPackaging
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at', 'deleted_at', 'deleted_by']
+
+
+class ProductBarcodeSerializer(DataRootSerializer):
+    class Meta:
+        model = ProductBarcode
+        fields = '__all__'
+
+
+class ProductPriceSerializer(DataRootSerializer):
+    class Meta:
+        model = ProductPrice
+        fields = '__all__'
+
+
+class ProductCategorySerializer(DataRootSerializer):
+    class Meta:
+        model = ProductCategory
+        fields = '__all__'
+
+
 def serialize_product(product, request=None):
     if not product:
         return None
-    raw_material_details = None
-    if product.raw_material_id:
-        material = product.raw_material
-        raw_material_details = {
-            'id': material.id,
-            'name': material.name,
-            'material_type': material.material_type,
-            'unit': material.unit,
-            'capacity_liters': material.capacity_liters,
-            'capacity_kg': material.capacity_kg,
-            'capacity_display_unit': material.capacity_display_unit,
-            'bottles_per_carton': material.bottles_per_carton,
-            'bottles_per_plastic': material.bottles_per_plastic,
+    packagings = [
+        {
+            'id': p.id,
+            'name': p.name,
+            'qty_in_base': p.qty_in_base,
+            'is_base': p.is_base,
+            'for_purchase': p.for_purchase,
+            'for_sale': p.for_sale,
+            'for_stock': p.for_stock,
+            'is_default_purchase': p.is_default_purchase,
+            'is_default_sale': p.is_default_sale,
+            'is_active': p.is_active,
+            'barcode': p.barcode,
+            'is_variable_weight': p.is_variable_weight,
+            'uom': p.uom_id,
         }
+        for p in product.packagings.filter(deleted_at__isnull=True)
+    ]
     return {
         'id': product.id,
         'name': product.name,
-        'raw_material': product.raw_material_id,
-        'material_type': product.stock_kind,
-        'packaging_type': product.packaging_type,
-        'raw_material_details': raw_material_details,
-        'inventory_unit': 'piece' if product.is_piece_stock else None,
+        'sku': product.sku,
         'barcode': product.barcode,
-        'description': getattr(product, 'description', None),
+        'description': product.description,
         'image': product_image_url(product, request),
-        'bottle_capacity_liters': product.bottle_capacity_liters,
-        'bottle_capacity_kg': (
-            product.bottle_capacity_kg if product.bottle_capacity_kg is not None else (product.bottle_capacity_liters * product.density_kg_per_liter).quantize(Decimal('0.0001'))
-            if product.bottle_capacity_kg is not None or product.bottle_capacity_liters is not None
-            else None
-        ),
-        'density_kg_per_liter': product.density_kg_per_liter,
-        'carton_capacity_liters': product.carton_capacity_liters,
-        'bottles_per_carton': product.bottles_per_carton,
+        'base_uom': product.base_uom_id,
+        'base_uom_details': {
+            'id': product.base_uom_id,
+            'code': getattr(product.base_uom, 'code', None),
+            'name': getattr(product.base_uom, 'name', None),
+            'symbol': getattr(product.base_uom, 'symbol', None),
+        } if product.base_uom_id else None,
+        'category': product.category_id,
+        'brand': product.brand,
+        'costing_method': product.costing_method,
+        'average_cost': product.average_cost,
+        'min_stock_level': product.min_stock_level,
+        'reorder_level': product.reorder_level,
+        'track_inventory': product.track_inventory,
+        'track_batch': product.track_batch,
+        'track_expiry': product.track_expiry,
+        'is_active': product.is_active,
+        'packagings': packagings,
+        'default_purchase_packaging': product.default_purchase_packaging_id,
+        'default_sales_packaging': product.default_sales_packaging_id,
     }
 
 
 class ProductSerializer(DataRootSerializer):
-    packaging_type = serializers.ChoiceField(choices=['bottle', 'carton', 'plastic'], required=False, allow_null=True, default=None)
-    bottle_capacity_kg = serializers.DecimalField(max_digits=12, decimal_places=4, required=False, allow_null=True)
-
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-        if self.instance and attrs.get('packaging_type', self.instance.packaging_type) != self.instance.packaging_type:
-            raise serializers.ValidationError({'packaging_type': 'An existing product must keep its inventory type.'})
-        if attrs.get('packaging_type'):
-            attrs['bottles_per_carton'] = 1
-        if 'bottle_capacity_kg' in attrs:
-            mass = attrs['bottle_capacity_kg']
-            if mass is not None and mass <= 0:
-                raise serializers.ValidationError({'bottle_capacity_kg': 'Bottle capacity must be greater than zero kg.'})
-            density = Decimal(str(getattr(self.instance, 'density_kg_per_liter', 1) or 1))
-            attrs['bottle_capacity_liters'] = (mass / density).quantize(Decimal('0.0001')) if mass is not None else None
-        elif 'bottle_capacity_liters' in attrs:
-            density = Decimal(str(attrs.get('density_kg_per_liter', getattr(self.instance, 'density_kg_per_liter', 1)) or 1))
-            volume = attrs['bottle_capacity_liters']
-            attrs['bottle_capacity_kg'] = (volume * density).quantize(Decimal('0.0001')) if volume is not None else None
-        return attrs
+    packagings = ProductPackagingSerializer(many=True, read_only=True)
+    packagings_data = serializers.ListField(
+        child=serializers.DictField(), required=False, write_only=True,
+    )
+    image_url = serializers.SerializerMethodField()
+    base_uom_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = '__all__'
-        read_only_fields = ('raw_material',)
+        read_only_fields = [
+            'id', 'average_cost', 'created_at', 'updated_at', 'deleted_at', 'deleted_by',
+        ]
 
-    def validate_barcode(self, value):
-        if not value:
+    def get_image_url(self, obj):
+        return product_image_url(obj, self.context.get('request'))
+
+    def get_base_uom_details(self, obj):
+        if not obj.base_uom_id:
             return None
-        existing = Product.all_objects.filter(barcode=value)
-        if self.instance is not None:
-            existing = existing.exclude(pk=self.instance.pk)
-        if existing.exists():
-            raise serializers.ValidationError('A product with this barcode already exists.')
-        return value
+        uom = obj.base_uom
+        return {
+            'id': obj.base_uom_id,
+            'code': getattr(uom, 'code', None),
+            'name': getattr(uom, 'name', None),
+            'symbol': getattr(uom, 'symbol', None),
+        }
 
-    def validate_density_kg_per_liter(self, value):
-        if value <= 0:
-            raise serializers.ValidationError('Density must be greater than zero kg/L.')
-        return value
+    def create(self, validated_data):
+        packagings_data = validated_data.pop('packagings_data', [])
+        product = super().create(validated_data)
+        self._write_packagings(product, packagings_data)
+        self._ensure_base_packaging(product)
+        return product
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        request = self.context.get('request')
-        data['material_type'] = instance.stock_kind
-        data['image'] = product_image_url(instance, request)
-        data['bottle_capacity_kg'] = (
-            instance.bottle_capacity_kg if instance.bottle_capacity_kg is not None else (instance.bottle_capacity_liters * instance.density_kg_per_liter).quantize(Decimal('0.0001'))
-            if instance.bottle_capacity_kg is not None or instance.bottle_capacity_liters is not None
-            else None
+    def update(self, instance, validated_data):
+        packagings_data = validated_data.pop('packagings_data', None)
+        product = super().update(instance, validated_data)
+        if packagings_data is not None:
+            product.packagings.all().delete()
+            self._write_packagings(product, packagings_data)
+        self._ensure_base_packaging(product)
+        return product
+
+    def _write_packagings(self, product, rows):
+        for row in rows or []:
+            data = {k: v for k, v in dict(row).items() if k not in ('id', 'product')}
+            ProductPackaging.objects.create(product=product, **data)
+
+    def _ensure_base_packaging(self, product):
+        if product.packagings.filter(is_base=True).exists():
+            return
+        ProductPackaging.objects.create(
+            product=product,
+            name=getattr(product.base_uom, 'name', None) or 'Base',
+            uom=product.base_uom,
+            qty_in_base=1,
+            is_base=True,
+            for_purchase=True,
+            for_sale=True,
+            for_stock=True,
+            is_default_purchase=True,
+            is_default_sale=True,
+            barcode=product.barcode,
         )
-        return data

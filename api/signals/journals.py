@@ -97,86 +97,45 @@ def resync_return_journal_on_item_delete(sender, instance, **kwargs):
         _resync_return_from_items(instance.return_order_id)
 
 
-# ── Raw material purchases ─────────────────────────────────────────────
-@receiver(post_save, sender='api.RawMaterialPurchase')
-def handle_raw_material_purchase_journal(sender, instance, **kwargs):
-    from api.services.accounting import delete_journal_for_source, sync_raw_material_purchase_journal
+# ── Product purchases ──────────────────────────────────────────────────
+@receiver(post_save, sender='api.Purchase')
+def handle_purchase_journal(sender, instance, **kwargs):
+    from api.services.accounting import delete_journal_for_source, sync_purchase_journal
     if instance.deleted_at is not None:
         delete_journal_for_source(instance)
         return
-    sync_raw_material_purchase_journal(instance)
+    sync_purchase_journal(instance)
     from api.services.general_payments import apply_credit_to_order
     apply_credit_to_order(instance)
 
 
-@receiver(post_delete, sender='api.RawMaterialPurchase')
-def delete_raw_material_purchase_journal(sender, instance, **kwargs):
+@receiver(post_delete, sender='api.Purchase')
+def delete_purchase_journal(sender, instance, **kwargs):
     from api.services.accounting import delete_journal_for_source
     delete_journal_for_source(instance)
 
 
-def _resync_rm_purchase_from_items(purchase_id):
-    from api.models.data.raw_materials import RawMaterialPurchase
-    from api.services.accounting import sync_raw_material_purchase_journal
+def _resync_purchase_from_items(purchase_id):
+    from api.models.data.purchases import Purchase
+    from api.services.accounting import sync_purchase_journal
 
-    purchase = RawMaterialPurchase.objects.filter(pk=purchase_id).first()
+    purchase = Purchase.objects.filter(pk=purchase_id).first()
     if purchase:
-        sync_raw_material_purchase_journal(purchase)
+        sync_purchase_journal(purchase)
         from api.services.general_payments import apply_credit_to_order
         apply_credit_to_order(purchase)
 
 
-@receiver(post_save, sender='api.RawMaterialPurchaseItem')
-def resync_rm_purchase_journal_on_item_save(sender, instance, **kwargs):
+@receiver(post_save, sender='api.PurchaseItem')
+def resync_purchase_journal_on_item_save(sender, instance, **kwargs):
     if instance.purchase_id:
-        _resync_rm_purchase_from_items(instance.purchase_id)
+        _resync_purchase_from_items(instance.purchase_id)
 
 
-@receiver(post_delete, sender='api.RawMaterialPurchaseItem')
-def resync_rm_purchase_journal_on_item_delete(sender, instance, **kwargs):
+@receiver(post_delete, sender='api.PurchaseItem')
+def resync_purchase_journal_on_item_delete(sender, instance, **kwargs):
     if instance.purchase_id:
-        _resync_rm_purchase_from_items(instance.purchase_id)
-
-
-# ── Packing runs ───────────────────────────────────────────────────────
-@receiver(post_save, sender='api.PackingRun')
-def handle_packing_run_journal(sender, instance, **kwargs):
-    from api.services.accounting import delete_journal_for_source, sync_packing_run_journal
-    if getattr(instance, 'deleted_at', None) is not None:
-        delete_journal_for_source(instance)
-        return
-    sync_packing_run_journal(instance)
-
-
-@receiver(post_delete, sender='api.PackingRun')
-def delete_packing_run_journal(sender, instance, **kwargs):
-    from api.services.accounting import delete_journal_for_source
-    delete_journal_for_source(instance)
-
-
-# ── Stock bottle damage (spill loss / salvage to tank) ─────────────────
-@receiver(post_save, sender='api.StockBottleDamage')
-def handle_stock_bottle_damage_journal(sender, instance, **kwargs):
-    from api.services.accounting import sync_stock_bottle_damage_journal
-    sync_stock_bottle_damage_journal(instance)
-
-
-@receiver(post_delete, sender='api.StockBottleDamage')
-def delete_stock_bottle_damage_journal(sender, instance, **kwargs):
-    from api.services.accounting import delete_journal_for_source
-    delete_journal_for_source(instance)
-
-
-@receiver(post_save, sender='api.StorageTankLeak')
-def handle_storage_tank_leak_journal(sender, instance, **kwargs):
-    from api.services.accounting import sync_storage_tank_leak_journal
-    sync_storage_tank_leak_journal(instance)
-
-
-@receiver(post_delete, sender='api.StorageTankLeak')
-def delete_storage_tank_leak_journal(sender, instance, **kwargs):
-    from api.services.accounting import delete_journal_for_source
-    delete_journal_for_source(instance)
+        _resync_purchase_from_items(instance.purchase_id)
 
 
 # ── Salesman commission payments ───────────────────────────────────────
@@ -463,7 +422,7 @@ def delete_allocation_journal(sender, instance, **kwargs):
 
 
 @receiver(pre_delete, sender='api.Sales')
-@receiver(pre_delete, sender='api.RawMaterialPurchase')
+@receiver(pre_delete, sender='api.Purchase')
 def release_advance_before_bill_delete(sender, instance, **kwargs):
     from django.contrib.contenttypes.models import ContentType
     from api.models.data.payment import Payment

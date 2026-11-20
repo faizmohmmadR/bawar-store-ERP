@@ -1,17 +1,19 @@
-from django.utils import timezone
-from django.db import models
-from django.contrib.contenttypes.fields import GenericRelation
-from api.models.data.base import BaseModel
+from decimal import Decimal, ROUND_HALF_UP
 
+from django.contrib.contenttypes.fields import GenericRelation
+from django.db import models
+from django.utils import timezone
+
+from api.models.data.base import BaseModel
 from api.models.data.currency import CURRENCY_CHOICES
 from api.models.data.customers import Customer
 from api.models.data.salesmen import Salesman
 from api.models.data.stock import Stock
-from api.models.data.storage_tank import StorageTank
 
 
 class Sales(BaseModel):
-    """Sales order model"""
+    """Sales order for product packaging lines."""
+
     ORDER_STATUS_CHOICES = [
         ('draft', 'Draft'),
         ('confirmed', 'Confirmed'),
@@ -21,33 +23,49 @@ class Sales(BaseModel):
         ('cancelled', 'Cancelled'),
     ]
 
-    transaction_type = models.CharField(max_length=4, choices=[('paid', 'Paid'), ('free', 'Free')], default='paid')
+    transaction_type = models.CharField(
+        max_length=4,
+        choices=[('paid', 'Paid'), ('free', 'Free')],
+        default='paid',
+    )
 
     @property
     def is_free(self):
         return self.transaction_type == 'free'
 
-    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='sales', null=True, blank=True)
-    vendor = models.ForeignKey('api.Vendor', on_delete=models.PROTECT, related_name='raw_material_sales', null=True, blank=True)
+    customer = models.ForeignKey(
+        Customer, on_delete=models.PROTECT, related_name='sales', null=True, blank=True,
+    )
+    vendor = models.ForeignKey(
+        'api.Vendor', on_delete=models.PROTECT, related_name='sales', null=True, blank=True,
+    )
     employee = models.ForeignKey(
         'api.Employee',
         on_delete=models.PROTECT,
         related_name='product_sales',
         null=True,
         blank=True,
-        help_text='When set, this sale settles against the employee salary (goods as paid salary).',
+        help_text='When set, this sale settles against employee salary.',
     )
-    vendor_transaction = models.CharField(max_length=20, choices=[('sale', 'Sale'), ('purchase_return', 'Purchase return')], default='sale')
+    warehouse = models.ForeignKey(
+        'api.Warehouse',
+        on_delete=models.PROTECT,
+        related_name='sales',
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         constraints = [
+            # At most one party; walk-in sales may have none.
             models.CheckConstraint(
                 condition=(
-                    models.Q(customer__isnull=False, vendor__isnull=True, employee__isnull=True)
+                    models.Q(customer__isnull=True, vendor__isnull=True, employee__isnull=True)
+                    | models.Q(customer__isnull=False, vendor__isnull=True, employee__isnull=True)
                     | models.Q(customer__isnull=True, vendor__isnull=False, employee__isnull=True)
                     | models.Q(customer__isnull=True, vendor__isnull=True, employee__isnull=False)
                 ),
-                name='sale_exactly_one_party',
+                name='sale_at_most_one_party',
             ),
         ]
 
@@ -57,9 +75,7 @@ class Sales(BaseModel):
         null=True,
         blank=True,
         related_name='sales',
-        help_text='Optional salesman who earns commission on this sale.',
     )
-
     invoice_number = models.CharField(max_length=50, unique=True, blank=True)
     sale_date = models.DateTimeField(default=timezone.now)
     status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='draft')
@@ -69,17 +85,9 @@ class Sales(BaseModel):
     total_amount_base = models.DecimalField(max_digits=15, decimal_places=4, default=0)
     paid_amount = models.DecimalField(max_digits=15, decimal_places=4, default=0)
     paid_amount_base = models.DecimalField(max_digits=15, decimal_places=4, default=0)
-    exchange_rate = models.DecimalField(
-        max_digits=18,
-        decimal_places=6,
-        default=1,
-        help_text=(
-            'Snapshot of Settings→Exchange Rates at sale_date '
-            '(1 sale-currency = this many AFN). Not a separate rate table.'
-        ),
-    )
-    bill_no = models.CharField(max_length=100, blank=True, null=True, help_text='Optional external bill/reference number')
-    plate_number = models.CharField(max_length=50, blank=True, null=True, help_text='Vehicle plate number (پلیټ نمبر)')
+    exchange_rate = models.DecimalField(max_digits=18, decimal_places=6, default=1)
+    bill_no = models.CharField(max_length=100, blank=True, null=True)
+    plate_number = models.CharField(max_length=50, blank=True, null=True)
     notes = models.CharField(blank=True, null=True, max_length=255)
     documents = GenericRelation(
         'api.AttachedDocument',
@@ -91,191 +99,111 @@ class Sales(BaseModel):
     def save(self, *args, **kwargs):
         if not self.invoice_number:
             from api.services.document_numbers import allocate_sale_invoice_number
-
             self.invoice_number = allocate_sale_invoice_number()
-
         super().save(*args, **kwargs)
 
     @property
     def subtotal_amount(self):
-        """Subtotal before discount."""
-        from api.utils.packaging import sales_item_line_total
-
-        total = 0
+        total = Decimal('0')
         for item in self.sales_items.all():
-            total += sales_item_line_total(item)
+            total += Decimal(str(item.quantity or 0)) * Decimal(str(item.sell_price or 0))
         return total
 
     @property
     def discount_amount(self):
-        """Calculate discount amount"""
-        return (self.subtotal_amount * self.discount_percentage) / 100
+        return (self.subtotal_amount * Decimal(str(self.discount_percentage or 0))) / Decimal('100')
 
     @property
     def final_total(self):
-        """Calculate final total after discount"""
         return self.subtotal_amount - self.discount_amount
 
     def __str__(self):
         party = self.vendor or self.customer or self.employee
         party_name = getattr(party, 'name', None) or getattr(party, 'full_name', '') or ''
-        return f"{self.invoice_number}- {party_name}"
+        return f'{self.invoice_number}- {party_name}'
 
 
 class SalesItems(BaseModel):
-    """
-    Sales line items.
-
-    Sources:
-    - stock: sell packed finished goods by carton/dana (pieces + FEFO batches)
-    - tank: fill customer's container from StorageTank bulk liquid by liters
-    - raw_material: sell packaging/chemistry raw materials from RawMaterialStock
-    """
-    SOURCE_STOCK = 'stock'
-    SOURCE_TANK = 'tank'
-    SOURCE_RAW_MATERIAL = 'raw_material'
-    SOURCE_CHOICES = [
-        (SOURCE_STOCK, 'Packed stock'),
-        (SOURCE_TANK, 'Tank fill'),
-        (SOURCE_RAW_MATERIAL, 'Raw material'),
-    ]
-
-    UNIT_CARTON = 'carton'
-    UNIT_BOTTLE = 'bottle'
-    UNIT_PLASTIC = 'plastic'
-    UNIT_DANA = 'dana'  # legacy alias for bottle/piece
-    UNIT_PIECE = 'piece'
-    UNIT_LITER = 'liter'
-    UNIT_KG = 'kg'
-    UNIT_CHOICES = [
-        (UNIT_CARTON, 'Carton'),
-        (UNIT_BOTTLE, 'Bottle'),
-        (UNIT_PLASTIC, 'Plastic'),
-        (UNIT_DANA, 'Dana'),
-        (UNIT_PIECE, 'Piece'),
-        (UNIT_LITER, 'Liter'),
-        (UNIT_KG, 'Kilogram'),
-    ]
-    PIECE_UNITS = {UNIT_BOTTLE, UNIT_PLASTIC, UNIT_DANA, UNIT_PIECE, 'pieces'}
+    """Sale line: product sold in a packaging unit; stock moved in base UOM."""
 
     sales = models.ForeignKey(Sales, on_delete=models.CASCADE, related_name='sales_items')
-    sale_source = models.CharField(
-        max_length=16,
-        choices=SOURCE_CHOICES,
-        default=SOURCE_STOCK,
-        db_index=True,
-        help_text=(
-            'stock = packed inventory; tank = bulk fill from storage tank; '
-            'raw_material = sell raw material stock'
-        ),
+    product = models.ForeignKey(
+        'api.Product',
+        on_delete=models.PROTECT,
+        related_name='sales_items',
+    )
+    packaging = models.ForeignKey(
+        'api.ProductPackaging',
+        on_delete=models.PROTECT,
+        related_name='sales_items',
     )
     stock = models.ForeignKey(
         Stock,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='sales_items',
-    )
-    storage_tank = models.ForeignKey(
-        StorageTank,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name='sales_items',
-    )
-    raw_material_stock = models.ForeignKey(
-        'api.RawMaterialStock',
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name='sales_items',
-        help_text='Raw material inventory row for raw_material sale lines.',
-    )
-    unit = models.CharField(
-        max_length=10,
-        choices=UNIT_CHOICES,
-        default=UNIT_CARTON,
-        help_text=(
-            'carton/bottle/plastic/kg for stock; liter/kg for tank; '
-            'piece/kg for raw materials'
-        ),
+        help_text='Optional legacy stock mirror row.',
     )
     quantity = models.DecimalField(
-        max_digits=12,
-        decimal_places=4,
+        max_digits=18,
+        decimal_places=6,
         default=0,
-        help_text='Quantity in the selected unit (cartons, pieces, liters, or kilograms)',
+        help_text='Quantity in selected packaging.',
     )
-    liter_amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=4,
+    conversion_factor = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        default=1,
+        help_text='Snapshot of packaging.qty_in_base at sale time.',
+    )
+    base_quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
         default=0,
-        help_text='For stock lines: piece equivalent. For tank lines: liters sold, including kg conversion.',
+        help_text='quantity × conversion_factor in product base UOM.',
     )
-    kilogram_amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=4,
-        default=0,
-        help_text='Mass represented by this sale line, in kilograms.',
-    )
+    # Keep liter_amount as alias of base_quantity for older serializers during transition.
+    liter_amount = models.DecimalField(max_digits=18, decimal_places=6, default=0)
     sell_price = models.DecimalField(
-        max_digits=12,
-        decimal_places=4,
+        max_digits=18,
+        decimal_places=6,
         default=0,
-        help_text='Price per selected unit (carton, piece, or liter)',
+        help_text='Price per packaging unit in sale currency.',
     )
     unit_cost = models.DecimalField(
         max_digits=18,
         decimal_places=6,
         default=0,
-        help_text='Inventory cost per piece (stock) or per liter (tank) in AFN',
+        help_text='AVCO cost per base UOM in AFN at sale time.',
     )
     cost_is_known = models.BooleanField(default=False)
-    commission_amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=4,
-        default=0,
-        help_text='Commission per selected unit (carton, bottle, plastic, or liter) always in AFN.',
-    )
-    piece_count = models.PositiveIntegerField(
-        default=0,
-        help_text=(
-            'Optional package/piece count deducted with kilogram raw-material sales.'
-        ),
-    )
+    commission_amount = models.DecimalField(max_digits=12, decimal_places=4, default=0)
 
-    class Meta:
-        constraints = [
-            models.CheckConstraint(
-                check=(
-                    models.Q(
-                        sale_source='stock',
-                        stock__isnull=False,
-                        storage_tank__isnull=True,
-                        raw_material_stock__isnull=True,
-                    )
-                    | models.Q(
-                        sale_source='tank',
-                        storage_tank__isnull=False,
-                        stock__isnull=True,
-                        raw_material_stock__isnull=True,
-                    )
-                    | models.Q(
-                        sale_source='raw_material',
-                        raw_material_stock__isnull=False,
-                        stock__isnull=True,
-                        storage_tank__isnull=True,
-                    )
-                ),
-                name='salesitems_source_stock_xor_tank_xor_raw_material',
-            ),
-        ]
+    def save(self, *args, **kwargs):
+        if self.sales_id and self.sales.is_free:
+            self.sell_price = Decimal('0')
+        if self.packaging_id and (not self.conversion_factor or self.conversion_factor == 0):
+            self.conversion_factor = self.packaging.qty_in_base
+        if not self.product_id and self.packaging_id:
+            self.product_id = self.packaging.product_id
+        qty = Decimal(str(self.quantity or 0))
+        factor = Decimal(str(self.conversion_factor or 1))
+        self.base_quantity = (qty * factor).quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP)
+        self.liter_amount = self.base_quantity
+        if kwargs.get('update_fields') is not None:
+            kwargs['update_fields'] = set(kwargs['update_fields']) | {
+                'base_quantity', 'liter_amount', 'conversion_factor', 'product',
+            }
+        super().save(*args, **kwargs)
+
+    @property
+    def line_total(self):
+        return (
+            Decimal(str(self.quantity or 0)) * Decimal(str(self.sell_price or 0))
+        ).quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
 
     def __str__(self):
-        if self.sale_source == self.SOURCE_TANK and self.storage_tank_id:
-            return f"{self.storage_tank.name} - {self.quantity} L @ {self.sell_price}"
-        if self.sale_source == self.SOURCE_RAW_MATERIAL and self.raw_material_stock_id:
-            name = self.raw_material_stock.raw_material.name
-            return f"{name} - {self.quantity} {self.unit} @ {self.sell_price}"
-        product = self.stock.product.name if self.stock_id and self.stock.product_id else 'Item'
-        return f"{product} - {self.quantity} {self.unit} @ {self.sell_price}"
+        name = getattr(self.product, 'name', self.product_id)
+        pkg = getattr(self.packaging, 'name', '')
+        return f'{name} ({pkg}) × {self.quantity} @ {self.sell_price}'

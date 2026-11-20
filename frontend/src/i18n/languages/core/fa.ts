@@ -54,9 +54,6 @@ export const coreFa = {
   },
 
   navigation: {
-    returnedForPacking: 'برگشت\u200cشده برای بسته\u200cبندی',
-    bottleDamageHistory: 'آسیب بوتل‌ها',
-
     dashboard: 'داشبورد',
     profile: 'پروفایل',
     companies: 'شرکتها',
@@ -67,7 +64,6 @@ export const coreFa = {
     stockReport: 'گزارش موجودی',
     expiringStock: 'موجودی منقضی شونده',
     lowStock: 'موجودی کم',
-    damaged: 'آسیب‌دیده',
     branches: 'برنچ‌ها',
     withdrawals: 'برداشت',
     withdrawalsList: 'برداشت‌ها',
@@ -136,16 +132,6 @@ export const coreFa = {
     activityLogs: 'گزارش فعالیتها',
     backups: 'پشتیبانگیری',
     trash: 'سطل زباله',
-    rawMaterials: 'مواد خام',
-    rawMaterialsList: 'مواد خام',
-    rawMaterialReport: 'گزارش مواد خام',
-    rawMaterialPurchases: 'خرید مواد خام',
-    rawMaterialProcesses: 'تولید مواد خام',
-    rawMaterialStock: 'گدام مواد خام',
-    rawMaterialSales: 'فروش مواد خام',
-    storageTanks: 'مخازن ذخیره',
-    packing: 'بسته‌بندی',
-    packingRuns: 'اجرای بسته‌بندی',
     search: 'جستجو...',
     collapseAll: 'بستن همه',
     logout: 'خروج'

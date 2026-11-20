@@ -52,33 +52,7 @@ export const PERMISSION_CATALOG: PermissionGroupDef[] = [
     rows: [
       { id: 'stock', labelKey: 'core.navigation.stock', actions: crud('stock') },
       { id: 'products', labelKey: 'core.navigation.products', actions: crud('products') },
-      { id: 'raw_materials', labelKey: 'core.navigation.rawMaterials', actions: crud('raw_materials') },
-      {
-        id: 'raw_material_purchases',
-        labelKey: 'core.navigation.rawMaterialPurchases',
-        actions: crud('raw_material_purchases'),
-      },
-      {
-        id: 'raw_material_stocks',
-        labelKey: 'core.navigation.rawMaterialStock',
-        actions: crud('raw_material_stocks'),
-      },
-      {
-        id: 'raw_material_sales',
-        labelKey: 'core.navigation.rawMaterialSales',
-        actions: crud('raw_material_sales'),
-      },
-      {
-        id: 'raw_material_processes',
-        labelKey: 'core.navigation.rawMaterialProcesses',
-        actions: crud('raw_material_processes'),
-      },
-      {
-        id: 'storage_tanks',
-        labelKey: 'core.navigation.storageTanks',
-        actions: crud('storage_tanks'),
-      },
-      { id: 'packing', labelKey: 'core.navigation.packing', actions: crud('packing') },
+      { id: 'purchases', labelKey: 'core.navigation.purchases', actions: crud('purchases') },
       { id: 'equipment', labelKey: 'core.navigation.equipment', actions: crud('equipment') },
     ],
   },

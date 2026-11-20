@@ -8,7 +8,7 @@ from rest_framework.test import APIClient
 from api.models.data.journal import GLAccount, JournalEntry, JournalLine
 from api.models.data.loan import Loan
 from api.models.data.payment import Payment
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.models.data.sales import Sales
 from api.models.data.vendors import Vendor
 from api.services.general_payments import save_general_payment

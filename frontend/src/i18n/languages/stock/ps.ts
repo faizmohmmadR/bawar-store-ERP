@@ -1,4 +1,7 @@
 export const stockPs = {
+    component_bottle: 'بوتل',
+    component_carton: 'کارتن',
+    component_plastic: 'پلاستیک',
     newProductName: 'د نوي محصول نوم',
     selectStockProduct: 'د موجودۍ محصول غوره کړئ',
     chooseExistingProduct: 'موجود غوره کړئ',

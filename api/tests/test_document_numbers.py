@@ -7,7 +7,7 @@ from django.test import TestCase, TransactionTestCase
 
 from api.models.data.document_number_sequence import DocumentNumberSequence
 from api.models.data.products import Product
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.models.data.vendors import Vendor
 from api.services import document_numbers as numbers
 

@@ -54,9 +54,6 @@ export const coreEn = {
   },
 
   navigation: {
-    returnedForPacking: 'Returned for Packing',
-    bottleDamageHistory: 'Bottle damages',
-
     dashboard: 'Dashboard',
     profile: 'Profile',
     companies: 'Companies',
@@ -67,7 +64,6 @@ export const coreEn = {
     stockReport: 'Stock Report',
     expiringStock: 'Expiring Stock',
     lowStock: 'Low Stock',
-    damaged: 'Damaged',
     branches: 'Branches',
     withdrawals: 'Withdrawals',
     withdrawalsList: 'Withdrawals',
@@ -132,16 +128,6 @@ export const coreEn = {
     activityLogs: 'Activity Logs',
     backups: 'Backups',
     trash: 'Trash',
-    rawMaterials: 'Raw Materials',
-    rawMaterialsList: 'Raw Materials',
-    rawMaterialReport: 'Raw Materials Report',
-    rawMaterialPurchases: 'Raw Material Purchases',
-    rawMaterialProcesses: 'Raw Material Production',
-    rawMaterialStock: 'Raw Material Stock',
-    rawMaterialSales: 'Raw Material Sales',
-    storageTanks: 'Storage Tanks',
-    packing: 'Packing',
-    packingRuns: 'Packing runs',
     search: 'Search...',
     collapseAll: 'Collapse All',
     logout: 'Logout'

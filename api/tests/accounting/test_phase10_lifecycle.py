@@ -11,7 +11,7 @@ from api.models.data.equipment import Equipment
 from api.models.data.journal import JournalEntry
 from api.models.data.payroll import Payroll
 from api.models.data.products import Product
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.models.data.returns import Return, ReturnItems
 from api.models.data.sales import Sales, SalesItems
 from api.models.data.stock_adjustment import StockAdjustment

@@ -1,4 +1,7 @@
 export const stockFa = {
+    component_bottle: 'بوتل',
+    component_carton: 'کارتن',
+    component_plastic: 'پلاستیک',
     newProductName: 'نام محصول جدید',
     selectStockProduct: 'انتخاب محصول موجودی',
     chooseExistingProduct: 'انتخاب موجود',

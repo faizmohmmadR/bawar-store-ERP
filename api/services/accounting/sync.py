@@ -64,79 +64,39 @@ def _item_unit_cost(sales_item):
     return Decimal('0')
 
 
-def _cogs_pieces_for_item(item):
-    from api.utils.packaging import sales_item_pieces
-
-    return sales_item_pieces(item)
-
-
 def _calculate_cogs_for_sale(sale):
-    from api.models.data.sales import SalesItems
+    """COGS = sum(base_quantity × unit_cost AFN) for product packaging lines."""
     total_cost = Decimal('0')
-    for item in sale.sales_items.select_related('stock', 'raw_material_stock').all():
-        unit_cost = _item_unit_cost(item)
-        if item.sale_source == SalesItems.SOURCE_TANK:
-            quantity = d(
-                item.quantity if item.unit == SalesItems.UNIT_KG
-                else item.liter_amount
-            )
-            if unit_cost > 0 and quantity > 0:
-                total_cost += unit_cost * quantity
-            continue
-        if item.sale_source == SalesItems.SOURCE_RAW_MATERIAL:
-            from api.services.raw_material_sales import raw_stock_quantity
-            quantity = raw_stock_quantity(item)
-            if unit_cost > 0 and quantity > 0:
-                total_cost += unit_cost * quantity
-            continue
-        pieces = _cogs_pieces_for_item(item)
-        if unit_cost > 0 and pieces > 0:
-            total_cost += unit_cost * pieces
+    for item in sale.sales_items.select_related('product', 'packaging').all():
+        unit_cost = d(getattr(item, 'unit_cost', 0) or 0)
+        if unit_cost <= 0:
+            unit_cost = d(getattr(getattr(item, 'product', None), 'average_cost', 0) or 0)
+        base_qty = d(getattr(item, 'base_quantity', 0) or getattr(item, 'liter_amount', 0) or 0)
+        if unit_cost > 0 and base_qty > 0:
+            total_cost += unit_cost * base_qty
     return total_cost
 
 
 def _calculate_cogs_for_return(return_order):
-    """Mirror sale COGS: tank kg/L, raw-material qty, finished-goods pieces."""
-    from api.models.data.sales import SalesItems
-
+    """Mirror sale COGS using returned base quantities."""
     total_cost = Decimal('0')
-    for item in return_order.return_items.select_related(
-        'sales_item__stock',
-        'sales_item__raw_material_stock',
-    ).all():
+    for item in return_order.return_items.select_related('sales_item__product').all():
         sales_item = item.sales_item
-        unit_cost = _item_unit_cost(sales_item)
+        unit_cost = d(getattr(sales_item, 'unit_cost', 0) or 0)
+        if unit_cost <= 0:
+            unit_cost = d(getattr(getattr(sales_item, 'product', None), 'average_cost', 0) or 0)
         if unit_cost <= 0:
             continue
-
-        if sales_item.sale_source == SalesItems.SOURCE_TANK:
-            if sales_item.unit == SalesItems.UNIT_KG:
-                quantity = d(item.quantity_kg) or d(item.liter_amount)
-            else:
-                quantity = d(item.liter_amount)
-            if quantity > 0:
-                total_cost += unit_cost * quantity
-            continue
-
-        if sales_item.sale_source == SalesItems.SOURCE_RAW_MATERIAL:
-            if sales_item.unit == SalesItems.UNIT_KG:
-                quantity = d(item.quantity_kg) or d(item.liter_amount)
-            else:
-                quantity = d(item.liter_amount) or d(item.quantity_kg)
-            if quantity > 0:
-                from api.services.raw_material_sales import raw_stock_quantity
-                total_cost += unit_cost * raw_stock_quantity(sales_item) * quantity / d(sales_item.quantity)
-            continue
-
-        # Returned lot snapshots retain the actual cost even when a sale spans prices.
         if item.batch_returns:
-            total_cost += sum((d(row['quantity']) * d(row['unit_cost_afn'])
-                              for row in item.batch_returns), Decimal('0'))
+            total_cost += sum(
+                (d(row.get('quantity', 0)) * d(row.get('unit_cost_afn', 0))
+                 for row in item.batch_returns),
+                Decimal('0'),
+            )
             continue
-        # Finished-goods returns store piece qty in liter_amount.
-        pieces = d(item.liter_amount)
-        if pieces > 0:
-            total_cost += unit_cost * pieces
+        base_qty = d(getattr(item, 'base_quantity', 0) or getattr(item, 'liter_amount', 0) or 0)
+        if base_qty > 0:
+            total_cost += unit_cost * base_qty
     return total_cost
 
 
@@ -152,11 +112,6 @@ def _calculate_commission_afn_for_sale(sale):
 
 def sync_sales_journal(sale):
     if not _ready(sale):
-        return
-    if sale.vendor_id:
-        from api.services.vendor_goods import sync_vendor_goods_journal
-        recalculate_sale_totals(sale)
-        sync_vendor_goods_journal(sale, _calculate_cogs_for_sale(sale))
         return
     if not _should_post_journal(sale):
         delete_journal_for_source(sale)
@@ -706,8 +661,8 @@ def sync_payment_journal(payment):
             monetary_description='Reduce receivable',
         )
     elif payment.payment_type == 'purchase':
-        from api.models.data.raw_materials import RawMaterialPurchase
-        if not isinstance(related_object, RawMaterialPurchase):
+        from api.models.data.purchases import Purchase
+        if not isinstance(related_object, Purchase):
             return
         # AP is only recognized when the purchase is received; settle only then.
         if related_object.status != 'received':
@@ -1185,14 +1140,11 @@ def sync_salesman_commission_payment_journal(payment):
     )
 
 
-def sync_raw_material_purchase_journal(purchase):
+def sync_purchase_journal(purchase):
     """
-    Received raw-material purchase:
-      Dr Inventory (1100)
-      Cr Accounts Payable (2000)
-
-    Draft / cancelled / pending purchases do not post. Inventory value stays in
-    1100 through process → tank → packing; sale COGS credits inventory later.
+    Received product purchase:
+      Dr Inventory
+      Cr Accounts Payable
     """
     if not _ready(purchase):
         return
@@ -1214,14 +1166,14 @@ def sync_raw_material_purchase_journal(purchase):
     replace_journal_for_source(
         purchase,
         entry_date=purchase.purchase_date,
-        reference_number=purchase.invoice_number or f'RMP-{purchase.id}',
-        description=purchase.notes or f'Raw material purchase {purchase.invoice_number} ({vendor_name})',
+        reference_number=purchase.invoice_number or f'PO-{purchase.id}',
+        description=purchase.notes or f'Purchase {purchase.invoice_number} ({vendor_name})',
         lines=[
             {
                 'gl_account': gl_for_source('inventory', purchase),
                 'debit': total,
                 'credit': Decimal('0'),
-                'description': 'Raw material inventory',
+                'description': 'Inventory',
             },
             {
                 'gl_account': gl_for_source('accounts_payable', purchase),
@@ -1234,66 +1186,14 @@ def sync_raw_material_purchase_journal(purchase):
     _resync_payments_for_order(purchase, payment_type='purchase')
 
 
+# Backwards-compatible aliases
+sync_raw_material_purchase_journal = sync_purchase_journal
+
+
 def sync_raw_material_stock_opening_journal(stock, *, value=None):
-    """
-    Direct / opening raw-material stock (not purchase-received):
-      Dr Inventory (1100)
-      Cr Opening Balance Equity
-
-    Purchase inflows are owned by sync_raw_material_purchase_journal. Call this
-    only from the direct stock API or repair tooling — never from purchase
-    reconciliation (that would double-count).
-    """
-    if getattr(stock, 'deleted_at', None) is not None:
-        delete_journal_for_source(stock)
-        return
-
-    class _Proxy:
-        pass
-
-    proxy = _Proxy()
-    proxy.currency = BASE_CURRENCY_ID
-    if not ensure_accounting_ready(currency_id=BASE_CURRENCY_ID):
-        return
-
-    if value is None:
-        qty = d(stock.quantity)
-        price = d(stock.last_purchase_price)
-        value = qty * price if qty > 0 and price > 0 else Decimal('0')
-    else:
-        value = d(value)
-
-    if value <= 0:
-        delete_journal_for_source(stock)
-        return
-
-    name = getattr(getattr(stock, 'raw_material', None), 'name', None) or f'stock {stock.pk}'
-    entry_date = (
-        getattr(stock, 'last_purchase_date', None)
-        or getattr(stock, 'updated_at', None)
-        or getattr(stock, 'created_at', None)
-        or timezone.now()
-    )
-    replace_journal_for_source(
-        stock,
-        entry_date=entry_date,
-        reference_number=f'RM-OPEN-{stock.pk}',
-        description=f'Opening raw material stock - {name}',
-        lines=[
-            {
-                'gl_account': gl_for_source('inventory', proxy),
-                'debit': value,
-                'credit': Decimal('0'),
-                'description': 'Opening raw material inventory',
-            },
-            {
-                'gl_account': gl_for_source('opening_balance_equity', proxy),
-                'debit': Decimal('0'),
-                'credit': value,
-                'description': 'Opening balance equity',
-            },
-        ],
-    )
+    """Deprecated with raw-material stock removal."""
+    delete_journal_for_source(stock)
+    return None
 
 
 def _resync_payments_for_order(order, *, payment_type):
@@ -1311,133 +1211,15 @@ def _resync_payments_for_order(order, *, payment_type):
 
 
 def sync_packing_run_journal(run):
-    """
-    Packing reclassifies value already capitalized in Inventory (1100):
-    tank liquid + packaging RM → finished goods. With a single inventory
-    account the entry nets to zero, so we only clean up any prior journal.
-    Finished batches must set _skip_batch_journal to avoid Opening Equity.
-    """
     delete_journal_for_source(run)
     return None
 
 
 def sync_stock_bottle_damage_journal(damage):
-    """
-    Damaged filled bottles: finished stock leaves sellable lots (batch skip),
-    salvageable liquid stays in inventory as tank liquid, spilled/packaging
-    value is written off.
-
-    Dr Stock Adjustments (loss) · Cr Inventory
-      for bottle_inventory_value − returned_liquid_cost
-    """
-    from api.models.data.currency import BASE_CURRENCY_ID
-
-    if getattr(damage, 'deleted_at', None):
-        delete_journal_for_source(damage)
-        return None
-
-    class _Ctx:
-        pass
-
-    ctx = _Ctx()
-    ctx.currency = BASE_CURRENCY_ID
-    if not ensure_accounting_ready(currency_id=BASE_CURRENCY_ID):
-        return None
-
-    bottle_value = Decimal('0')
-    for src in (damage.bottle_sources or []):
-        bottle_value += d(src.get('bottle_count')) * d(src.get('unit_cost_afn'))
-    if bottle_value <= 0 and damage.bottle_count and damage.capacity_kg:
-        # Fallback when sources lack unit costs.
-        bottle_value = d(damage.bottle_count) * d(damage.liquid_unit_cost_afn) * d(damage.capacity_kg)
-
-    returned = d(damage.returned_liquid_cost_afn)
-    loss = bottle_value - returned
-    if loss <= 0:
-        delete_journal_for_source(damage)
-        return None
-
-    inv_account = gl_for_source('inventory', ctx)
-    loss_account = gl_for_source('stock_adjustment', ctx) or gl_for_source(
-        'operating_expense', ctx
-    )
-    product_name = getattr(getattr(damage, 'product', None), 'name', None) or f'#{damage.product_id}'
-    lines = [
-        {
-            'gl_account': loss_account,
-            'debit': loss,
-            'credit': Decimal('0'),
-            'description': (
-                f'Bottle damage loss · {damage.bottle_count} × {product_name}'
-            ),
-        },
-        {
-            'gl_account': inv_account,
-            'debit': Decimal('0'),
-            'credit': loss,
-            'description': (
-                f'Inventory relief · bottle damage #{damage.pk}'
-            ),
-        },
-    ]
-    replace_journal_for_source(
-        damage,
-        entry_date=getattr(damage, 'recorded_at', None) or timezone.now(),
-        reference_number=f'BOTTLE-DMG-{damage.pk}',
-        description=(
-            f'Damaged bottles · spilled {d(damage.damaged_liquid_kg)} kg · '
-            f'returned {d(damage.remaining_liquid_kg)} kg to tank'
-        ),
-        lines=lines,
-    )
+    delete_journal_for_source(damage)
     return None
 
 
 def sync_storage_tank_leak_journal(leak):
-    """Write off leaked tank liquid: Dr stock adjustment · Cr inventory."""
-    from api.models.data.currency import BASE_CURRENCY_ID
-
-    if getattr(leak, 'deleted_at', None):
-        delete_journal_for_source(leak)
-        return None
-
-    class _Ctx:
-        pass
-
-    ctx = _Ctx()
-    ctx.currency = BASE_CURRENCY_ID
-    if not ensure_accounting_ready(currency_id=BASE_CURRENCY_ID):
-        return None
-
-    loss = d(leak.total_cost_afn)
-    if loss <= 0:
-        delete_journal_for_source(leak)
-        return None
-
-    inv_account = gl_for_source('inventory', ctx)
-    loss_account = gl_for_source('stock_adjustment', ctx) or gl_for_source(
-        'operating_expense', ctx
-    )
-    tank_name = getattr(getattr(leak, 'storage_tank', None), 'name', None) or f'#{leak.storage_tank_id}'
-    lines = [
-        {
-            'gl_account': loss_account,
-            'debit': loss,
-            'credit': Decimal('0'),
-            'description': f'Tank leak loss · {d(leak.quantity_kg)} kg · {tank_name}',
-        },
-        {
-            'gl_account': inv_account,
-            'debit': Decimal('0'),
-            'credit': loss,
-            'description': f'Inventory relief · tank leak #{leak.pk}',
-        },
-    ]
-    replace_journal_for_source(
-        leak,
-        entry_date=getattr(leak, 'recorded_at', None) or timezone.now(),
-        reference_number=f'TANK-LEAK-{leak.pk}',
-        description=f'Storage tank leak · {d(leak.quantity_kg)} kg from {tank_name}',
-        lines=lines,
-    )
+    delete_journal_for_source(leak)
     return None

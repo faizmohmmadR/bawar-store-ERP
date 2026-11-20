@@ -97,7 +97,7 @@ def get_journals_for_source(model_name, object_id, *, include_related=False):
 
         elif normalized == 'rawmaterialpurchase':
             from api.models.data.payment import Payment
-            from api.models.data.raw_materials import RawMaterialPurchase
+            from api.models.data.purchases import Purchase as RawMaterialPurchase
 
             purchase_ct = ContentType.objects.get_for_model(RawMaterialPurchase)
             payment_ct = ContentType.objects.get_for_model(Payment)

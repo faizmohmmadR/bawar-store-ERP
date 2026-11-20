@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.models.data.vendors import Vendor
 from api.models.data.payment import Payment
 from api.services.currency_conversion import populate_base_amounts

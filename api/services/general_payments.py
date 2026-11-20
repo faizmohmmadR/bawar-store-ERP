@@ -9,7 +9,7 @@ from rest_framework.exceptions import ValidationError
 from api.models.data.customers import Customer
 from api.models.data.vendors import Vendor
 from api.models.data.sales import Sales
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.models.data.payment import Payment, GeneralPayment
 
 CENT = Decimal('0.01')

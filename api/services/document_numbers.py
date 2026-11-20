@@ -83,20 +83,14 @@ def allocate_sale_invoice_number() -> str:
     return next_sequential_document_number(prefix='S', model=Sales)
 
 
-def allocate_raw_material_purchase_invoice_number() -> str:
-    from api.models.data.raw_materials import RawMaterialPurchase
+def allocate_purchase_invoice_number() -> str:
+    from api.models.data.purchases import Purchase
 
-    return next_sequential_document_number(prefix='R', model=RawMaterialPurchase)
+    return next_sequential_document_number(prefix='P', model=Purchase)
 
 
-def allocate_raw_material_process_number() -> str:
-    from api.models.data.raw_material_process import RawMaterialProcess
-
-    return next_sequential_document_number(
-        prefix='M',
-        model=RawMaterialProcess,
-        field='process_number',
-    )
+# Backwards-compatible alias
+allocate_raw_material_purchase_invoice_number = allocate_purchase_invoice_number
 
 
 def allocate_equipment_serial_number() -> str:
@@ -137,13 +131,3 @@ def allocate_return_number() -> str:
     return next_sequential_document_number(prefix='RET', model=Return, field='return_number')
 
 
-def allocate_packing_number() -> str:
-    from api.models.data.packing import PackingRun
-    return next_sequential_document_number(prefix='PK', model=PackingRun, field='packing_number')
-
-
-def allocate_damaged_number() -> str:
-    from api.models.data.damaged_materials import DamagedMaterialRecord
-    return next_sequential_document_number(
-        prefix='DM', model=DamagedMaterialRecord, field='damaged_number',
-    )

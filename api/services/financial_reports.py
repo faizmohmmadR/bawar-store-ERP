@@ -11,7 +11,7 @@ from api.models.data.loan import Loan, LoanPayment
 from api.models.data.payment import Payment
 from api.models.data.payroll import Payroll
 from api.models.data.returns import Return
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.models.data.sales import Sales
 from api.utils.currency import convert_currency
 

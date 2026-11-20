@@ -54,9 +54,6 @@ export const corePs = {
   },
 
   navigation: {
-    returnedForPacking: 'بسته\u200cبندۍ ته راستانه شوي',
-    bottleDamageHistory: 'د بوتل زیانونه',
-
     dashboard: 'ډشبورډ',
     profile: 'پروفایل',
     companies: 'شرکتونه',
@@ -67,7 +64,6 @@ export const corePs = {
     stockReport: 'د موجودي راپور',
     expiringStock: 'ختمیدونکی موجودي',
     lowStock: 'کم موجودي',
-    damaged: 'زیانمن',
     branches: 'څانګې',
     withdrawals: 'ایستل',
     withdrawalsList: 'ایستلونه',
@@ -137,16 +133,6 @@ export const corePs = {
     activityLogs: 'د فعالیتونو راپورونه',
     backups: 'بیک اپ',
     trash: 'کثافات',
-    rawMaterials: 'خام مواد',
-    rawMaterialsList: 'خام مواد',
-    rawMaterialReport: 'د خام مواد راپور',
-    rawMaterialPurchases: 'د خام مواد خریدونه',
-    rawMaterialProcesses: 'د خامو موادو تولید',
-    rawMaterialStock: 'د خام مواد انبار',
-    rawMaterialSales: 'د خامو موادو پلور',
-    storageTanks: 'د ذخیرې ټانکونه',
-    packing: 'بسته‌بندی',
-    packingRuns: 'د بسته‌بندۍ اجرا',
     search: 'پلټنه...',
     collapseAll: 'ټول بند کړئ',
     logout: 'وتل'

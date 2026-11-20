@@ -353,7 +353,7 @@ const SOURCE_PATHS: Record<string, string> = {
   sales: '/sales',
   sale: '/sales',
   rawmaterialsale: '/raw-material-sales',
-  rawmaterialpurchase: '/raw-material-purchases',
+  rawmaterialpurchase: '/purchases',
   rawmaterialprocess: '/raw-material-processes',
   packingrun: '/packing',
   payroll: '/payroll',
@@ -375,7 +375,7 @@ function sourceLink(row: Record<string, unknown>): string | null {
   }
   const direct: Array<[string, string]> = [
     ['sale_id', '/sales'],
-    ['purchase_id', '/raw-material-purchases'],
+    ['purchase_id', '/purchases'],
     ['expense_id', '/expenses'],
     ['employee_id', '/employees'],
     ['loan_id', '/loans'],

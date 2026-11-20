@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.test import TestCase
 
 from api.models.data.vendors import Vendor
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.services.currency_conversion import populate_base_amounts
 from api.services.daily_ledger import DAILY_LEDGER_SECTIONS, build_daily_ledger
 from api.tests.accounting.helpers import (

@@ -70,7 +70,7 @@ const OrderPaymentsPage = ({ type }: OrderPaymentsPageProps) => {
         onClick={() =>
           navigate(
             type === 'purchase'
-              ? `/raw-material-purchases/${orderId}`
+              ? `/purchases/${orderId}`
               : `/sales/${orderId}`,
           )
         }

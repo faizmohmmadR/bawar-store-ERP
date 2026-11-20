@@ -1,209 +1,130 @@
-import { formatPrice } from '@/lib/formatNumber';
-import { getCurrencySymbol } from '@/lib/currencies';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit, Trash2, Eye, TrendingDown } from 'lucide-react';
+import { Eye, TrendingDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Autocomplete } from '@/components/ui/autocomplete';
 import DataTable, { TableColumn, TableAction } from '@/components/ui/data-table';
 import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
-import useDelete from '@/api/useDelete';
+import { formatOrderNumeric } from '@/lib/orderNumeric';
 import {
-  DEFAULT_PIECES_PER_CARTON,
-  cartonsFromPieces,
-  remainderPieces,
-} from '@/lib/packaging';
-import { stockPieces } from '@/lib/stockApi';
+  baseUomLabel,
+  formatPackagingBreakdown,
+  stockValue,
+} from '@/lib/inventoryDisplay';
+import type { InventoryBalance } from '@/types/inventory';
 
 const LowStockList = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [productFilter, setProductFilter] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
 
-  const { data: stocksData, isLoading } = useFetchObjects<{
-    results: any[];
-    count: number;
-  }>({
-    queryKey: ['stocks-low', currentPage.toString(), pageSize.toString(), searchTerm, productFilter],
-    endpoint: 'stocks/',
-    params: {
-      page: currentPage,
-      page_size: pageSize,
-      search: searchTerm,
-      stock_status: 'low_stock',
-      condition: 'good',
-      ...(productFilter && { product: productFilter }),
-    },
+  const { data, isLoading } = useFetchObjects<InventoryBalance[]>({
+    queryKey: ['stocks-low-stock', searchTerm],
+    endpoint: 'stocks/low-stock/',
   });
 
-  const { handleDelete, ConfirmDialog } = useDelete({ queryKey: ['stocks'], endpoint: 'stocks' });
+  const balances = (Array.isArray(data) ? data : [])
+    .filter((row) => {
+      if (!searchTerm.trim()) return true;
+      const name = row.product_details?.name || '';
+      const sku = row.product_details?.sku || '';
+      const q = searchTerm.toLowerCase();
+      return name.toLowerCase().includes(q) || sku.toLowerCase().includes(q);
+    });
 
-  const stocks = stocksData?.results || [];
-  const totalItems = stocksData?.count || 0;
-
-  const columns: TableColumn[] = [
+  const columns: TableColumn<InventoryBalance>[] = [
     {
       key: 'product_details',
-      title: t('stock.product'),
-      width: '11rem',
-      className: 'max-w-[11rem]',
-      render: (value) => {
-        const name = value?.name || t('stock.notAvailable');
-        return <span className="block truncate font-medium" title={name}>{name}</span>;
+      title: t('stock.product', 'Product'),
+      width: '14rem',
+      className: 'max-w-[14rem]',
+      render: (value) => (
+        <span className="block truncate font-medium" title={value?.name || '—'}>
+          {value?.name || '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'warehouse_name',
+      title: t('stock.warehouse', 'Warehouse'),
+      width: '9rem',
+      render: (value) => value || '—',
+    },
+    {
+      key: 'quantity_on_hand',
+      title: t('stock.baseOnHand', 'On hand (base)'),
+      width: '9rem',
+      className: 'tabular-nums',
+      render: (value, row) => {
+        const uom = baseUomLabel(row.product_details);
+        return `${formatOrderNumeric(Number(value) || 0)}${uom ? ` ${uom}` : ''}`;
       },
     },
     {
-      key: 'carton_amount',
-      title: t('stock.carton', 'Carton'),
-      width: '5rem',
-      className: 'whitespace-nowrap',
-      render: (_value, record) => (
-        <span className="font-medium tabular-nums text-accent">
-          {cartonsFromPieces(stockPieces(record), Number(record.product_details?.bottles_per_carton) || DEFAULT_PIECES_PER_CARTON)}
-        </span>
-      ),
+      key: 'reorder_level',
+      title: t('stock.reorderLevel', 'Reorder level'),
+      width: '8rem',
+      className: 'tabular-nums',
+      render: (_value, row) =>
+        formatOrderNumeric(Number(row.product_details?.reorder_level) || 0),
     },
     {
-      key: 'loose_pieces',
-      title: t('stock.piece', 'Pieces'),
-      width: '5rem',
-      className: 'whitespace-nowrap',
-      render: (_value, record) => (
-        <span className="font-medium tabular-nums">
-          {remainderPieces(stockPieces(record), Number(record.product_details?.bottles_per_carton) || DEFAULT_PIECES_PER_CARTON)}
-        </span>
-      ),
+      key: 'packaging_breakdown',
+      title: t('stock.asPackaging', 'As packaging'),
+      width: '14rem',
+      render: (value) => formatPackagingBreakdown(value),
+    },
+    {
+      key: 'stock_value',
+      title: t('stock.onHandValue', 'Value'),
+      width: '8rem',
+      className: 'tabular-nums',
+      render: (_value, row) =>
+        formatOrderNumeric(stockValue(row.quantity_on_hand, row.average_cost)),
     },
     {
       key: 'status',
       title: t('common.status', 'Status'),
-      width: '6.5rem',
-      className: 'max-w-[6.5rem]',
-      render: (_value, record) => {
-        const pieces = stockPieces(record);
-        const isOut = Number(pieces) <= 0;
-        const label = isOut ? t('stock.outOfStock', 'Out of Stock') : t('stock.lowStock');
-        return (
-          <Badge variant={isOut ? 'destructive' : 'secondary'} className="max-w-full truncate text-xs" title={label}>
-            {label}
-          </Badge>
-        );
-      },
-    },
-    {
-      key: 'buy_price',
-      title: t('stock.price', 'Price'),
-      width: '9rem',
-      className: 'max-w-[9rem] whitespace-nowrap',
-      render: (value, record) => {
-        const piecePrice = Number(value) || 0;
-        const cartonSize = Number(record.product_details?.bottles_per_carton) || DEFAULT_PIECES_PER_CARTON;
-        const cartonPrice = piecePrice * cartonSize;
-        const symbol = getCurrencySymbol(record.currency_details);
-        return (
-          <div className="space-y-0.5 text-sm">
-            <div>
-              {symbol}{formatPrice(cartonPrice)}
-              <span className="text-muted-foreground"> / {t('stock.carton', 'carton')}</span>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {symbol}{formatPrice(piecePrice)} / {t('stock.piece', 'piece')}
-            </div>
-          </div>
-        );
-      },
+      width: '7rem',
+      render: () => <Badge variant="secondary">{t('stock.lowStock', 'Low stock')}</Badge>,
     },
   ];
 
-  const rowActions: TableAction[] = [
+  const rowActions: TableAction<InventoryBalance>[] = [
     {
       key: 'view',
-      label: t('stock.viewDetails'),
+      label: t('common.view', 'View'),
       icon: <Eye className="h-4 w-4" />,
-      onClick: (record) => navigate(`/stock/${record.id}`),
-      tooltip: t('stock.viewDetails'),
-    },
-    {
-      key: 'edit',
-      label: t('common.edit'),
-      icon: <Edit className="h-4 w-4" />,
-      onClick: (record) => navigate(`/stock/${record.id}/edit`),
-      tooltip: t('stock.editStock'),
-    },
-    {
-      key: 'delete',
-      label: t('common.delete'),
-      icon: <Trash2 className="h-4 w-4" />,
-      onClick: (record) => handleDelete(record.id, record.product_details?.name || t('stock.stock')),
-      variant: 'ghost',
-      className: 'text-red-600 hover:text-red-700',
-      tooltip: t('stock.deleteStock'),
-    },
-  ];
-
-  const customFilters = [
-    {
-      key: 'product',
-      label: t('stock.product'),
-      component: (
-        <Autocomplete
-          endpoint="products"
-          getOptionLabel={(p) => p.name}
-          getOptionValue={(p) => p.id.toString()}
-          value={productFilter}
-          onChange={(value) => {
-            setProductFilter(value?.toString() || '');
-            setCurrentPage(1);
-          }}
-          placeholder={t('stock.filterByProduct')}
-          className="w-48"
-        />
-      ),
+      onClick: (row) => navigate(`/stock/${row.id}`),
     },
   ];
 
   return (
     <div className="space-y-4 p-4 sm:p-6">
       <DataTable
-        data={stocks}
+        data={balances}
         columns={columns}
         loading={isLoading}
-        title={t('stock.lowStockItems')}
-        subtitle={t('stock.stockItemsRunningLow')}
+        title={t('stock.lowStock', 'Low stock')}
+        subtitle={t(
+          'stock.lowStockHint',
+          'Balances at or below the product reorder level',
+        )}
         icon={<TrendingDown className="h-5 w-5" />}
         searchable
-        searchPlaceholder={t('stock.searchLowStocks')}
+        searchPlaceholder={t('stock.searchProducts', 'Search products…')}
         searchValue={searchTerm}
-        onSearch={(value) => {
-          setSearchTerm(value);
-          setCurrentPage(1);
-        }}
-        customFilters={customFilters}
+        onSearch={setSearchTerm}
         rowActions={rowActions}
-        pagination={{
-          current: currentPage,
-          pageSize,
-          total: totalItems,
-          onPageChange: setCurrentPage,
-          showSizeChanger: true,
-          pageSizeOptions: [10, 25, 50, 100],
-          onPageSizeChange: (size) => {
-            setPageSize(size);
-            setCurrentPage(1);
-          },
-        }}
         emptyIcon={<TrendingDown className="h-8 w-8 text-muted-foreground" />}
-        emptyTitle={t('stock.noLowStockItems')}
-        emptyDescription={t('stock.allStockLevelsAdequate')}
-        loadingText={t('stock.loadingLowStocks')}
+        emptyTitle={t('stock.noLowStock', 'No low-stock items')}
+        emptyDescription={t(
+          'stock.noLowStockHint',
+          'All tracked products are above reorder level.',
+        )}
         maxHeight="75vh"
-        stickyHeader={true}
+        stickyHeader
       />
-      <ConfirmDialog />
     </div>
   );
 };

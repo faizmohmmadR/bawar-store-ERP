@@ -34,7 +34,7 @@ from api.models.data.salesmen import Salesman
 from api.models.data.vendors import Vendor
 from api.models.data.payment import Payment
 from api.models.data.salesman_commission_payment import SalesmanCommissionPayment
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 
 
 def _d(value) -> Decimal:

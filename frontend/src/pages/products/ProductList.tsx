@@ -7,6 +7,7 @@ import DataTable, { TableColumn, TableAction, FilterOption } from '@/components/
 import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
 import useDelete from '@/api/useDelete';
+import { formatOrderNumeric } from '@/lib/orderNumeric';
 
 const ProductList = () => {
   const { t } = useLanguage();
@@ -72,6 +73,43 @@ const ProductList = () => {
       render: (value) => <span className="block truncate font-medium" title={value || '—'}>{value || '—'}</span>
     },
     {
+      key: 'base_uom_details',
+      title: t('products.baseUom', 'Base UOM'),
+      width: '7rem',
+      className: 'max-w-[7rem] whitespace-nowrap',
+      render: (value, row) => (
+        <span className="block truncate" title={value?.name || value?.symbol || row.base_uom || '—'}>
+          {value?.symbol || value?.name || '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'packagings',
+      title: t('products.packagingUnits', 'Units'),
+      width: '14rem',
+      className: 'max-w-[14rem]',
+      render: (value) => {
+        const packs = Array.isArray(value) ? value : [];
+        if (!packs.length) return '—';
+        return (
+          <div className="flex flex-wrap gap-1">
+            {packs.slice(0, 4).map((p: any) => {
+              const qty = Number(p.qty_in_base) || 0;
+              return (
+                <Badge key={p.id || p.name} variant="outline" className="max-w-full truncate font-normal">
+                  {p.name}
+                  {qty > 1 ? ` ×${formatOrderNumeric(qty)}` : ''}
+                </Badge>
+              );
+            })}
+            {packs.length > 4 ? (
+              <Badge variant="secondary">+{packs.length - 4}</Badge>
+            ) : null}
+          </div>
+        );
+      },
+    },
+    {
       key: 'barcode',
       title: t('products.barcode'),
       width: '8rem',
@@ -80,17 +118,6 @@ const ProductList = () => {
         <Badge variant="outline" className="max-w-full truncate font-mono" title={value || '-'}>
           {value || '-'}
         </Badge>
-      )
-    },
-    {
-      key: 'description',
-      title: t('products.description'),
-      width: '14rem',
-      className: 'max-w-[14rem]',
-      render: (value) => (
-        <div className="truncate" title={value || ''}>
-          {value || '-'}
-        </div>
       )
     }
   ];

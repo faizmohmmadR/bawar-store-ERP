@@ -24,7 +24,7 @@ export function GeneralPaymentList({ type }: { type: PaymentModuleType }) {
   });
   const { handleDelete, ConfirmDialog } = useDelete({
     queryKey: ['general-payments'], endpoint: 'general-payments', hardDelete: true,
-    additionalQueryKeys: [[config.queryKey], ['general-payment-balance'], ['sales'], ['raw-material-purchases']],
+    additionalQueryKeys: [[config.queryKey], ['general-payment-balance'], ['sales'], ['purchases']],
   });
   const columns: TableColumn[] = [
     { key: 'id', title: t('payments.reference'), render: value => <span className="font-mono">GPAY-{value}</span> },

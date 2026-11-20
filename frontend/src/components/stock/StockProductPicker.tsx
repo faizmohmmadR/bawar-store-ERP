@@ -17,7 +17,7 @@ export function StockProductPicker({ kind, value, onChange, disabled = false, hi
 }) {
   const { t } = useLanguage();
   const creating = value.product_name !== undefined;
-  const typeLabel = t(`packing.component_${kind}`);
+  const typeLabel = t(`stock.component_${kind}`, kind);
   const productLabel = (name: string) => `${name} · ${typeLabel}`;
   return (
     <div className="flex min-h-10 items-center gap-2">

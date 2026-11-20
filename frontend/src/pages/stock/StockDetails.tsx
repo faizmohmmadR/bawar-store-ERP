@@ -1,223 +1,243 @@
-import { ReturnToPack } from '@/components/stock/ReturnToPack';
-import { DamageBottlesDialog } from '@/components/stock/DamageBottlesDialog';
-import { formatPrice } from '@/lib/formatNumber';
-import { DualCurrencyCosts } from '@/components/display/DualCurrencyCosts';
-import { getCurrencySymbol } from '@/lib/currencies';
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Package, Warehouse } from 'lucide-react';
+import { ReloadIcon } from '@radix-ui/react-icons';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useFormatAppDate } from '@/hooks/useFormatAppDate';
-import { Stock } from '@/types/stock';
-import { Package, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import useFetchObjects from '@/api/useFetchObjects';
+import { ListDate } from '@/components/display/ListDate';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatOrderNumeric } from '@/lib/orderNumeric';
+import {
+  baseUomLabel,
+  formatPackagingBreakdown,
+  stockValue,
+} from '@/lib/inventoryDisplay';
+import type { InventoryBalance, StockMovement } from '@/types/inventory';
 
-const StockDetails: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+const StockDetails = () => {
+  const { t, direction } = useLanguage();
   const navigate = useNavigate();
-  const { t } = useLanguage();
-  const { formatDate } = useFormatAppDate();
+  const { id } = useParams<{ id: string }>();
+  const BackIcon = direction === 'rtl' ? ArrowRight : ArrowLeft;
 
-  const { data: stock, isLoading } = useFetchObjects<Stock>({
-    queryKey: ['stock', id],
-    endpoint: `stocks/${id}/`,
+  const { data: balance, isLoading, isError, refetch } = useFetchObjects<InventoryBalance>({
+    queryKey: ['inventory-balance', id],
+    endpoint: `inventory-balances/${id}/`,
     enabled: !!id,
   });
 
+  const productId = balance?.product ? String(balance.product) : '';
+  const warehouseId = balance?.warehouse ? String(balance.warehouse) : '';
+
+  const { data: movementsData, isLoading: movementsLoading } = useFetchObjects<{
+    results?: StockMovement[];
+  } | StockMovement[]>({
+    queryKey: ['stock-movements', productId, warehouseId],
+    endpoint: 'stock-movements/',
+    params: {
+      product: productId,
+      warehouse: warehouseId,
+      page_size: 50,
+    },
+    enabled: Boolean(productId && warehouseId),
+  });
+
+  const movements: StockMovement[] = Array.isArray(movementsData)
+    ? movementsData
+    : movementsData?.results || [];
+
   if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex justify-center py-16" role="status">
+        <ReloadIcon className="h-7 w-7 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  if (!stock) {
-    return <div className="p-6 text-center text-muted-foreground">{t('stock.noStockItems')}</div>;
+  if (!balance) {
+    return (
+      <div className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
+        <p className="text-muted-foreground">
+          {isError
+            ? t('stock.loadError', 'Unable to load stock balance.')
+            : t('stock.notFound', 'Stock balance not found')}
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate('/stock')}>
+            <BackIcon className="me-2 h-4 w-4" />
+            {t('common.back')}
+          </Button>
+          {isError ? <Button onClick={() => refetch()}>{t('common.retry', 'Retry')}</Button> : null}
+        </div>
+      </div>
+    );
   }
 
-  const symbol = getCurrencySymbol(stock.currency_details);
-  const material = stock.product_details?.raw_material_details;
-  const materialType = stock.product_details?.material_type || material?.material_type;
-  const materialStockQuantity = Number(stock.on_hand_quantity ?? stock.piece_amount) || 0;
-  const materialQuantityUnit = materialType === 'carton'
-    ? t('stock.cartonUnits', 'cartons')
-    : materialType === 'plastic'
-      ? t('stock.plasticPackUnits', 'plastic packs')
-      : t('stock.bottleUnits', 'bottles');
-  const materialCapacity = material?.capacity_liters != null
-    ? `${(Number(material.capacity_liters) * (material.capacity_display_unit === 'ml' ? 1000 : 1)).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${material.capacity_display_unit || 'L'}`
-    : material?.capacity_kg != null
-      ? `${Number(material.capacity_kg).toLocaleString(undefined, { maximumFractionDigits: 4 })} kg`
-      : null;
-  const materialPackageSize = materialType === 'carton' && material?.bottles_per_carton
-    ? `${material.bottles_per_carton} ${t('stock.bottleUnits', 'bottles')} / ${t('stock.cartonUnits', 'cartons')}`
-    : materialType === 'plastic' && material?.bottles_per_plastic
-      ? `${material.bottles_per_plastic} ${t('stock.bottleUnits', 'bottles')} / ${t('stock.plasticPackUnits', 'plastic packs')}`
-      : null;
-
-  const onHand = Number(stock.on_hand_quantity ?? stock.piece_amount ?? 0);
-  const sellablePieces = Number(stock.available_quantity ?? stock.piece_amount ?? 0);
-  const unavailablePieces = Math.max(0, onHand - sellablePieces);
-  const totalCartons = Number(stock.carton_amount ?? 0);
-  const totalValue = Number(stock.stock_value_afn ?? onHand * Number(stock.buy_price));
-  const suppliers = [...new Set((stock.batches || []).map(item => item.supplier_details?.name).filter(Boolean))];
+  const product = balance.product_details;
+  const uom = baseUomLabel(product);
+  const onHand = Number(balance.quantity_on_hand) || 0;
+  const reserved = Number(balance.quantity_reserved) || 0;
+  const available = Number(balance.quantity_available ?? onHand - reserved) || 0;
+  const avgCost = Number(balance.average_cost) || 0;
+  const value = stockValue(onHand, avgCost);
+  const breakdown = balance.packaging_breakdown || [];
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/stock')}>
-          <ArrowLeft className="h-5 w-5" />
+    <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0"
+            aria-label={t('common.back')}
+            onClick={() => navigate('/stock')}
+          >
+            <BackIcon className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0 space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">{t('stock.viewStock', 'View stock')}</p>
+            <h1 className="break-words text-xl font-semibold tracking-tight sm:text-2xl">
+              {product?.name || `#${balance.product}`}
+            </h1>
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Warehouse className="h-3.5 w-3.5" />
+              {balance.warehouse_name || '—'}
+              {uom ? ` · ${t('products.baseUom', 'Base')}: ${uom}` : ''}
+            </p>
+          </div>
+        </div>
+        <Button variant="outline" onClick={() => navigate(`/products/${balance.product}`)}>
+          <Package className="me-2 h-4 w-4" />
+          {t('stock.viewProduct', 'View product')}
         </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{t('stock.stockDetails')}</h1>
-          <p className="text-sm text-muted-foreground">{stock.product_details?.name || material?.name || stock.product}</p>
-          {(materialCapacity || materialPackageSize) && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {[materialCapacity, materialPackageSize].filter(Boolean).join(' · ')}
+      </header>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          {
+            label: t('stock.baseOnHand', 'On hand (base)'),
+            value: `${formatOrderNumeric(onHand)}${uom ? ` ${uom}` : ''}`,
+          },
+          {
+            label: t('stock.available', 'Available'),
+            value: `${formatOrderNumeric(available)}${uom ? ` ${uom}` : ''}`,
+          },
+          {
+            label: t('stock.avgCost', 'Avg cost (AFN)'),
+            value: formatOrderNumeric(avgCost),
+          },
+          {
+            label: t('stock.onHandValue', 'On-hand value'),
+            value: formatOrderNumeric(value),
+          },
+        ].map((card) => (
+          <Card key={card.label} className="shadow-none">
+            <CardContent className="space-y-2 p-4 sm:p-5">
+              <p className="text-sm text-muted-foreground">{card.label}</p>
+              <p className="text-2xl font-semibold tabular-nums">{card.value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="shadow-none">
+        <CardHeader className="border-b bg-muted/20 px-4 py-4 sm:px-5">
+          <CardTitle className="text-base">{t('stock.asPackaging', 'As packaging')}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {formatPackagingBreakdown(breakdown, t('stock.noBreakdown', 'No packaging breakdown'))}
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          {breakdown.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>{t('products.unitName', 'Unit')}</TableHead>
+                  <TableHead>{t('products.qtyInBase', 'Qty in base')}</TableHead>
+                  <TableHead className="text-end">{t('stock.count', 'Count')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {breakdown.map((row, index) => (
+                  <TableRow key={`${row.packaging_id || row.name}-${index}`}>
+                    <TableCell className="font-medium">
+                      {row.name === 'remainder'
+                        ? t('stock.remainder', 'Remainder (base)')
+                        : row.name}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {formatOrderNumeric(Number(row.qty_in_base) || 0)}
+                    </TableCell>
+                    <TableCell className="text-end tabular-nums font-semibold">
+                      {formatOrderNumeric(Number(row.count) || 0)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="p-6 text-sm text-muted-foreground">
+              {t('stock.noBreakdown', 'No packaging breakdown')}
             </p>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {stock.condition === 'good' && ['bottle', 'bottle_with_cap'].includes(materialType || '') && (
-        <div className="flex flex-wrap gap-3">
-          <ReturnToPack stockId={stock.id} />
-          <DamageBottlesDialog stockId={stock.id} />
-        </div>
-      )}
-
-      <DualCurrencyCosts basis="current" rate={stock.usd_to_afn_rate ?? null} rows={[{ label: t('stock.weightedAverageUnitCost'), afn: stock.average_unit_cost_afn ?? stock.buy_price }]} />
-      {unavailablePieces > 0 && (
-        <div className="flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm">
-          <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
-          <p>{t('stock.unavailableQuantity', 'Unavailable quantity')}: {unavailablePieces.toLocaleString(undefined, { maximumFractionDigits: 4 })}</p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        {(stock.product_details?.raw_material || stock.product_details?.material_type) ? <Card><CardContent className="pt-6"><p className="text-sm font-medium text-muted-foreground">{materialQuantityUnit}</p><p className="text-2xl font-bold tabular-nums">{materialStockQuantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}</p></CardContent></Card> : <>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm font-medium text-muted-foreground">{t('stock.carton', 'Carton')}</p>
-            <p className="text-2xl font-bold tabular-nums">{totalCartons.toFixed(0)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm font-medium text-muted-foreground">{t('stock.bottleAmount', 'Bottle')}</p>
-            <p className="text-2xl font-bold tabular-nums">{sellablePieces.toFixed(0)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm font-medium text-muted-foreground">{t('stock.plasticAmount', 'Plastic')}</p>
-            <p className="text-2xl font-bold tabular-nums">{sellablePieces.toFixed(0)}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t('stock.plasticMatchesBottle', '1 plastic = 1 bottle')}
-            </p>
-          </CardContent>
-        </Card>
-        </>}
-        {(stock.product_details?.raw_material || stock.product_details?.material_type) && <Card><CardContent className="pt-6"><p className="text-sm font-medium text-muted-foreground">
-          {materialType === 'carton'
-            ? t('stock.pricePerCarton', 'Price per carton')
-            : materialType === 'plastic'
-              ? t('stock.pricePerPlasticPack', 'Price per plastic pack')
-              : t('stock.pricePerBottle', 'Price per bottle')}
-        </p><p className="text-2xl font-bold tabular-nums">{symbol}{formatPrice(stock.buy_price)}</p></CardContent></Card>}
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm font-medium text-muted-foreground">
-              {t('stock.availableQuantity', 'Available quantity')}
-            </p>
-            <p className="text-2xl font-bold tabular-nums">
-              {sellablePieces.toLocaleString(undefined, { maximumFractionDigits: 4 })}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm font-medium text-muted-foreground">{t('stock.totalValue')}</p>
-            <p className="text-2xl font-bold tabular-nums">
-              {symbol}
-              {formatPrice(totalValue)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            {t('stock.productInformation')}
-          </CardTitle>
+      <Card className="overflow-hidden shadow-none">
+        <CardHeader className="flex flex-row items-center justify-between gap-3 border-b bg-muted/20 px-4 py-4 sm:px-5">
+          <CardTitle className="text-base">{t('stock.movements', 'Stock movements')}</CardTitle>
+          <Badge variant="secondary" className="tabular-nums">
+            {formatOrderNumeric(movements.length)}
+          </Badge>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">{t('stock.product')}</label>
-              <p className="text-lg font-semibold">{stock.product_details?.name || stock.product}</p>
-              {stock.product_details?.bottle_capacity_kg && (
-                <p className="text-sm text-muted-foreground">
-                  {Number(stock.product_details.bottle_capacity_kg).toLocaleString(undefined, { maximumFractionDigits: 4 })} kg/bottle{!stock.product_details.material_type && ` · ${stock.product_details.bottles_per_carton || 8} bottles/carton`}
-                  {!stock.product_details.material_type && stock.product_details.bottle_capacity_kg && ` · ${(Number(stock.product_details.bottle_capacity_kg) * Number(stock.product_details.bottles_per_carton || 8)).toLocaleString(undefined, { maximumFractionDigits: 4 })} kg/carton`}
-                </p>
-              )}
+        <CardContent className="p-0">
+          {movementsLoading ? (
+            <div className="flex justify-center py-10">
+              <ReloadIcon className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">{t('stock.conditionLabel')}</label>
-              <p>{t(`stock.${stock.condition}`, stock.condition || '—')}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">{t('rawMaterials.materialType')}</label>
-              <p>{materialType ? t(`rawMaterials.type${materialType.split('_').map(part => part[0].toUpperCase() + part.slice(1)).join('')}`) : '—'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">{t('stock.itemCapacity', 'Item capacity')}</label>
-              <p>{materialCapacity || '—'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">{t('stock.packageSize', 'Pack size')}</label>
-              <p>{materialPackageSize || '—'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">{t('stock.expireDate')}</label>
-              <p>{stock.expire_date ? formatDate(stock.expire_date) : '—'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">{t('common.createdAt', 'Created')}</label>
-              <p>{stock.created_at ? formatDate(stock.created_at) : '—'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">{t('common.updatedAt', 'Updated')}</label>
-              <p>{stock.updated_at ? formatDate(stock.updated_at) : '—'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">{t('stock.supplier', 'Supplier')}</label>
-              <p>{suppliers.join(', ') || '—'}</p>
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium text-muted-foreground">{t('stock.notes')}</label>
-              <p className="whitespace-pre-wrap">{stock.notes || '—'}</p>
-            </div>
-            {stock.product_details?.barcode && (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">{t('stock.barcode')}</label>
-                <p className="font-mono bg-muted px-2 py-1 rounded inline-block">
-                  {stock.product_details.barcode}
-                </p>
-              </div>
-            )}
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">{t('stock.currency')}</label>
-              <p className="text-lg">
-                {stock.currency_details?.name} ({stock.currency_details?.code})
-              </p>
-            </div>
-          </div>
+          ) : movements.length ? (
+            <Table className="min-w-[720px]">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>{t('stock.date', 'Date')}</TableHead>
+                  <TableHead>{t('stock.movementType', 'Type')}</TableHead>
+                  <TableHead>{t('purchases.unit', 'Unit')}</TableHead>
+                  <TableHead className="text-end">{t('stock.txnQty', 'Txn qty')}</TableHead>
+                  <TableHead className="text-end">{t('stock.baseQty', 'Base qty')}</TableHead>
+                  <TableHead className="text-end">{t('stock.unitCost', 'Unit cost')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {movements.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="whitespace-nowrap">
+                      {m.occurred_at ? <ListDate value={m.occurred_at} /> : '—'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{m.movement_type}</Badge>
+                    </TableCell>
+                    <TableCell>{m.packaging_name || uom || '—'}</TableCell>
+                    <TableCell className="text-end tabular-nums">
+                      {formatOrderNumeric(Number(m.transaction_quantity) || 0)}
+                    </TableCell>
+                    <TableCell className="text-end tabular-nums font-medium">
+                      {formatOrderNumeric(Number(m.base_quantity) || 0)}
+                    </TableCell>
+                    <TableCell className="text-end tabular-nums">
+                      {formatOrderNumeric(Number(m.unit_cost) || 0)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              {t('stock.noMovements', 'No movements yet. Receive a purchase to create stock.')}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

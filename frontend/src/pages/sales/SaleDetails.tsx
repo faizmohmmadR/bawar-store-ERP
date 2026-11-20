@@ -11,7 +11,7 @@ import { useFormatAppDate } from '@/hooks/useFormatAppDate';
 import { Sale } from '@/types/sale';
 import type { Currency } from '@/types/common';
 import useFetchObjects from '@/api/useFetchObjects';
-import { User, Calendar, CreditCard, FileText, Package, MapPin, Phone, Mail, Truck, ArrowLeft, Printer, Plus, PackagePlus } from 'lucide-react';
+import { User, Calendar, CreditCard, FileText, Package, MapPin, Phone, Mail, Truck, ArrowLeft, Printer, Plus } from 'lucide-react';
 import { ReloadIcon } from '@radix-ui/react-icons';
 import OrderPaymentSection from '@/components/payments/OrderPaymentSection';
 import JournalEntriesSection from '@/components/accounting/JournalEntriesSection';
@@ -106,15 +106,6 @@ const SaleDetails = () => {
           {sale.transaction_type === 'free' && <span className="text-sm font-semibold text-blue-600 dark:text-blue-300">{t('common.free', 'Free')}</span>}
         </div>
         <div className="flex flex-wrap gap-2 justify-end">
-          {sale.status !== 'cancelled' && (
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/sales/${id}/add-raw-material`)}
-            >
-              <PackagePlus className="h-4 w-4" />
-              {t('sales.addRawMaterial', 'Add raw material')}
-            </Button>
-          )}
           <Button disabled={sale.transaction_type === 'free' || !!sale.employee} onClick={() => navigate(`/sale-payments/add?sale_id=${id}`)}>
             <Plus className="h-4 w-4" />
             {t('sales.addPayment')}
@@ -316,43 +307,35 @@ const SaleDetails = () => {
               </thead>
               <tbody>
                 {items.map((item, index) => {
-                  const rate = Number(item.stock_details?.bottles_per_carton) || DEFAULT_PIECES_PER_CARTON;
-                  const isTank = item.sale_source === 'tank';
-                  const isRaw = item.sale_source === 'raw_material';
-                  const unit = isTank ? 'kg' : item.unit || (isRaw ? 'piece' : 'carton');
-                  const totalPieces =
-                    toNum(item.liter_amount) ||
-                    (unit === 'carton'
-                      ? toNum(item.quantity) * (Number(item.stock_details?.bottles_per_carton) || rate)
-                      : toNum(item.quantity));
-                  const cartons = cartonsFromPieces(totalPieces, rate);
-                  const loose = remainderPieces(totalPieces, rate);
-                  const sellPrice = saleDisplayPrice(item);
-                  const commissionPerUnit = toNum(item.commission_amount);
+                  const sellPrice = toNum(item.sell_price) || saleDisplayPrice(item);
                   const qty = toNum(item.quantity);
+                  const commissionPerUnit = toNum(item.commission_amount);
                   const lineCommission =
                     toNum(item.commission_total) || qty * commissionPerUnit;
-                  const exactQuantity = saleDisplayQuantity(item);
-                  const quantityUnit = isTank || unit === 'kg' ? 'kg'
-                    : unit === 'carton' ? t('sales.carton', 'carton')
-                    : unit === 'plastic' ? t('sales.plastic', 'plastic')
-                    : isRaw || unit === 'piece' ? t('sales.piecesShort', 'pcs') : t('sales.bottle', 'bottle');
-                  const quantityLabel = `${formatOrderNumeric(exactQuantity)} ${quantityUnit}`;
+                  const packagingName = item.packaging_details?.name;
+                  const factor = toNum(item.conversion_factor ?? item.packaging_details?.qty_in_base) || 1;
+                  const baseQty = toNum(item.base_quantity) || qty * factor;
                   const productName =
                     item.product_details?.name
                     || item.raw_material_stock_details?.name
                     || item.product
-                    || t('sales.rawMaterial', 'Raw material');
+                    || t('common.notAvailable');
+                  const quantityLabel = packagingName
+                    ? `${formatOrderNumeric(qty)} ${packagingName}`
+                    : `${formatOrderNumeric(saleDisplayQuantity(item))}`;
+                  const lineTotal = packagingName
+                    ? qty * sellPrice
+                    : saleLineTotal(item as any);
                   return (
                     <tr key={item.id || index} className="border-t border-gray-100 dark:border-gray-700">
                       <td className="p-3">
                         <div>
                           <p className="font-medium">{productName}</p>
-                          {isRaw && (
+                          {packagingName ? (
                             <p className="text-xs text-muted-foreground">
-                              {t('sales.sourceRawMaterial', 'Raw material')}
+                              ×{formatOrderNumeric(factor)} · {formatOrderNumeric(baseQty)} {t('products.baseUnits', 'base')}
                             </p>
-                          )}
+                          ) : null}
                         </div>
                       </td>
                       <td className="p-3 text-start">
@@ -370,29 +353,7 @@ const SaleDetails = () => {
                         )}
                       </td>
                       <td className="p-3 text-start font-semibold">
-                        {formatCurrency(
-                          isRaw
-                            ? saleLineTotal({
-                                sell_price: sellPrice,
-                                unit: unit === 'kg' ? 'kg' : 'piece',
-                                sale_source: 'raw_material',
-                                piece_amount: unit === 'kg' ? 0 : qty,
-                                liter_amount: unit === 'kg' ? 0 : qty,
-                                kilogram_amount: unit === 'kg' ? qty : 0,
-                                bottles_per_carton: DEFAULT_PIECES_PER_CARTON,
-                              })
-                            : saleLineTotal({
-                                carton_amount: cartons,
-                                piece_amount: loose,
-                                sell_price: sellPrice,
-                                unit: item.unit,
-                                sale_source: item.sale_source,
-                                liter_amount: toNum(item.liter_amount),
-                                kilogram_amount: isTank ? saleDisplayQuantity(item) : toNum(item.kilogram_amount),
-                                bottles_per_carton: Number(item.stock_details?.bottles_per_carton) || rate,
-                              }),
-                          sale.currency_details,
-                        )}
+                        {formatCurrency(lineTotal, sale.currency_details)}
                       </td>
                     </tr>
                   );

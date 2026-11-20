@@ -1,50 +1,49 @@
-import { MassInput } from '@/components/forms/MassInput';
-import type { Product } from '@/types/products';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormActions } from '@/components/forms/FormActions';
 import { FormPage, FormPageFields, FormPageSection } from '@/components/forms/FormPage';
-import { Package, Barcode } from 'lucide-react';
+import { FormSelect } from '@/components/forms/FormSelect';
+import { Package } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
 import useUpdate from '@/api/useUpdate';
 import { useRedirectOnSuccess } from '@/hooks/useRedirectOnSuccess';
 import { ProductImageField } from './ProductImageField';
-
-const schema = z.object({
-  name: z.string().min(1, 'Required'),
-  barcode: z.string().optional(),
-  description: z.string().optional(),
-  bottle_capacity_kg: z.string().optional(),
-  image: z.instanceof(File).optional(),
-});
+import { ProductPackagingEditor } from '@/components/products/ProductPackagingEditor';
+import {
+  createProductFormSchema,
+  defaultProductFormValues,
+  productFormToPayload,
+  productToFormValues,
+  type ProductFormValues,
+} from '@/lib/productFormSchemas';
 
 const EditProduct = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const { data: productData, isLoading } = useFetchObjects<Product>({
+  const { data: productData, isLoading } = useFetchObjects({
     queryKey: ['products', id || ''],
     endpoint: `products/${id}/`,
     enabled: !!id,
   });
+  const { data: uoms } = useFetchObjects({ queryKey: ['units-of-measure'], endpoint: 'units-of-measure' });
+  const { data: categories } = useFetchObjects({
+    queryKey: ['product-categories'],
+    endpoint: 'product-categories',
+  });
 
-  const form = useForm({
+  const schema = useMemo(() => createProductFormSchema(t), [t]);
+  const form = useForm<ProductFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      name: '',
-      barcode: '',
-      description: '',
-      bottle_capacity_kg: '',
-      image: undefined,
-    }
+    defaultValues: defaultProductFormValues(),
   });
 
   const { handleUpdate, loading, isSuccess } = useUpdate({
@@ -55,37 +54,31 @@ const EditProduct = () => {
   });
 
   useEffect(() => {
-    if (productData) {
-      form.reset({
-        name: productData.name || '',
-        barcode: productData.barcode || '',
-        description: productData.description || '',
-        bottle_capacity_kg: productData.bottle_capacity_kg || '',
-      });
-    }
+    if (productData) form.reset(productToFormValues(productData));
   }, [productData, form]);
 
   useRedirectOnSuccess(isSuccess, '/products');
 
-  const onSubmit = (data: z.infer<typeof schema>) => {
+  const onSubmit = (data: ProductFormValues) => {
     if (!id) return;
-    const payload = new FormData();
-    payload.append('name', data.name);
-    payload.append('barcode', data.barcode || '');
-    payload.append('description', data.description || '');
-    payload.append('bottle_capacity_kg', data.bottle_capacity_kg || '');
-    if (data.image) payload.append('image', data.image);
-    handleUpdate(id, payload);
+    handleUpdate(id, productFormToPayload(data));
   };
+
+  const uomOptions = (uoms?.results || uoms || []).map((u: { id: number; name: string; symbol?: string }) => ({
+    value: String(u.id),
+    label: `${u.name}${u.symbol ? ` (${u.symbol})` : ''}`,
+  }));
+
+  const categoryOptions = (categories?.results || categories || []).map(
+    (c: { id: number; name: string }) => ({
+      value: String(c.id),
+      label: c.name,
+    }),
+  );
 
   if (isLoading) {
     return (
-      <FormPage
-        title={t('products.editProduct')}
-        icon={<Package />}
-        backTo="/products"
-        maxWidth="6xl"
-      >
+      <FormPage title={t('products.editProduct')} icon={<Package />} backTo="/products" maxWidth="6xl">
         <div className="flex items-center justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -96,6 +89,7 @@ const EditProduct = () => {
   return (
     <FormPage
       title={t('products.editProduct')}
+      description={t('products.updateProductInfo', 'Update product information and packaging units')}
       icon={<Package />}
       backTo="/products"
       maxWidth="6xl"
@@ -103,66 +97,176 @@ const EditProduct = () => {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormPageSection title={t('products.productInformation', 'Product Information')}>
-            <div className="space-y-4">
-              <FormPageFields>
-                <FormField control={form.control} name="name" render={({ field }) => (
+            <FormPageFields>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('products.productName')} *</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('products.namePlaceholder')} {...field} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
-                )} />
-
-                <FormField control={form.control} name="barcode" render={({ field }) => (
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="sku"
+                render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-1">
-                      <Barcode className="h-3 w-3" />
-                      {t('products.barcode')}
-                    </FormLabel>
+                    <FormLabel>{t('products.sku', 'SKU')}</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('products.barcodePlaceholder')} {...field} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
-                )} />
-              </FormPageFields>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="barcode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('products.barcode')}</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="base_uom"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('products.baseUom', 'Base unit of measure')} *</FormLabel>
+                    <FormControl>
+                      <FormSelect
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={uomOptions}
+                        placeholder={t('products.selectUom', 'Select base unit')}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('products.category')}</FormLabel>
+                    <FormControl>
+                      <FormSelect
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        options={categoryOptions}
+                        placeholder={t('products.selectCategory')}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="brand"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('products.brand', 'Brand')}</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="min_stock_level"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('products.minStock', 'Min stock (base)')}</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={0} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="reorder_level"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('products.reorderLevel', 'Reorder level (base)')}</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={0} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>{t('products.description')}</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <ProductImageField control={form.control} currentUrl={productData?.image || productData?.image_url} />
+            </FormPageFields>
 
-              <ProductImageField control={form.control} currentUrl={productData?.image} />
-
-              <FormField control={form.control} name="description" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('products.description')}</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={t('products.descriptionPlaceholder')}
-                      rows={3}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="bottle_capacity_kg" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('products.bottleCapacityKg', 'Bottle capacity (kg)')}</FormLabel>
-                  <FormControl><MassInput value={field.value} onChange={field.onChange} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
+            <div className="mt-4 flex flex-wrap gap-6">
+              {(
+                [
+                  ['track_inventory', t('products.trackInventory', 'Track inventory')],
+                  ['track_batch', t('products.trackBatch', 'Track batch / lot')],
+                  ['track_expiry', t('products.trackExpiry', 'Track expiry')],
+                  ['is_active', t('products.active', 'Active')],
+                ] as const
+              ).map(([name, label]) => (
+                <FormField
+                  key={name}
+                  control={form.control}
+                  name={name}
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) => field.onChange(checked === true)}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal">{label}</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              ))}
             </div>
           </FormPageSection>
 
-          <div className="flex justify-end gap-3 border-t pt-4 mt-6">
-            <Button type="button" variant="outline" onClick={() => navigate('/products')}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? t('common.updating') : t('common.update')}
-            </Button>
-          </div>
+          <FormPageSection title={t('products.packagingUnits', 'Packaging / units')}>
+            <ProductPackagingEditor control={form.control} setValue={form.setValue} />
+          </FormPageSection>
+
+          <FormActions
+            loading={loading}
+            onCancel={() => navigate('/products')}
+            submitLabel={t('products.updateProduct', 'Update Product')}
+            loadingLabel={t('products.updating', 'Updating...')}
+          />
         </form>
       </Form>
     </FormPage>

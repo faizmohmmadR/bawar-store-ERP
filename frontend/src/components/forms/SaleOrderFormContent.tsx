@@ -250,13 +250,15 @@ export function SaleOrderFormContent({
   const vendorParty = partyType === 'vendor';
   const employeeParty = partyType === 'employee';
   const freeSale = useWatch({ control, name: 'transaction_type' }) === 'free';
-  const watchedSaleType = (useWatch({ control, name: 'sale_type' }) || 'stock') as SaleSource;
-  const saleType = lockedSaleType || watchedSaleType;
+  const saleType: SaleSource =
+    lockedSaleType && lockedSaleType !== 'tank' && lockedSaleType !== 'raw_material'
+      ? lockedSaleType
+      : 'stock';
   const { errors } = useFormState({ control });
 
   const isLineEmpty = useCallback(
     (item?: Partial<SaleFormValues['items'][number]> | null) =>
-      !(item?.stock || item?.storage_tank || item?.raw_material_stock),
+      !item?.stock,
     [],
   );
 
@@ -273,8 +275,8 @@ export function SaleOrderFormContent({
   const invoiceSymbol = resolveCurrencySymbol(currency);
   const commissionTotal = useMemo(() => calculateSaleCommissionTotal(items), [items]);
   const saleDate = useWatch({ control, name: 'sale_date' });
-  const isTankSale = saleType === 'tank';
-  const isRawMaterialSale = saleType === 'raw_material';
+  const isTankSale = false;
+  const isRawMaterialSale = false;
   const isUsd = isUsdCurrency(currency);
 
   const lookupDate = useMemo(() => {
@@ -646,32 +648,8 @@ export function SaleOrderFormContent({
               }} /></FormControl><FormMessage />
             </FormItem>} />
 
-            {!lockedSaleType && (
-              <FormField
-                control={control}
-                name="sale_type"
-                render={({ field }) => (
-                  <FormItem className="min-w-0 flex flex-col shrink-0">
-                    <FormLabel className={orderFormHeaderLabel}>{t('sales.saleType')} *</FormLabel>
-                    <FormControl>
-                      <SaleSourceToggle
-                        value={((field.value === 'tank' ? 'tank' : 'stock') as SaleSource)}
-                        onChange={(next) => {
-                          field.onChange(next);
-                          applySaleType(next);
-                        }}
-                        stockLabel={t('sales.sourceStock')}
-                        tankLabel={t('sales.sourceTank')}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs min-h-4" />
-                  </FormItem>
-                )}
-              />
-            )}
-
             <FormField control={control} name="party_type" render={({ field }) => <FormItem className="min-w-0 flex flex-col">
-              <FormLabel className={orderFormHeaderLabel}>{t('rawMaterialSales.partyType', 'Buyer')}</FormLabel>
+              <FormLabel className={orderFormHeaderLabel}>{t('sales.partyType', 'Buyer')}</FormLabel>
               <Select value={field.value} onValueChange={value => {
                 field.onChange(value);
                 setValue('customer', '');
@@ -882,8 +860,8 @@ export function SaleOrderFormContent({
                   {fields.map((field, index) => {
                     const item = items[index];
                     const lineSource = (item?.sale_source || saleType) as SaleSource;
-                    const isTank = lineSource === 'tank';
-                    const isRaw = lineSource === 'raw_material';
+                    const isTank = false;
+                    const isRaw = false;
                     const isDraft = isLineEmpty(item);
                     const unit = (item?.unit || (isTank ? 'kg' : isRaw ? 'piece' : 'carton')) as SaleUnit;
                     const isCarton = !isTank && !isRaw && !isPieceSaleUnit(unit);
@@ -1155,8 +1133,8 @@ export function SaleOrderFormContent({
               {fields.map((field, index) => {
                 const item = items[index];
                 const lineSource = (item?.sale_source || saleType) as SaleSource;
-                const isTank = lineSource === 'tank';
-                const isRaw = lineSource === 'raw_material';
+                const isTank = false;
+                const isRaw = false;
                 const isDraft = isLineEmpty(item);
                 const unit = (item?.unit || (isTank ? 'kg' : isRaw ? 'piece' : 'carton')) as SaleUnit;
                 const isCarton = !isTank && !isRaw && !isPieceSaleUnit(unit);

@@ -20,8 +20,8 @@ export const PAYMENT_MODULE_CONFIG = {
   },
   purchase: {
     paymentType: 'purchase' as const,
-    contentType: 'rawmaterialpurchase',
-    ordersEndpoint: 'raw-material-purchases',
+    contentType: 'purchase',
+    ordersEndpoint: 'purchases',
     partyEndpoint: 'vendors',
     partyParam: 'vendor',
     listPath: '/purchase-payments',

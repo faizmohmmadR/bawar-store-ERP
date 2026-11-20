@@ -160,7 +160,7 @@ export function ContactTransactionHistory({
     if (id.startsWith('sale-')) {
       navigate(`/sales/${id.replace('sale-', '')}`);
     } else if (id.startsWith('raw-material-purchase-')) {
-      navigate(`/raw-material-purchases/${id.replace('raw-material-purchase-', '')}`);
+      navigate(`/purchases/${id.replace('raw-material-purchase-', '')}`);
     } else if (id.startsWith('loan-') && !id.startsWith('loan-payment-')) {
       navigate(`/loans/${id.replace('loan-', '')}`);
     }

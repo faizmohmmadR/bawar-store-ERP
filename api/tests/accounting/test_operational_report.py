@@ -7,7 +7,7 @@ from api.models.data.raw_material_process import RawMaterialProcess
 from api.models.data.packing import PackingRun
 from api.models.data.storage_tank import StorageTank
 from api.models.data.vendors import Vendor
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.services.currency_conversion import populate_base_amounts
 from api.services.operational_report import get_operational_report
 from api.tests.accounting.helpers import (

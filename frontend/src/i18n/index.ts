@@ -29,6 +29,9 @@ import { payrollPs } from "./languages/payroll/ps";
 import { productsEn } from "./languages/products/en";
 import { productsFa } from "./languages/products/fa";
 import { productsPs } from "./languages/products/ps";
+import { purchasesEn } from "./languages/purchases/en";
+import { purchasesFa } from "./languages/purchases/fa";
+import { purchasesPs } from "./languages/purchases/ps";
 import { expensesEn } from "./languages/expenses/en";
 import { expensesFa } from "./languages/expenses/fa";
 import { expensesPs } from "./languages/expenses/ps";
@@ -78,28 +81,6 @@ import { authPs } from "./languages/auth/ps";
 import { modulesEn } from "./languages/modules/en";
 import { modulesFa } from "./languages/modules/fa";
 import { modulesPs } from "./languages/modules/ps";
-import { rawMaterialsEn } from "./languages/raw-materials/en";
-import { rawMaterialsFa } from "./languages/raw-materials/fa";
-import { rawMaterialsPs } from "./languages/raw-materials/ps";
-import { rawMaterialPurchasesEn } from "./languages/raw-materials/en";
-import { rawMaterialPurchasesFa } from "./languages/raw-materials/fa";
-import { rawMaterialPurchasesPs } from "./languages/raw-materials/ps";
-import { rawMaterialStockEn } from "./languages/raw-materials/en";
-import { rawMaterialStockFa } from "./languages/raw-materials/fa";
-import { rawMaterialStockPs } from "./languages/raw-materials/ps";
-import { rawMaterialProcessesEn } from "./languages/raw-material-processes/en";
-import { rawMaterialProcessesFa } from "./languages/raw-material-processes/fa";
-import { rawMaterialProcessesPs } from "./languages/raw-material-processes/ps";
-import { rawMaterialSalesEn } from "./languages/raw-material-sales/en";
-import { rawMaterialSalesFa } from "./languages/raw-material-sales/fa";
-import { rawMaterialSalesPs } from "./languages/raw-material-sales/ps";
-import { packingEn } from "./languages/packing/en";
-import { packingFa } from "./languages/packing/fa";
-import { packingPs } from "./languages/packing/ps";
-import { damagedEn } from "./languages/damaged/en";
-import { damagedFa } from "./languages/damaged/fa";
-import { damagedPs } from "./languages/damaged/ps";
-
 export type Language = "en" | "ps" | "fa";
 
 // Base translation interface
@@ -142,6 +123,7 @@ const en = {
   attendance: attendanceEn,
   payroll: payrollEn,
   products: productsEn,
+  purchases: purchasesEn,
   core: coreEn,
   employees: employeeEn,
   user: userEn,
@@ -154,13 +136,6 @@ const en = {
   backups: backupsEn,
   trash: trashEn,
   auth: authEn,
-  rawMaterials: rawMaterialsEn,
-  rawMaterialPurchases: rawMaterialPurchasesEn,
-  rawMaterialStock: rawMaterialStockEn,
-  rawMaterialProcesses: rawMaterialProcessesEn,
-  rawMaterialSales: rawMaterialSalesEn,
-  packing: packingEn,
-  damaged: damagedEn,
   ...modulesEn,
 };
 
@@ -178,6 +153,7 @@ const fa = {
   attendance: attendanceFa,
   payroll: payrollFa,
   products: productsFa,
+  purchases: purchasesFa,
   core: coreFa,
   employees: employeeFa,
   user: userFa,
@@ -190,13 +166,6 @@ const fa = {
   backups: backupsFa,
   trash: trashFa,
   auth: authFa,
-  rawMaterials: rawMaterialsFa,
-  rawMaterialPurchases: rawMaterialPurchasesFa,
-  rawMaterialStock: rawMaterialStockFa,
-  rawMaterialProcesses: rawMaterialProcessesFa,
-  rawMaterialSales: rawMaterialSalesFa,
-  packing: packingFa,
-  damaged: damagedFa,
   ...modulesFa,
 };
 
@@ -214,6 +183,7 @@ const ps = {
   attendance: attendancePs,
   payroll: payrollPs,
   products: productsPs,
+  purchases: purchasesPs,
   core: corePs,
   employees: employeePs,
   user: userPs,
@@ -226,13 +196,6 @@ const ps = {
   backups: backupsPs,
   trash: trashPs,
   auth: authPs,
-  rawMaterials: rawMaterialsPs,
-  rawMaterialPurchases: rawMaterialPurchasesPs,
-  rawMaterialStock: rawMaterialStockPs,
-  rawMaterialProcesses: rawMaterialProcessesPs,
-  rawMaterialSales: rawMaterialSalesPs,
-  packing: packingPs,
-  damaged: damagedPs,
   ...modulesPs,
 };
 

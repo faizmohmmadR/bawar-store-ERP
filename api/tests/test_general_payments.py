@@ -9,7 +9,7 @@ from rest_framework.test import APIRequestFactory
 from api.models.data.customers import Customer
 from api.models.data.vendors import Vendor
 from api.models.data.sales import Sales
-from api.models.data.raw_materials import RawMaterialPurchase
+from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.models.data.payment import GeneralPayment, Payment
 from api.serializers.data.payment import GeneralPaymentSerializer
 from api.services.general_payments import balance_data

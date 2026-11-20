@@ -102,25 +102,17 @@ TRASH_REGISTRY = {
         'display': lambda o: getattr(o.product, 'name', f'Stock #{o.pk}'),
         'module': 'stock',
     },
-    'packing-runs': {
-        'model': 'api.PackingRun',
-        'label': 'Packing run',
-        'display': lambda o: o.packing_number or f'Packing #{o.pk}',
-        'module': 'packing',
+    'purchases': {
+        'model': 'api.Purchase',
+        'label': 'Purchase',
+        'display': lambda o: o.invoice_number or f'Purchase #{o.pk}',
+        'module': 'purchases',
     },
-    'damaged-materials': {
-        'model': 'api.DamagedMaterialRecord',
-        'label': 'Damaged materials',
-        'display': lambda o: o.damaged_number or f'Damaged #{o.pk}',
-        'module': 'damaged',
-    },
-    'stock-bottle-damages': {
-        'model': 'api.StockBottleDamage',
-        'label': 'Bottle damage',
-        'display': lambda o: (
-            f'{o.bottle_count} × {getattr(o.product, "name", o.product_id)}'
-        ),
-        'module': 'stock',
+    'warehouses': {
+        'model': 'api.Warehouse',
+        'label': 'Warehouse',
+        'display': lambda o: o.name,
+        'module': 'warehouses',
     },
     'employee-overtime-entries': {
         'model': 'api.EmployeeOvertimeEntry',
