@@ -217,6 +217,8 @@ export const stockPs = {
   // Stock status labels
   outOfStock: "ذخیره ختم شوې",
   lowStock: "لږه ذخیره",
+  criticalStock: "بحراني",
+  minStockLevel: "بحراني لږترلږه",
   inStock: "کافي ذخیره",
   overstock: "ډیره ذخیره",
 

@@ -52,8 +52,12 @@ const StockList = () => {
   const statusFor = (row: InventoryBalance) => {
     const onHand = Number(row.quantity_on_hand) || 0;
     const reorder = Number(row.product_details?.reorder_level) || 0;
+    const minimum = Number(row.product_details?.min_stock_level) || 0;
     if (onHand <= 0) {
       return { label: t('stock.outOfStock', 'Out of stock'), variant: 'destructive' as const };
+    }
+    if (minimum > 0 && onHand <= minimum) {
+      return { label: t('stock.criticalStock', 'Critical'), variant: 'destructive' as const };
     }
     if (reorder > 0 && onHand <= reorder) {
       return { label: t('stock.lowStock', 'Low stock'), variant: 'secondary' as const };

@@ -34,11 +34,8 @@ class StockViewSet(DataRootViewSet):
 
     @action(detail=False, methods=['get'], url_path='low-stock')
     def low_stock(self, request):
-        from django.db.models import F
-        qs = InventoryBalance.objects.select_related('product').filter(
-            quantity_on_hand__lte=F('product__reorder_level'),
-            product__track_inventory=True,
-        )
+        from api.services.notifications import low_stock_balance_queryset
+        qs = low_stock_balance_queryset()
         ser = InventoryBalanceSerializer(qs, many=True, context={'request': request})
         return Response(ser.data)
 

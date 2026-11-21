@@ -141,7 +141,7 @@ export const reportsEn = {
     "Accrual profit from accounts, cash vs credit, expense breakdown, and top products — all in AFN",
   ownerBranchesReport: "All Branches Report",
   ownerBranchesHint:
-    "Mirbat Zada owner view — revenue, collections, expenses, profit, customers, sales and top products for every branch",
+    "BAWAR Super Store owner view — revenue, collections, expenses, profit, customers, sales and top products for every branch",
   ownerBranchesPageHint:
     "Each branch is shown separately on this page — revenue, collected, uncollected, expenses, profit, customers, sales and top products",
   ownerBranchesTableHint:
@@ -154,10 +154,10 @@ export const reportsEn = {
   backToBranches: "Back to branches",
   ownerOnlyTitle: "Owner report only",
   ownerOnlyHint:
-    "This all-branches report is available only to the Mirbat Zada system owner (super admin).",
+    "This all-branches report is available only to the BAWAR Super Store system owner (super admin).",
   superAdminOnly: "Super admin",
   companyTotals: "Company totals (all branches)",
-  companyTotalsHint: "Consolidated Mirbat Zada performance across every active branch",
+  companyTotalsHint: "Consolidated BAWAR Super Store performance across every active branch",
   branches: "branches",
   branchComparison: "Branch comparison",
   branchComparisonHint: "Revenue, collections and net profit by branch",

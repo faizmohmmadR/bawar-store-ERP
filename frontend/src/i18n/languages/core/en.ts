@@ -138,10 +138,10 @@ export const coreEn = {
   },
 
   app: {
-    title: 'Mirbat Zada Detergent Production Co.',
-    sidebarTitle: 'Mirbat Zada',
-    subtitle: 'ERP System',
-    tagline: 'MBZ — Cleaner Future',
+    title: 'BAWAR Super Store',
+    sidebarTitle: 'BAWAR',
+    subtitle: 'Retail ERP',
+    tagline: 'Super Store Management System',
     location: 'Afghanistan',
     version: 'Version'
   },

@@ -1,27 +1,27 @@
 {
-  "name": "Mirbat Zada Detergent Production Co. ERP",
-  "short_name": "MBZ ERP",
-  "description": "Mirbat Zada Detergent Production Co. ERP System",
+  "name": "BAWAR Super Store",
+  "short_name": "BAWAR",
+  "description": "BAWAR Super Store management system for inventory, sales, purchases, and retail operations",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#111111",
-  "theme_color": "#F59E1A",
+  "background_color": "#000000",
+  "theme_color": "#0E4EC9",
   "icons": [
     {
-      "src": "/logo.jpeg",
+      "src": "/logo/logo.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png"
     },
     {
-      "src": "/logo.jpeg",
+      "src": "/logo/logo.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png"
     },
     {
-      "src": "/logo.jpeg",
+      "src": "/logo/logo.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

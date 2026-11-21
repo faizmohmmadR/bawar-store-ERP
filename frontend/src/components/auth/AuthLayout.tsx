@@ -29,7 +29,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, wide = false }
       dir={direction}
       style={{
         background:
-          'radial-gradient(1200px 720px at 12% 18%, rgba(245,158,26,0.18), transparent 52%), radial-gradient(1000px 640px at 88% 82%, rgba(31,118,209,0.18), transparent 50%), linear-gradient(155deg, #0b0d11 0%, #111827 20%, #0b0d11 100%)',
+          'radial-gradient(1200px 720px at 12% 18%, rgba(14,78,201,0.28), transparent 52%), radial-gradient(1000px 640px at 88% 82%, rgba(111,232,0,0.14), transparent 50%), linear-gradient(155deg, #000000 0%, #050B16 24%, #000000 100%)',
       }}
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
@@ -39,20 +39,18 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, wide = false }
         />
         <div
           className="auth-glow absolute -right-20 bottom-0 h-[30rem] w-[30rem] rounded-full blur-3xl"
-          style={{ backgroundColor: `${BRAND.colors.secondary}26`, animationDelay: '-5s' }}
+          style={{ backgroundColor: `${BRAND.colors.lime}26`, animationDelay: '-5s' }}
         />
         <div className="auth-grid-pattern absolute inset-0 opacity-20" />
       </div>
 
       <header className="relative z-20 flex shrink-0 items-center justify-between px-4 py-3 sm:px-8 lg:px-12">
         <div className="flex items-center gap-3">
-          <div className="auth-logo-shell rounded-2xl border border-white/10 bg-white/5 p-2 shadow-[0_12px_40px_rgba(0,0,0,0.22)] backdrop-blur-sm">
-            <img
-              src={BRAND.logo}
-              alt={BRAND.name}
-              className="h-9 w-auto max-w-[115px] object-contain sm:h-11 sm:max-w-[130px]"
-            />
-          </div>
+          <img
+            src={BRAND.logo}
+            alt={BRAND.name}
+            className="h-10 w-auto max-w-[140px] object-contain sm:h-12 sm:max-w-[160px]"
+          />
           <div className="hidden sm:block">
             <p className="auth-display text-[11px] font-semibold uppercase tracking-[0.22em] text-white/80">
               {t('core.app.sidebarTitle', BRAND.sidebarTitle)}
@@ -91,9 +89,11 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, wide = false }
       <div className="relative z-10 mx-auto grid w-full max-w-7xl flex-1 content-center gap-8 px-4 py-4 sm:px-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:px-12 lg:py-8">
         <section className="auth-anim-up hidden lg:flex lg:items-center">
           <div className="auth-brand-panel w-full max-w-xl rounded-[32px] border border-white/10 bg-white/5 p-7 shadow-[0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-            <div className="mb-7 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-3 py-2.5 shadow-[0_16px_40px_rgba(0,0,0,0.28)]">
-              <img src={BRAND.logo} alt={BRAND.name} className="h-14 w-auto max-w-[150px] object-contain" />
-            </div>
+            <img
+              src={BRAND.logo}
+              alt={BRAND.name}
+              className="mb-7 h-16 w-auto max-w-[200px] object-contain"
+            />
 
             <p
               className="auth-display mb-3 text-[11px] font-semibold uppercase tracking-[0.28em]"
@@ -109,7 +109,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, wide = false }
             <div
               className="auth-accent-line mt-5 h-1 w-24 rounded-full"
               style={{
-                background: `linear-gradient(90deg, ${BRAND.colors.primary}, ${BRAND.colors.secondary})`,
+                background: `linear-gradient(90deg, ${BRAND.colors.primary}, ${BRAND.colors.lime})`,
               }}
             />
 
@@ -149,7 +149,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, wide = false }
                 className="inline-flex items-center gap-1.5 font-medium transition-colors hover:text-white"
                 style={{ color: BRAND.colors.primary }}
               >
-                Mirbat Zada
+                {BRAND.shortName}
                 {BRAND.facebook && <ExternalLink className="h-3 w-3" />}
               </a>
             </div>

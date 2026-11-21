@@ -16,9 +16,22 @@ export const defaultPurchaseItem = () => ({
   quantity: 0,
   measured_base_quantity: '' as string | number,
   price_per_unit: 0,
+  profit_percent: 0,
+  sale_price: 0,
   lot_number: '',
   expiry_date: '',
 });
+
+/** Sale price from cost and markup %. */
+export const salePriceFromProfitPercent = (cost: number, profitPercent: number) =>
+  roundOrderNumeric((Number(cost) || 0) * (1 + (Number(profitPercent) || 0) / 100));
+
+/** Markup % from cost and sale price. */
+export const profitPercentFromSalePrice = (cost: number, salePrice: number) => {
+  const unitCost = Number(cost) || 0;
+  if (unitCost <= 0) return 0;
+  return roundOrderNumeric((((Number(salePrice) || 0) - unitCost) / unitCost) * 100);
+};
 
 export const createPurchaseFormSchema = (t: TranslateFn) => {
   const messages = formMessages(t);
@@ -31,6 +44,8 @@ export const createPurchaseFormSchema = (t: TranslateFn) => {
       purchase_date: requiredString(messages.required),
       currency: requiredString(messages.required),
       status: z.enum(['draft', 'pending', 'received', 'cancelled']),
+      /** Default markup % for this purchase — drives sales price from buy price. */
+      profit_percent: z.coerce.number().min(0, t('purchases.profitPercentMin', 'Profit % cannot be negative')),
       items: z.array(
         z.object({
           id: z.string().optional(),
@@ -42,6 +57,8 @@ export const createPurchaseFormSchema = (t: TranslateFn) => {
           quantity: z.coerce.number(),
           measured_base_quantity: z.union([z.string(), z.number()]).optional(),
           price_per_unit: z.coerce.number(),
+          profit_percent: z.coerce.number().optional(),
+          sale_price: z.coerce.number().optional(),
           lot_number: z.string().optional(),
           expiry_date: z.string().optional(),
         }),
@@ -96,6 +113,14 @@ export const createPurchaseFormSchema = (t: TranslateFn) => {
             path: ['items', index, 'price_per_unit'],
           });
         }
+
+        if ((Number(item.sale_price) || 0) < 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: t('purchases.salePriceMin', 'Sales price cannot be negative'),
+            path: ['items', index, 'sale_price'],
+          });
+        }
       });
     });
 };
@@ -109,35 +134,43 @@ export const defaultPurchaseFormValues = (): PurchaseFormValues => ({
   purchase_date: new Date().toISOString().slice(0, 10),
   currency: '1',
   status: 'received',
+  profit_percent: 0,
   items: [defaultPurchaseItem()],
   notes: '',
 });
 
-export const purchaseToFormValues = (purchase: Purchase): PurchaseFormValues => ({
-  vendor: String(purchase.vendor || ''),
-  warehouse: String(purchase.warehouse || ''),
-  bill_number: purchase.bill_number || '',
-  purchase_date: purchase.purchase_date ? purchase.purchase_date.slice(0, 10) : '',
-  currency: resolveCurrencyId(purchase),
-  status: (purchase.status as PurchaseFormValues['status']) || 'received',
-  items: [
-    defaultPurchaseItem(),
-    ...(purchase.items || []).map((item) => ({
-      id: item.id?.toString(),
-      product: String(item.product),
-      packaging: String(item.packaging),
-      packaging_name: item.packaging_details?.name || '',
-      qty_in_base: Number(item.conversion_factor ?? item.packaging_details?.qty_in_base) || 1,
-      is_variable_weight: Boolean(item.packaging_details?.is_variable_weight),
-      quantity: Number(item.quantity) || 0,
-      measured_base_quantity: item.measured_base_quantity ?? '',
-      price_per_unit: Number(item.price_per_unit) || 0,
-      lot_number: item.lot_number || '',
-      expiry_date: item.expiry_date || '',
-    })),
-  ],
-  notes: purchase.notes || '',
-});
+export const purchaseToFormValues = (purchase: Purchase): PurchaseFormValues => {
+  const mappedItems = (purchase.items || []).map((item) => ({
+    id: item.id?.toString(),
+    product: String(item.product),
+    packaging: String(item.packaging),
+    packaging_name: item.packaging_details?.name || '',
+    qty_in_base: Number(item.conversion_factor ?? item.packaging_details?.qty_in_base) || 1,
+    is_variable_weight: Boolean(item.packaging_details?.is_variable_weight),
+    quantity: Number(item.quantity) || 0,
+    measured_base_quantity: item.measured_base_quantity ?? '',
+    price_per_unit: Number(item.price_per_unit) || 0,
+    profit_percent: Number(item.profit_percent) || 0,
+    sale_price: Number(item.sale_price) || 0,
+    lot_number: item.lot_number || '',
+    expiry_date: item.expiry_date || '',
+  }));
+
+  const headerPercent =
+    mappedItems.find((item) => (Number(item.profit_percent) || 0) > 0)?.profit_percent || 0;
+
+  return {
+    vendor: String(purchase.vendor || ''),
+    warehouse: String(purchase.warehouse || ''),
+    bill_number: purchase.bill_number || '',
+    purchase_date: purchase.purchase_date ? purchase.purchase_date.slice(0, 10) : '',
+    currency: resolveCurrencyId(purchase),
+    status: (purchase.status as PurchaseFormValues['status']) || 'received',
+    profit_percent: Number(headerPercent) || 0,
+    items: [defaultPurchaseItem(), ...mappedItems],
+    notes: purchase.notes || '',
+  };
+};
 
 export const calculatePurchaseSubtotal = (items: PurchaseFormValues['items']) =>
   roundOrderNumeric(
@@ -160,12 +193,23 @@ const mapItemPayload = (item: PurchaseFormValues['items'][number], withId = fals
   const measured = item.measured_base_quantity === '' || item.measured_base_quantity == null
     ? null
     : Number(item.measured_base_quantity);
+  const cost = roundOrderNumeric(Number(item.price_per_unit) || 0);
+  let profitPercent = roundOrderNumeric(Number(item.profit_percent) || 0);
+  let salePrice = roundOrderNumeric(Number(item.sale_price) || 0);
+  if (cost > 0 && profitPercent > 0 && salePrice <= 0) {
+    salePrice = salePriceFromProfitPercent(cost, profitPercent);
+  } else if (cost > 0 && salePrice > 0 && profitPercent <= 0) {
+    profitPercent = profitPercentFromSalePrice(cost, salePrice);
+  }
+
   const payload: Record<string, unknown> = {
     product: Number(item.product),
     packaging: Number(item.packaging),
     quantity: roundOrderNumeric(Number(item.quantity)),
     conversion_factor: Number(item.qty_in_base) || 1,
-    price_per_unit: roundOrderNumeric(Number(item.price_per_unit) || 0),
+    price_per_unit: cost,
+    profit_percent: profitPercent,
+    sale_price: salePrice,
     measured_base_quantity: measured && measured > 0 ? measured : null,
     lot_number: item.lot_number || null,
     expiry_date: item.expiry_date || null,
@@ -175,6 +219,7 @@ const mapItemPayload = (item: PurchaseFormValues['items'][number], withId = fals
 };
 
 export const purchaseFormToAddPayload = (data: PurchaseFormValues) => {
+  const headerPercent = roundOrderNumeric(Number(data.profit_percent) || 0);
   const validItems = data.items.filter((item) => item.product && item.packaging);
 
   return {
@@ -186,7 +231,18 @@ export const purchaseFormToAddPayload = (data: PurchaseFormValues) => {
     currency: toCurrencyFkId(data.currency),
     status: data.status || 'received',
     notes: data.notes || '',
-    items: validItems.map((item) => mapItemPayload(item)),
+    items: validItems.map((item) => {
+      const cost = roundOrderNumeric(Number(item.price_per_unit) || 0);
+      const linePercent = roundOrderNumeric(Number(item.profit_percent) || 0) || headerPercent;
+      const sale =
+        roundOrderNumeric(Number(item.sale_price) || 0)
+        || (cost > 0 && linePercent > 0 ? salePriceFromProfitPercent(cost, linePercent) : 0);
+      return mapItemPayload({
+        ...item,
+        profit_percent: linePercent,
+        sale_price: sale,
+      });
+    }),
   };
 };
 

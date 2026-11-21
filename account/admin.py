@@ -123,6 +123,6 @@ class UserAdmin(BaseUserAdmin):
 admin.site.register(User, UserAdmin)
 
 # Keep branding consistent even if api.admin loads later/earlier.
-admin.site.site_header = 'Mirbatzada ERP Admin'
-admin.site.site_title = 'Mirbatzada ERP'
+admin.site.site_header = 'BAWAR Super Store Admin'
+admin.site.site_title = 'BAWAR Super Store'
 admin.site.index_title = 'Administration'

@@ -128,6 +128,18 @@ class PurchaseItem(BaseModel):
         decimal_places=6,
         help_text='Price per purchase packaging unit in purchase currency.',
     )
+    profit_percent = models.DecimalField(
+        max_digits=8,
+        decimal_places=4,
+        default=0,
+        help_text='Markup % over purchase unit cost used to derive sale_price.',
+    )
+    sale_price = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        default=0,
+        help_text='Target retail selling price per this packaging unit (purchase currency).',
+    )
     total_price = models.DecimalField(max_digits=15, decimal_places=4, default=0)
     price_per_unit_base = models.DecimalField(max_digits=18, decimal_places=6, default=0)
     total_price_base = models.DecimalField(max_digits=15, decimal_places=4, default=0)

@@ -1,4 +1,4 @@
-// Theme configuration — Mirbat Zada brand: primary orange #F59E1A, secondary blue #1F76D1
+// Theme — BAWAR logo: electric blue #0E4EC9 + neon lime #6FE800
 export const theme = {
   fonts: {
     primary: 'font-sans',

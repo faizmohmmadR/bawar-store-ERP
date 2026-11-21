@@ -23,7 +23,8 @@ export const stockEn = {
     noMovements: 'No movements yet. Receive a purchase to create stock.',
     count: 'Count',
     reorderLevel: 'Reorder level',
-    lowStockHint: 'Balances at or below the product reorder level',
+    minStockLevel: 'Critical min',
+    lowStockHint: 'Balances at or below the product reorder or critical min level',
     noLowStock: 'No low-stock items',
     noLowStockHint: 'All tracked products are above reorder level.',
     report: 'Stock report',
@@ -269,6 +270,7 @@ export const stockEn = {
   // Stock status labels
   outOfStock: "Out of Stock",
   lowStock: "Low Stock",
+  criticalStock: "Critical",
   inStock: "In Stock",
   overstock: "Overstock",
 

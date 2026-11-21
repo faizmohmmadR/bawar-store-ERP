@@ -119,8 +119,8 @@ export const commonEn = {
     activityLogs: "Activity Logs"
   },
   app: {
-    title: "Mirbat Zada Detergent Production Co.",
-    subtitle: "Enterprise Resource Planning",
+    title: "BAWAR Super Store",
+    subtitle: "Super Store Management System",
     version: "Version"
   },
   export: "Export",

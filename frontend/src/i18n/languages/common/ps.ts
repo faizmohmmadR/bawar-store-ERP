@@ -115,7 +115,7 @@ export const commonPs = {
     activityLogs: "د فعالیتونو راپورونه"
   },
   app: {
-    title: "د میربت زاده د پاکوونکو موادو شرکت",
+    title: "باوار سوپر سټور",
     subtitle: "د سازماني سرچینو پلان",
     version: "نسخه"
   },

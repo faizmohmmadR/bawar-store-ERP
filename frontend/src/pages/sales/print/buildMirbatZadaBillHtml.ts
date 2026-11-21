@@ -10,7 +10,7 @@ import {
 import type { CalendarSystem } from '@/contexts/CalendarPreferenceContext';
 import type { Sale, SaleItem } from '@/types/sale';
 
-/** Bill UI is always Pashto (matches the Mirbat Zada paper bill). */
+/** Bill UI is always Pashto (matches the BAWAR Super Store paper bill). */
 export type MirbatZadaBillLabels = {
   billTitle: string;
   date: string;
@@ -78,7 +78,7 @@ export function getMirbatZadaBillLabels(
   t: (key: string, fallback?: string) => string,
 ): MirbatZadaBillLabels {
   return {
-    billTitle: 'د میربت زاده د خرڅلاو بیل',
+    billTitle: 'د باوار سوپر سټور د خرڅلاو بیل',
     date: 'نېټه',
     customerName: 'د پیرودونکي نوم',
     address: 'ادرس یا موقعیت',
@@ -92,8 +92,8 @@ export function getMirbatZadaBillLabels(
     signature: 'لاسلیک / ټاپه',
     type: 'نوعیت',
     qtyHeader: 'تعداد',
-    companyTitle: t('core.app.title', 'د میربت زاده د پاکوونکو موادو شرکت'),
-    companySubtitle: t('core.app.subtitle', 'ERP سیسټم'),
+    companyTitle: t('core.app.title', 'باوار سوپر سټور'),
+    companySubtitle: t('core.app.subtitle', 'د پرچون ERP'),
     invoiceNo: 'د بیل شمېره',
   };
 }
@@ -108,7 +108,7 @@ export function buildMirbatZadaBillHtml(opts: {
     sale,
     labels,
     calendar = getStoredCalendarSystem(),
-    logoUrl = `${window.location.origin}/logo.jpeg`,
+    logoUrl = `${window.location.origin}/logo/logo.png`,
   } = opts;
 
   const displayLabels = sale.vendor ? { ...labels,
@@ -227,7 +227,7 @@ export function buildMirbatZadaBillHtml(opts: {
 
     .rule {
       height: 4px;
-      background: linear-gradient(90deg, #46B048 0%, #46B048 72%, #B78D2E 72%, #B78D2E 100%);
+      background: linear-gradient(90deg, #0E4EC9 0%, #0E4EC9 72%, #6FE800 72%, #6FE800 100%);
       margin: 8px 0 12px;
       border-radius: 2px;
     }

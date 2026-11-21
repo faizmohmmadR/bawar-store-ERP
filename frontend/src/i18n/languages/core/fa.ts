@@ -142,11 +142,11 @@ export const coreFa = {
   },
 
   app: {
-    title: 'میربت زاده',
-    sidebarTitle: 'میربت زاده',
-    subtitle: 'سیستم ERP',
-    tagline: 'میربت زاده — آینده‌ای پاک‌تر',
-    location: 'کابل، افغانستان',
+    title: 'باوار سوپر استور',
+    sidebarTitle: 'باوار',
+    subtitle: 'سیستم خرده‌فروشی',
+    tagline: 'سیستم مدیریت سوپر استور',
+    location: 'افغانستان',
     version: 'نسخه'
   },
 

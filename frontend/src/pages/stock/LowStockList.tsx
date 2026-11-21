@@ -69,6 +69,14 @@ const LowStockList = () => {
         formatOrderNumeric(Number(row.product_details?.reorder_level) || 0),
     },
     {
+      key: 'min_stock_level',
+      title: t('stock.minStockLevel', 'Critical min'),
+      width: '8rem',
+      className: 'tabular-nums',
+      render: (_value, row) =>
+        formatOrderNumeric(Number(row.product_details?.min_stock_level) || 0),
+    },
+    {
       key: 'packaging_breakdown',
       title: t('stock.asPackaging', 'As packaging'),
       width: '14rem',

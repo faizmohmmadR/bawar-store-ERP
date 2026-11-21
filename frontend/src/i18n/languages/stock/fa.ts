@@ -217,6 +217,8 @@ export const stockFa = {
   // Stock status labels
   outOfStock: "اتمام موجودی",
   lowStock: "موجودی کم",
+  criticalStock: "بحرانی",
+  minStockLevel: "حداقل بحرانی",
   inStock: "موجودی کافی",
   overstock: "موجودی بیش از حد",
 

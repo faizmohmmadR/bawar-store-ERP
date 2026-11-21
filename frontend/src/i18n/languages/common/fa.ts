@@ -116,7 +116,7 @@ export const commonFa = {
     activityLogs: "گزارش فعالیتها"
   },
   app: {
-    title: "میربت زاده",
+    title: "باوار سوپر استور",
     subtitle: "برنامه‌ریزی منابع سازمانی",
     version: "نسخه"
   },

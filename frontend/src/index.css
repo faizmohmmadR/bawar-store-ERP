@@ -13,44 +13,44 @@ All colors MUST be HSL.
     --font-heading: 'Montserrat', 'Inter', system-ui, sans-serif;
     --font-size-root: 18px;
 
-    /* Mirbat Zada Detergent Production Co. brand
-       Primary orange #F59E1A | Secondary blue #1F76D1 | Dark #111111 | White #FFFFFF */
+    /* BAWAR Super Store — from logo.png
+       Electric blue #0E4EC9 | Neon lime #6FE800 | Black #000000 */
 
-    --background: 0 0% 98%;
-    --foreground: 0 0% 7%;
+    --background: 220 30% 98%;
+    --foreground: 220 40% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 7%;
+    --card-foreground: 220 40% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
+    --popover-foreground: 220 40% 8%;
 
-    /* Brand 1st — orange */
-    --primary: 38 92% 53%;
+    /* Brand primary — electric blue from the B mark (buttons, links, focus) */
+    --primary: 217 87% 42%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 38 100% 94%;
-    --primary-dark: 32 84% 39%;
-    --primary-hover: 35 92% 48%;
+    --primary-light: 217 90% 95%;
+    --primary-dark: 217 88% 32%;
+    --primary-hover: 217 87% 36%;
 
-    /* Brand 2nd — blue */
-    --secondary: 212 71% 47%;
-    --secondary-foreground: 0 0% 100%;
-    --secondary-light: 212 73% 95%;
+    /* Secondary — muted cool slate (NOT neon; used by badges / secondary buttons) */
+    --secondary: 220 18% 94%;
+    --secondary-foreground: 220 30% 22%;
+    --secondary-light: 220 20% 97%;
 
-    /* Brand accent — warm orange for emphasis */
-    --accent: 35 95% 52%;
-    --accent-foreground: 0 0% 100%;
-    --accent-light: 35 100% 94%;
+    /* Accent — soft blue wash for hovers / subtle highlights */
+    --accent: 217 70% 95%;
+    --accent-foreground: 217 87% 32%;
+    --accent-light: 217 80% 97%;
 
-    /* Success — aligned with orange / blue system */
-    --success: 212 71% 47%;
+    /* Success — logo lime (success states only) */
+    --success: 90 85% 38%;
     --success-foreground: 0 0% 100%;
-    --success-light: 212 70% 95%;
+    --success-light: 90 80% 94%;
 
-    /* Warning — warm orange */
-    --warning: 38 92% 53%;
-    --warning-foreground: 0 0% 100%;
-    --warning-light: 38 100% 94%;
+    /* Warning */
+    --warning: 42 95% 50%;
+    --warning-foreground: 220 40% 8%;
+    --warning-light: 42 100% 94%;
 
     /* Error/Destructive - Red */
     --destructive: 0 84% 55%;
@@ -58,29 +58,33 @@ All colors MUST be HSL.
     --destructive-light: 0 84% 95%;
 
     /* Info — blue */
-    --info: 212 71% 39%;
+    --info: 217 87% 38%;
     --info-foreground: 0 0% 100%;
-    --info-light: 212 72% 96%;
+    --info-light: 217 90% 96%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 40%;
+    /* Brand lime token for intentional brand accents */
+    --brand-lime: 90 100% 45%;
+    --brand-lime-foreground: 220 40% 8%;
 
-    --border: 0 0% 87%;
-    --input: 0 0% 90%;
-    --ring: 38 92% 53%;
+    --muted: 220 16% 96%;
+    --muted-foreground: 220 12% 40%;
+
+    --border: 220 16% 88%;
+    --input: 220 14% 90%;
+    --ring: 217 87% 42%;
 
     /* Custom Design Tokens */
-    --gradient-primary: linear-gradient(135deg, hsl(32 84% 39%), hsl(38 92% 53%));
-    --gradient-secondary: linear-gradient(135deg, hsl(212 71% 47%), hsl(212 73% 95%));
-    --gradient-hero: linear-gradient(135deg, #111111 0%, #1F76D1 50%, #F59E1A 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(35 95% 52%), hsl(38 100% 94%));
-    --gradient-brand: linear-gradient(135deg, #F59E1A 0%, #1F76D1 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(217 88% 32%), hsl(217 87% 42%));
+    --gradient-secondary: linear-gradient(135deg, hsl(220 18% 94%), hsl(217 70% 95%));
+    --gradient-hero: linear-gradient(135deg, #000000 0%, #0E4EC9 55%, #6FE800 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(217 87% 42%), hsl(217 70% 95%));
+    --gradient-brand: linear-gradient(135deg, #0E4EC9 0%, #1A63F0 55%, #6FE800 100%);
 
     /* Enhanced Shadows */
-    --shadow-subtle: 0 2px 8px hsl(38 92% 53% / 0.12);
-    --shadow-medium: 0 4px 16px hsl(38 92% 53% / 0.16);
-    --shadow-strong: 0 8px 32px hsl(212 71% 47% / 0.18);
-    --shadow-glow: 0 0 20px hsl(38 92% 53% / 0.28);
+    --shadow-subtle: 0 2px 8px hsl(217 87% 42% / 0.10);
+    --shadow-medium: 0 4px 16px hsl(217 87% 42% / 0.14);
+    --shadow-strong: 0 8px 32px hsl(217 88% 32% / 0.18);
+    --shadow-glow: 0 0 20px hsl(217 87% 42% / 0.22);
 
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -88,55 +92,62 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 0%;
+    --sidebar-background: 220 55% 7%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 121 43% 48%;
+    --sidebar-primary: 217 87% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent: 220 40% 14%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 16%;
-    --sidebar-ring: 42 60% 45%;
+    --sidebar-border: 220 30% 16%;
+    --sidebar-ring: 90 100% 45%;
   }
 
   .dark {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 98%;
+    --background: 220 40% 5%;
+    --foreground: 220 20% 98%;
 
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 98%;
+    --card: 220 35% 8%;
+    --card-foreground: 220 20% 98%;
 
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 220 35% 8%;
+    --popover-foreground: 220 20% 98%;
 
-    --primary: 38 92% 53%;
+    --primary: 217 87% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 38 40% 16%;
-    --primary-dark: 32 84% 39%;
-    --primary-hover: 35 92% 58%;
+    --primary-light: 217 40% 16%;
+    --primary-dark: 217 88% 38%;
+    --primary-hover: 217 87% 60%;
 
-    --secondary: 212 71% 47%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 220 20% 16%;
+    --secondary-foreground: 220 15% 90%;
 
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 220 25% 14%;
+    --muted-foreground: 220 12% 68%;
 
-    --accent: 35 95% 52%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 217 35% 16%;
+    --accent-foreground: 217 90% 85%;
+
+    --success: 90 80% 42%;
+    --success-foreground: 0 0% 100%;
+    --success-light: 90 40% 14%;
+
+    --brand-lime: 90 100% 48%;
+    --brand-lime-foreground: 220 40% 8%;
 
     --destructive: 0 70% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
-    --ring: 38 92% 53%;
-    --sidebar-background: 0 0% 0%;
+    --border: 220 22% 16%;
+    --input: 220 22% 16%;
+    --ring: 217 87% 55%;
+    --sidebar-background: 220 50% 5%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 38 92% 53%;
+    --sidebar-primary: 217 87% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent: 220 35% 12%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 16%;
-    --sidebar-ring: 35 95% 52%;
+    --sidebar-border: 220 28% 14%;
+    --sidebar-ring: 90 100% 48%;
   }
 }
 

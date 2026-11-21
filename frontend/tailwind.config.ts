@@ -34,18 +34,25 @@ export default {
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
-				/** Direct brand hex aliases — prefer primary/accent tokens in UI */
+				/** Direct brand hex aliases — BAWAR logo blue + lime */
 				brand: {
-					DEFAULT: '#46B048',
+					DEFAULT: '#0E4EC9',
 					foreground: '#FFFFFF',
-					soft: '#EBF7EB',
-					dark: '#368A38',
+					soft: '#E8F0FE',
+					dark: '#0A3A96',
+					lime: '#6FE800',
+					'lime-foreground': '#0A0A0A',
+					'lime-soft': '#F2FFE6',
+				},
+				'brand-lime': {
+					DEFAULT: 'hsl(var(--brand-lime))',
+					foreground: 'hsl(var(--brand-lime-foreground))',
 				},
 				'brand-gold': {
-					DEFAULT: '#B78D2E',
+					DEFAULT: '#0E4EC9',
 					foreground: '#FFFFFF',
-					soft: '#F7F1E6',
-					dark: '#8F6E24',
+					soft: '#E8F0FE',
+					dark: '#0A3A96',
 				},
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',

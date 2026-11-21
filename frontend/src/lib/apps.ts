@@ -51,7 +51,7 @@ export type AppSubItem = {
   path: string;
   permission?: string;
   permissions?: string[];
-  /** Only the Mirbat Zada system owner (superuser) can see this nav item */
+  /** Only the BAWAR Super Store system owner (superuser) can see this nav item */
   superuserOnly?: boolean;
 };
 

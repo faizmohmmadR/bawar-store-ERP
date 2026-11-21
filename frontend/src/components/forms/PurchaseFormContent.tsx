@@ -38,6 +38,8 @@ import {
   calculatePurchaseSubtotal,
   calculatePurchaseTotal,
   defaultPurchaseItem,
+  profitPercentFromSalePrice,
+  salePriceFromProfitPercent,
   type PurchaseFormValues,
 } from '@/lib/purchaseFormSchemas';
 import { formatOrderNumeric, ORDER_NUMERIC_STEP } from '@/lib/orderNumeric';
@@ -52,6 +54,7 @@ type PackagingOption = {
   is_variable_weight?: boolean;
   is_base?: boolean;
   is_active?: boolean;
+  retail_price?: { amount?: number | string; currency?: number } | null;
 };
 
 type PurchaseFormContentProps = {
@@ -90,11 +93,23 @@ export function PurchaseFormContent({
   const items = useWatch({ control, name: 'items' }) ?? [];
   const currency = useWatch({ control, name: 'currency' }) ?? '';
   const purchaseDate = useWatch({ control, name: 'purchase_date' }) ?? '';
+  const profitPercent = useWatch({ control, name: 'profit_percent' }) ?? 0;
   const { errors } = useFormState({ control });
 
   const currencySymbol = resolveCurrencySymbol(currency);
   const subtotal = useMemo(() => calculatePurchaseSubtotal(items), [items]);
   const total = useMemo(() => calculatePurchaseTotal(items), [items]);
+
+  const applyProfitPercentToItems = (percent: number) => {
+    setValue('profit_percent', percent);
+    items.forEach((row, index) => {
+      const buy = Number(row?.price_per_unit) || 0;
+      setValue(`items.${index}.profit_percent`, percent);
+      if (buy > 0) {
+        setValue(`items.${index}.sale_price`, salePriceFromProfitPercent(buy, percent));
+      }
+    });
+  };
 
   const itemsError =
     (errors.items as { message?: string; root?: { message?: string } } | undefined)?.message
@@ -133,7 +148,7 @@ export function PurchaseFormContent({
             </div>
           )}
 
-          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.1fr)_minmax(0,0.75fr)_minmax(0,0.8fr)_minmax(0,0.75fr)_minmax(0,0.9fr)_minmax(0,0.85fr)]">
             <FormField
               control={control}
               name="vendor"
@@ -268,6 +283,34 @@ export function PurchaseFormContent({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={control}
+              name="profit_percent"
+              render={({ field }) => (
+                <FormItem className="flex min-w-0 flex-col gap-1.5">
+                  <FormLabel className="text-sm font-medium">
+                    {t('purchases.profitPercent', 'Profit %')}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="0"
+                      step={ORDER_NUMERIC_STEP}
+                      value={field.value || ''}
+                      onChange={(event) => {
+                        const percent = parseFloat(event.target.value) || 0;
+                        field.onChange(percent);
+                        applyProfitPercentToItems(percent);
+                      }}
+                      className="h-10 w-full"
+                      placeholder="0"
+                    />
+                  </FormControl>
+                  <FormMessage className="min-h-4 text-xs" />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
       </div>
@@ -277,22 +320,33 @@ export function PurchaseFormContent({
           <Card className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <div className="flex items-center justify-between gap-3 border-b bg-muted/30 px-4 py-3">
               <h3 className="text-sm font-semibold">{t('purchases.items', 'Items')}</h3>
-              <Button type="button" variant="outline" size="sm" onClick={() => insert(1, defaultPurchaseItem())}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  insert(1, {
+                    ...defaultPurchaseItem(),
+                    profit_percent: Number(profitPercent) || 0,
+                  })
+                }
+              >
                 <Plus className="h-4 w-4" />
                 {t('purchases.addItem', 'Add item')}
               </Button>
             </div>
             <CardContent className="min-w-0 p-0">
               <div className="overflow-x-auto">
-                <Table className="min-w-[1000px] table-fixed">
+                <Table className="min-w-[1100px] table-fixed">
                   <colgroup>
                     <col style={{ width: '2.25rem' }} />
-                    <col style={{ width: '36%' }} />
-                    <col style={{ width: '16%' }} />
-                    <col style={{ width: '11%' }} />
-                    <col style={{ width: '11%' }} />
-                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '28%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '9%' }} />
+                    <col style={{ width: '9%' }} />
                     <col style={{ width: '12%' }} />
+                    <col style={{ width: '12%' }} />
+                    <col style={{ width: '11%' }} />
                     <col style={{ width: '2.5rem' }} />
                   </colgroup>
                   <TableHeader>
@@ -302,7 +356,8 @@ export function PurchaseFormContent({
                       <TableHead className="bg-muted/20 text-xs">{t('purchases.unit', 'Purchase unit')}</TableHead>
                       <TableHead className="bg-muted/20 text-xs">{t('purchases.quantity', 'Qty')}</TableHead>
                       <TableHead className="bg-muted/20 text-xs">{t('purchases.baseQty', 'Base qty')}</TableHead>
-                      <TableHead className="bg-muted/20 text-xs">{t('purchases.pricePerUnit', 'Price / unit')}</TableHead>
+                      <TableHead className="bg-muted/20 text-xs">{t('purchases.buyPrice', 'Buy price')}</TableHead>
+                      <TableHead className="bg-muted/20 text-xs">{t('purchases.salesPrice', 'Sales price')}</TableHead>
                       <TableHead className="bg-muted/20 text-right text-xs">{t('purchases.total', 'Total')}</TableHead>
                       <TableHead className="bg-muted/20 px-1" aria-label={t('common.actions')} />
                     </TableRow>
@@ -317,6 +372,7 @@ export function PurchaseFormContent({
                         items={items}
                         fieldsLength={fields.length}
                         currencySymbol={currencySymbol}
+                        profitPercent={Number(profitPercent) || 0}
                         insert={insert}
                         move={move}
                         remove={remove}
@@ -401,6 +457,7 @@ function PurchaseLineRow({
   items,
   fieldsLength,
   currencySymbol,
+  profitPercent,
   insert,
   move,
   remove,
@@ -411,6 +468,7 @@ function PurchaseLineRow({
   items: PurchaseFormValues['items'];
   fieldsLength: number;
   currencySymbol: string;
+  profitPercent: number;
   insert: (index: number, value: ReturnType<typeof defaultPurchaseItem>) => void;
   move: (from: number, to: number) => void;
   remove: (index: number) => void;
@@ -443,6 +501,24 @@ function PurchaseLineRow({
     return [];
   }, [productDetail, item?.packaging, item?.packaging_name, item?.qty_in_base, item?.is_variable_weight, t]);
 
+  const effectivePercent = Number(item?.profit_percent) || profitPercent || 0;
+
+  const applyBuyPrice = (buy: number) => {
+    setValue(`items.${index}.price_per_unit`, buy);
+    setValue(`items.${index}.profit_percent`, effectivePercent);
+    if (buy > 0 && effectivePercent > 0) {
+      setValue(`items.${index}.sale_price`, salePriceFromProfitPercent(buy, effectivePercent));
+    }
+  };
+
+  const applySalesPrice = (sales: number) => {
+    const buy = Number(item?.price_per_unit) || 0;
+    setValue(`items.${index}.sale_price`, sales);
+    if (buy > 0) {
+      setValue(`items.${index}.profit_percent`, profitPercentFromSalePrice(buy, sales));
+    }
+  };
+
   const applyPackaging = (pack?: PackagingOption | null) => {
     if (!pack) {
       setValue(`items.${index}.packaging`, '');
@@ -457,6 +533,18 @@ function PurchaseLineRow({
     setValue(`items.${index}.qty_in_base`, Number(pack.qty_in_base) || 1);
     setValue(`items.${index}.is_variable_weight`, Boolean(pack.is_variable_weight));
     setValue(`items.${index}.measured_base_quantity`, '');
+
+    const retail = Number(pack.retail_price?.amount) || 0;
+    const buy = Number(item?.price_per_unit) || 0;
+    if (retail > 0) {
+      setValue(`items.${index}.sale_price`, retail);
+      if (buy > 0) {
+        setValue(`items.${index}.profit_percent`, profitPercentFromSalePrice(buy, retail));
+      }
+    } else if (buy > 0 && effectivePercent > 0) {
+      setValue(`items.${index}.sale_price`, salePriceFromProfitPercent(buy, effectivePercent));
+      setValue(`items.${index}.profit_percent`, effectivePercent);
+    }
   };
 
   return (
@@ -493,11 +581,16 @@ function PurchaseLineRow({
                     if (productChanged && productField.value) {
                       setValue(`items.${index}.quantity`, 0);
                       setValue(`items.${index}.price_per_unit`, 0);
+                      setValue(`items.${index}.profit_percent`, profitPercent);
+                      setValue(`items.${index}.sale_price`, 0);
                     }
 
                     if (selectedId && productChanged) {
                       if (!items[index]?.product && index === 0) {
-                        insert(0, defaultPurchaseItem());
+                        insert(0, {
+                          ...defaultPurchaseItem(),
+                          profit_percent: profitPercent,
+                        });
                       } else if (index > 1) {
                         move(index, 1);
                       }
@@ -638,14 +731,46 @@ function PurchaseLineRow({
           name={`items.${index}.price_per_unit`}
           render={({ field: priceField }) => (
             <FormItem className="space-y-0">
-              <FormLabel className="sr-only">{t('purchases.pricePerUnit')} *</FormLabel>
+              <FormLabel className="sr-only">{t('purchases.buyPrice', 'Buy price')} *</FormLabel>
               <FormControl>
                 <Input
                   type="number"
                   min="0"
                   step={ORDER_NUMERIC_STEP}
                   value={priceField.value || ''}
-                  onChange={(event) => priceField.onChange(parseFloat(event.target.value) || 0)}
+                  onChange={(event) => {
+                    const buy = parseFloat(event.target.value) || 0;
+                    priceField.onChange(buy);
+                    applyBuyPrice(buy);
+                  }}
+                  className="h-10 w-full min-w-0"
+                  placeholder="0"
+                />
+              </FormControl>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+      </TableCell>
+
+      <TableCell className="py-2">
+        <FormField
+          control={control}
+          name={`items.${index}.sale_price`}
+          render={({ field: saleField }) => (
+            <FormItem className="space-y-0">
+              <FormLabel className="sr-only">{t('purchases.salesPrice', 'Sales price')}</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min="0"
+                  step={ORDER_NUMERIC_STEP}
+                  value={saleField.value || ''}
+                  onChange={(event) => {
+                    const sales = parseFloat(event.target.value) || 0;
+                    saleField.onChange(sales);
+                    applySalesPrice(sales);
+                  }}
                   className="h-10 w-full min-w-0"
                   placeholder="0"
                 />

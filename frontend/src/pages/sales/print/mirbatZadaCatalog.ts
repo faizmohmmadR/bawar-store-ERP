@@ -63,7 +63,7 @@ export function resolveProductColor(opts: {
   return {
     barcode: barcode || 'UNKNOWN',
     label: '—',
-    shortName: 'MirbatZada',
-    hex: '#46B048',
+    shortName: 'BAWAR',
+    hex: '#6FE800',
   };
 }

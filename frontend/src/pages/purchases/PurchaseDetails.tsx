@@ -201,7 +201,9 @@ const PurchaseDetails = () => {
                   <TableHead className="text-start">{t('purchases.unit', 'Unit')}</TableHead>
                   <TableHead className="text-start">{t('purchases.quantity', 'Qty')}</TableHead>
                   <TableHead className="text-start">{t('purchases.baseQty', 'Base qty')}</TableHead>
-                  <TableHead className="text-start">{t('purchases.pricePerUnit', 'Price / unit')}</TableHead>
+                  <TableHead className="text-start">{t('purchases.buyPrice', 'Buy price')}</TableHead>
+                  <TableHead className="text-start">{t('purchases.profitPercent', 'Profit %')}</TableHead>
+                  <TableHead className="text-start">{t('purchases.salesPrice', 'Sales price')}</TableHead>
                   <TableHead className="text-start">{t('purchases.totalPrice', 'Total')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -235,6 +237,12 @@ const PurchaseDetails = () => {
                     </TableCell>
                     <TableCell className="whitespace-nowrap align-top tabular-nums">
                       <bdi>{money(item.price_per_unit)}</bdi>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap align-top tabular-nums">
+                      <bdi>{formatOrderNumeric(Number(item.profit_percent) || 0)}%</bdi>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap align-top tabular-nums">
+                      <bdi>{money(item.sale_price)}</bdi>
                     </TableCell>
                     <TableCell className="whitespace-nowrap align-top tabular-nums">
                       <bdi className="font-semibold">{money(item.total_price)}</bdi>

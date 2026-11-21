@@ -63,9 +63,9 @@ export const INVOICE_PRINT_CSS = `
     --muted: #64748b;
     --line: #e2e8f0;
     --soft: #f8fafc;
-    --brand: #46B048;
-    --brand-gold: #B78D2E;
-    --accent: #46B048;
+    --brand: #0E4EC9;
+    --brand-gold: #1A63F0;
+    --accent: #6FE800;
     color: var(--ink);
     background: #fff;
     font-size: 11pt;
@@ -80,7 +80,7 @@ export const INVOICE_PRINT_CSS = `
 
   .invoice-accent-bar {
     height: 3px;
-    background: linear-gradient(90deg, #000000 0%, #46B048 55%, #B78D2E 100%);
+    background: linear-gradient(90deg, #000000 0%, #0E4EC9 55%, #6FE800 100%);
     border-radius: 999px;
     margin-bottom: 10mm;
   }
@@ -101,21 +101,18 @@ export const INVOICE_PRINT_CSS = `
   }
 
   .invoice-logo {
-    width: 52px;
-    height: 52px;
-    border: 1px solid var(--line);
-    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
     flex-shrink: 0;
-    background: var(--soft);
+    background: transparent;
+    border: none;
   }
 
   .invoice-logo img {
-    width: 44px;
-    height: 44px;
+    width: auto;
+    height: 48px;
+    max-width: 140px;
     object-fit: contain;
   }
 
@@ -185,8 +182,8 @@ export const INVOICE_PRINT_CSS = `
     font-weight: 600;
     text-transform: capitalize;
     background: #EBF7EB;
-    color: #46B048;
-    border: 1px solid #46B04855;
+    color: #0E4EC9;
+    border: 1px solid #0E4EC955;
   }
 
   .invoice-status.cancelled {
@@ -324,7 +321,7 @@ export const INVOICE_PRINT_CSS = `
   }
 
   .invoice-payment-row .label { color: var(--muted); }
-  .invoice-payment-row.paid .value { color: #46B048; font-weight: 600; }
+  .invoice-payment-row.paid .value { color: #0E4EC9; font-weight: 600; }
   .invoice-payment-row.balance .value { color: #c2410c; font-weight: 700; }
 
   .invoice-totals {
@@ -557,7 +554,7 @@ export const buildInvoiceHtml = ({
       <header class="invoice-header">
         <div class="invoice-brand">
           <div class="invoice-logo">
-            <img src="/logo.jpeg" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <img src="/logo/logo.png" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="invoice-logo-fallback" style="display:none;">${escapeHtml(appTitle.charAt(0))}</div>
           </div>
           <div class="invoice-company">

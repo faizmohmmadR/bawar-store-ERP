@@ -2,7 +2,10 @@
 
 Usage:
   python manage.py scan_stock_alerts
-  python manage.py scan_stock_alerts --days 30 --low-stock-threshold 100
+  python manage.py scan_stock_alerts --days 30
+  python manage.py scan_stock_alerts --skip-low-stock
+
+Low-stock alerts use each product's reorder_level / min_stock_level.
 """
 
 from django.core.management.base import BaseCommand
@@ -24,11 +27,7 @@ class Command(BaseCommand):
             '--low-stock-threshold',
             type=int,
             default=100,
-            help='Notify when good-condition stock pieces <= this (default 100)',
-        )
-        parser.add_argument(
-            type=str,
-            default='',
+            help='Deprecated: ignored. Alerts use product reorder/min levels.',
         )
         parser.add_argument(
             '--skip-low-stock',
@@ -37,9 +36,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        if code:
-                return
-
         result = scan_stock_alerts(
             days_ahead=options['days'],
             low_stock_threshold=options['low_stock_threshold'],

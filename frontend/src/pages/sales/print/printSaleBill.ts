@@ -27,7 +27,7 @@ async function resolveSale(opts: PrintSaleBillOptions): Promise<Sale> {
 }
 
 /**
- * Print a Mirbat Zada sales bill directly (no navigation / popup window).
+ * Print a BAWAR Super Store sales bill directly (no navigation / popup window).
  * Bill language is always Pashto; layout matches the paper bill.
  */
 export async function printSaleBill(opts: PrintSaleBillOptions): Promise<void> {

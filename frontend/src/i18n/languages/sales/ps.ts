@@ -215,7 +215,7 @@ export const salesPs = {
   printInvoice: "فاکتور چاپ کړئ",
   printFailed: "دا پلور چاپ نشو. بیا هڅه وکړئ.",
   preparingPrint: "د چاپ چمتووالی…",
-  mbzBillTitle: "د میربت زاده د خرڅلاو بیل",
+  mbzBillTitle: "د باوار سوپر سټور د خرڅلاو بیل",
   addressOrLocation: "ادرس یا موقعیت",
   unitPrice: "في نرخ",
   signatureStamp: "لاسلیک / ټاپه",

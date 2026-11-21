@@ -45,6 +45,7 @@ class NotificationViewSet(DataRootViewSet):
     def scan_expiry(self, request):
         """Scan expiry + low/out-of-stock and create unread notifications."""
         days = int(request.data.get('days_ahead', 30) or 30)
+        # low_stock_threshold is deprecated; alerts use product reorder/min levels.
         threshold = int(request.data.get('low_stock_threshold', 100) or 100)
         include_low = str(request.data.get('include_low_stock', '1')).lower() not in (
             '0',

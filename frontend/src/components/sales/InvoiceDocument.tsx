@@ -73,7 +73,7 @@ export function InvoiceDocument({
             <div className="invoice-brand">
               <div className="invoice-logo">
                 <img
-                  src="/logo.jpeg"
+                  src="/logo/logo.png"
                   alt="Logo"
                   className="invoice-logo-img"
                   onError={(e) => {

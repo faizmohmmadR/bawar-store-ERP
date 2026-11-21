@@ -188,26 +188,38 @@ const EditProduct = () => {
               />
               <FormField
                 control={form.control}
-                name="min_stock_level"
+                name="reorder_level"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('products.minStock', 'Min stock (base)')}</FormLabel>
+                    <FormLabel>{t('products.reorderLevel', 'Reorder level (base)')}</FormLabel>
                     <FormControl>
-                      <Input type="number" min={0} {...field} />
+                      <Input type="number" min={0} step="any" {...field} />
                     </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      {t(
+                        'products.reorderLevelHint',
+                        'Notify when on-hand stock (base units) falls to this level or below. 0 = off.',
+                      )}
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
-                name="reorder_level"
+                name="min_stock_level"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('products.reorderLevel', 'Reorder level (base)')}</FormLabel>
+                    <FormLabel>{t('products.minStock', 'Critical min stock (base)')}</FormLabel>
                     <FormControl>
-                      <Input type="number" min={0} {...field} />
+                      <Input type="number" min={0} step="any" {...field} />
                     </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      {t(
+                        'products.minStockHint',
+                        'Urgent alert when stock reaches this critical level. Usually ≤ reorder level. 0 = off.',
+                      )}
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}

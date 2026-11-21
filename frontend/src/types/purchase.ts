@@ -7,6 +7,8 @@ export type PurchaseItem = {
   base_quantity?: number | string;
   measured_base_quantity?: number | string | null;
   price_per_unit: number | string;
+  profit_percent?: number | string;
+  sale_price?: number | string;
   total_price?: number | string;
   total_price_base?: number | string;
   discount_amount?: number | string;

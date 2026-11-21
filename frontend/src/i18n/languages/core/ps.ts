@@ -143,11 +143,11 @@ export const corePs = {
   },
 
   app: {
-    title: 'د میربت زاده د پاکوونکو موادو شرکت',
-    sidebarTitle: 'میربت زاده',
-    subtitle: 'ERP سیسټم',
-    tagline: 'میربت زاده — پاکه راتلونکې',
-    location: 'کابل، افغانستان',
+    title: 'باوار سوپر سټور',
+    sidebarTitle: 'باوار',
+    subtitle: 'د پرچون ERP',
+    tagline: 'د سوپر سټور مدیریت سیسټم',
+    location: 'افغانستان',
     version: 'نسخه'
   },
 

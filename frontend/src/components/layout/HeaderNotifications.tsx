@@ -89,7 +89,6 @@ export function HeaderNotifications({
     try {
       await api.post('/notifications/scan_alerts/', {
         days_ahead: 30,
-        low_stock_threshold: 100,
         include_low_stock: true,
       });
       await Promise.all([

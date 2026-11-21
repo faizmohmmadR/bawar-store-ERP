@@ -133,7 +133,7 @@ const SalesmanDetails: React.FC = () => {
         @page { size: A4; margin: 12mm; }
         * { box-sizing: border-box; }
         body { font-family: ${getFontStacks(language).body}; font-size: 10pt; color: #172033; margin: 0; }
-        .letterhead { display: flex; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 3px solid #1F76D1; }
+        .letterhead { display: flex; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 3px solid #0E4EC9; }
         .logo { width: 76px; height: 76px; object-fit: contain; }
         h1 { font-size: 16pt; margin: 0 0 6px; }
         h2 { font-size: 13pt; margin: 20px 0 6px; }

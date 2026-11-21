@@ -107,7 +107,7 @@ export const PRINT_PRODUCT_LIST_CSS = `
       width: 76px;
       min-height: var(--row-h);
       height: auto;
-      border: 1.5px solid #46B048;
+      border: 1.5px solid #0E4EC9;
       border-radius: 999px;
       display: flex;
       align-items: center;

@@ -42,7 +42,7 @@ export const AppsHome = () => {
         <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-[0_18px_45px_-30px_rgba(0,0,0,.45)]">
           <div
             className="relative overflow-hidden border-b border-border px-5 py-6 text-white sm:px-7 sm:py-7"
-            style={{ background: 'linear-gradient(120deg, #111111 0%, #173f70 54%, #a96208 150%)' }}
+            style={{ background: 'linear-gradient(120deg, #000000 0%, #050B16 40%, #0E4EC9 100%)' }}
           >
             <div className="absolute -right-12 -top-16 h-44 w-44 rounded-full bg-primary/25 blur-3xl" />
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -72,7 +72,7 @@ export const AppsHome = () => {
               {visibleApps.map((app) => {
                 const Icon = app.icon;
                 return <Link key={app.key} to={getAppLandingPath(app, permissionOpts)} className="group relative flex min-h-32 flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-border/70 bg-background px-2 py-4 text-center shadow-sm transition duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:min-h-36">
-                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-amber-300 to-secondary opacity-0 transition group-hover:opacity-100" />
+                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-primary-dark to-brand-lime opacity-0 transition group-hover:opacity-100" />
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-950 text-primary shadow-md ring-1 ring-black/10 transition duration-200 group-hover:scale-105 group-hover:bg-neutral-900 group-hover:shadow-[0_12px_25px_-12px_hsl(var(--primary)/.75)] sm:h-16 sm:w-16"><Icon className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={1.7} /></div>
                   <span className="line-clamp-2 text-sm font-semibold leading-snug text-slate-800 transition-colors group-hover:text-primary dark:text-slate-100">{t(`core.navigation.${app.key}`, app.key)}</span>
                 </Link>;

@@ -19,10 +19,26 @@ def product_image_url(product, request=None):
 
 
 class ProductPackagingSerializer(DataRootSerializer):
+    retail_price = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductPackaging
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at', 'deleted_at', 'deleted_by']
+
+    def get_retail_price(self, obj):
+        price = (
+            obj.prices.filter(
+                deleted_at__isnull=True,
+                is_active=True,
+                price_type=ProductPrice.PRICE_RETAIL,
+            )
+            .order_by('-effective_from', '-id')
+            .first()
+        )
+        if not price:
+            return None
+        return {'amount': price.amount, 'currency': price.currency}
 
 
 class ProductBarcodeSerializer(DataRootSerializer):
@@ -46,6 +62,16 @@ class ProductCategorySerializer(DataRootSerializer):
 def serialize_product(product, request=None):
     if not product:
         return None
+    retail_by_packaging = {}
+    for price in product.prices.filter(
+        deleted_at__isnull=True,
+        is_active=True,
+        price_type=ProductPrice.PRICE_RETAIL,
+    ).order_by('packaging_id', '-effective_from', '-id'):
+        retail_by_packaging.setdefault(price.packaging_id, {
+            'amount': price.amount,
+            'currency': price.currency,
+        })
     packagings = [
         {
             'id': p.id,
@@ -61,6 +87,7 @@ def serialize_product(product, request=None):
             'barcode': p.barcode,
             'is_variable_weight': p.is_variable_weight,
             'uom': p.uom_id,
+            'retail_price': retail_by_packaging.get(p.id),
         }
         for p in product.packagings.filter(deleted_at__isnull=True)
     ]

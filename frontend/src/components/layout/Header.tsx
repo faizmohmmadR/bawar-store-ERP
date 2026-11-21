@@ -265,20 +265,18 @@ export const Header: React.FC = () => {
             to="/"
             className="flex shrink-0 items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <div className="flex h-8 w-auto items-center overflow-hidden rounded-md bg-black sm:h-9">
-              <img
-                src={BRAND.logo}
-                alt={BRAND.name}
-                className="h-8 w-auto object-contain sm:h-9"
-              />
-            </div>
+            <img
+              src={BRAND.logo}
+              alt={BRAND.name}
+              className="h-9 w-auto max-h-9 object-contain sm:h-10 sm:max-h-10"
+            />
             <div className="hidden min-w-0 ps-2.5 lg:block">
               <p className="truncate text-sm font-heading font-semibold leading-tight text-foreground uppercase tracking-wide">
                 {t('core.app.sidebarTitle', BRAND.sidebarTitle)}
               </p>
               <p
                 className="truncate text-[11px] font-medium"
-                style={{ color: BRAND.colors.secondary }}
+                style={{ color: BRAND.colors.primary }}
               >
                 {t('core.app.subtitle', BRAND.subtitle)}
               </p>

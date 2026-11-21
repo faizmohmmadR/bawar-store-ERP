@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import transaction
 from rest_framework import serializers
 
@@ -5,6 +7,7 @@ from api.models.data.purchases import Purchase, PurchaseItem, PurchaseLandedCost
 from api.serializers.data.base import DataRootSerializer
 from api.serializers.data.products import serialize_product
 from api.services.inventory.engine import get_default_warehouse, receive_purchase_item
+from api.services.pricing import upsert_packaging_price
 from api.services.uom.conversion import snapshot_factor
 
 
@@ -126,7 +129,38 @@ class PurchaseSerializer(DataRootSerializer):
             packaging = data.get('packaging')
             if packaging and not data.get('conversion_factor'):
                 data['conversion_factor'] = snapshot_factor(packaging)
-            PurchaseItem.objects.create(purchase=purchase, **data)
+            self._sync_profit_fields(data)
+            item = PurchaseItem.objects.create(purchase=purchase, **data)
+            self._apply_sale_price(item, purchase)
+
+    def _sync_profit_fields(self, data):
+        """Keep profit % and sale price consistent from cost when one side is missing."""
+        cost = Decimal(str(data.get('price_per_unit') or 0))
+        pct = Decimal(str(data.get('profit_percent') or 0))
+        sale = Decimal(str(data.get('sale_price') or 0))
+        if cost > 0 and pct > 0 and sale <= 0:
+            sale = (cost * (Decimal('1') + pct / Decimal('100'))).quantize(Decimal('0.000001'))
+            data['sale_price'] = sale
+        elif cost > 0 and sale > 0 and pct <= 0:
+            pct = ((sale - cost) / cost * Decimal('100')).quantize(Decimal('0.0001'))
+            data['profit_percent'] = pct
+        else:
+            data['profit_percent'] = pct
+            data['sale_price'] = sale
+
+    def _apply_sale_price(self, item, purchase):
+        if purchase.is_free:
+            return
+        sale = Decimal(str(item.sale_price or 0))
+        if sale <= 0:
+            return
+        upsert_packaging_price(
+            item.product,
+            item.packaging,
+            sale,
+            currency=purchase.currency,
+            on_date=purchase.purchase_date.date() if purchase.purchase_date else None,
+        )
 
     def _maybe_receive(self, purchase, force=False):
         if purchase.status != 'received' and not force:

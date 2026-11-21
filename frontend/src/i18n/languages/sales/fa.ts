@@ -215,7 +215,7 @@ export const salesFa = {
   printInvoice: "چاپ بل",
   printFailed: "چاپ این فروش ممکن نشد. دوباره تلاش کنید.",
   preparingPrint: "آماده‌سازی چاپ…",
-  mbzBillTitle: "د میربت زاده د خرڅلاو بیل",
+  mbzBillTitle: "د باوار سوپر سټور د خرڅلاو بیل",
   addressOrLocation: "ادرس یا موقعیت",
   unitPrice: "في نرخ",
   signatureStamp: "لاسلیک / ټاپه",

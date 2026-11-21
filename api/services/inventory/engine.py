@@ -164,6 +164,16 @@ def post_movement(
         content_type=ct,
         object_id=oid,
     )
+
+    # Keep low/out-of-stock notifications in sync after every real stock change.
+    if base_qty != 0:
+        try:
+            from api.services.notifications import sync_balance_stock_alert
+            sync_balance_stock_alert(balance, product=product, warehouse=warehouse)
+        except Exception:
+            # Stock posting must never fail because of notification side-effects.
+            pass
+
     return movement
 
 
