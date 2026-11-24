@@ -44,6 +44,7 @@ import { getPaymentConfig, PaymentModuleType } from './paymentConfig';
 import {
   formatMoney,
   getOrderCurrency,
+  getOrderCurrencyId,
   getOrderPaid,
   getOrderRemaining,
   getPartyName,
@@ -105,7 +106,8 @@ const BillPaymentPage = ({ type }: AddPaymentPageProps) => {
   const schema = useMemo(
     () =>
       z.object({
-        partyId: requiredString(partyLabel),
+        // Walk-in sales have no customer; party is optional for sale payments.
+        partyId: z.string().optional().default(''),
         orderId: requiredString(orderLabel),
         payment_method: z.enum(['cash', 'bank', 'sarafi']),
         amount: z
@@ -116,8 +118,12 @@ const BillPaymentPage = ({ type }: AddPaymentPageProps) => {
         currency: requiredString(messages.required),
         reference_number: z.string().optional(),
         notes: z.string().optional(),
+      }).superRefine((data, ctx) => {
+        if (isPurchase && !data.partyId) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: partyLabel, path: ['partyId'] });
+        }
       }),
-    [messages.positive, messages.required, orderLabel, partyLabel],
+    [isPurchase, messages.positive, messages.required, orderLabel, partyLabel],
   );
 
   const form = useForm<z.infer<typeof schema>>({
@@ -191,12 +197,12 @@ const BillPaymentPage = ({ type }: AddPaymentPageProps) => {
 
   useEffect(() => {
     if (!selectedOrder) return;
-    const currency = getOrderCurrency(selectedOrder);
-    if (currency?.id) {
-      form.setValue('currency', currency.id.toString());
+    const currencyId = getOrderCurrencyId(selectedOrder);
+    if (currencyId) {
+      form.setValue('currency', currencyId, { shouldValidate: true, shouldDirty: true });
     }
     if (totalDue > 0) {
-      form.setValue('amount', totalDue.toFixed(2));
+      form.setValue('amount', totalDue.toFixed(2), { shouldValidate: true });
     }
   }, [selectedOrder, totalDue, form]);
 
@@ -220,6 +226,14 @@ const BillPaymentPage = ({ type }: AddPaymentPageProps) => {
       return;
     }
     setCachedOrder(option || null);
+    const currencyId = option ? getOrderCurrencyId(option) : '';
+    if (currencyId) {
+      form.setValue('currency', currencyId, { shouldValidate: true, shouldDirty: true });
+    }
+    const remaining = option ? getOrderRemaining(option) : 0;
+    if (remaining > 0) {
+      form.setValue('amount', remaining.toFixed(2), { shouldValidate: true });
+    }
     const party = isPurchase
       ? option?.vendor_details?.id
       : option?.customer_details?.id;
@@ -317,15 +331,19 @@ const BillPaymentPage = ({ type }: AddPaymentPageProps) => {
                   <FormLabel>
                     {isPurchase
                       ? t('rawMaterialPurchases.vendor', 'Vendor')
-                      : t('sales.customer', 'Customer')}{' '}
-                    *
+                      : t('sales.customer', 'Customer')}
+                    {isPurchase ? ' *' : ''}
                   </FormLabel>
                   <FormControl>
                     <Autocomplete
                       endpoint={config.partyEndpoint}
                       value={field.value}
                       onChange={handlePartyChange}
-                      placeholder={partyLabel}
+                      placeholder={
+                        isPurchase
+                          ? partyLabel
+                          : t('sales.walkInOptional', 'Walk-in (optional)')
+                      }
                       getOptionLabel={(p: PartyOption) => p.name}
                       getOptionValue={(p: PartyOption) => p.id.toString()}
                       disabled={!!preselectedOrderId && !!partyId}
@@ -353,12 +371,14 @@ const BillPaymentPage = ({ type }: AddPaymentPageProps) => {
                       value={field.value}
                       onChange={handleOrderChange}
                       placeholder={
-                        partyId
-                          ? orderLabel
-                          : t('payments.selectCustomerFirst', 'Select a customer first')
+                        isPurchase && !partyId
+                          ? t('payments.selectCustomerFirst', 'Select a customer first')
+                          : orderLabel
                       }
                       partyId={partyId || undefined}
-                      disabled={!partyId || (!!preselectedOrderId && !!orderId)}
+                      disabled={
+                        (isPurchase && !partyId) || (!!preselectedOrderId && !!orderId)
+                      }
                     />
                   </FormControl>
                   <FormMessage />

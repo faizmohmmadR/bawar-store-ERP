@@ -1,77 +1,74 @@
 import axios from 'axios';
 
-// Create axios instance
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-});
+const AUTH_EXPIRED_EVENT = 'auth:expired';
 
-// Flag to prevent multiple logout calls
 let isLoggingOut = false;
 
-// Function to handle logout
+/** Clear the stored session without forcing a hard browser reload loop. */
+export const clearAuthSession = () => {
+  localStorage.removeItem('user');
+};
+
 const handleLogout = () => {
   if (isLoggingOut) return;
   isLoggingOut = true;
 
-  // Clear user data from localStorage
-  localStorage.removeItem('user');
+  clearAuthSession();
 
-  // Reset flag after a short delay
+  // Let AuthProvider drop React state — AppContent will show Login.
+  // Avoid window.location.href reloads (they re-run init and can loop).
+  window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+
   setTimeout(() => {
     isLoggingOut = false;
-  }, 1000);
-
-  // Redirect to login page
-  window.location.href = '/';
+  }, 1500);
 };
 
-// Request interceptor to add token
+const isAuthEndpoint = (url?: string) =>
+  Boolean(url?.includes('/login/') || url?.includes('/register/'));
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+});
+
 api.interceptors.request.use(
   (config) => {
-    // Skip authentication for login and register endpoints
-    const isAuthEndpoint = config.url?.includes('/login/') ||
-      config.url?.includes('/register/');
-
-    if (isAuthEndpoint) {
+    if (isAuthEndpoint(config.url)) {
       return config;
     }
 
     const user = localStorage.getItem('user');
-    if (user) {
-      try {
-        const userData = JSON.parse(user);
-        if (userData.token) {
-          config.headers.Authorization = `Token ${userData.token}`;
-        } else {
-          console.warn('No token found in user data');
-          handleLogout();
-          return Promise.reject(new Error('No token found'));
-        }
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        handleLogout();
-        return Promise.reject(error);
-      }
-    } else if (!isAuthEndpoint) {
-      console.warn('No user data found for authenticated request');
-      handleLogout();
+    if (!user) {
+      // No session — reject quietly. Do NOT hard-logout/reload here.
       return Promise.reject(new Error('No authentication data'));
     }
+
+    try {
+      const userData = JSON.parse(user);
+      if (!userData?.token) {
+        clearAuthSession();
+        window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+        return Promise.reject(new Error('No token found'));
+      }
+      config.headers.Authorization = `Token ${userData.token}`;
+    } catch (error) {
+      clearAuthSession();
+      window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+      return Promise.reject(error);
+    }
+
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
-// Response interceptor to handle token validation and errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Skip logout for auth endpoints
-    const isAuthEndpoint = error.config?.url?.includes('/login/') ||
-      error.config?.url?.includes('/register/');
+    if (isAuthEndpoint(error.config?.url)) {
+      return Promise.reject(error);
+    }
 
-    // Logout only when the session is actually invalid (401).
-    // 403 is permission denied — the user is still logged in.
     const detail = error.response?.data?.detail;
     const isAuthFailure =
       error.response?.status === 401 ||
@@ -80,18 +77,16 @@ api.interceptors.response.use(
       detail === 'Token has expired' ||
       error.response?.data?.code === 'token_not_valid';
 
-    if (!isAuthEndpoint && isAuthFailure) {
+    if (isAuthFailure) {
       console.error('Authentication error:', error.response?.data);
       handleLogout();
-    }
-
-    // Check for network errors
-    if (!error.response) {
+    } else if (!error.response) {
       console.error('Network error:', error.message);
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
+export { AUTH_EXPIRED_EVENT };
 export default api;

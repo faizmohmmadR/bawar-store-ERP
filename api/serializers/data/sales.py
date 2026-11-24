@@ -66,6 +66,7 @@ class SalesSerializer(DataRootSerializer):
         self._replace_items(sale, items_data)
         self._recalc(sale)
         self._maybe_deliver(sale)
+        self._auto_pay_walk_in(sale)
         return sale
 
     @transaction.atomic
@@ -83,7 +84,15 @@ class SalesSerializer(DataRootSerializer):
         self._recalc(instance)
         if old_status in ('draft', 'cancelled') and instance.status not in ('draft', 'cancelled'):
             self._maybe_deliver(instance, force=True)
+        self._auto_pay_walk_in(instance)
         return instance
+
+    def _auto_pay_walk_in(self, sale):
+        from api.services.walk_in_sale_payment import auto_pay_walk_in_sale
+
+        request = self.context.get('request')
+        user = getattr(request, 'user', None) if request else None
+        auto_pay_walk_in_sale(sale, user=user)
 
     def _replace_items(self, sale, items_data):
         for row in items_data:

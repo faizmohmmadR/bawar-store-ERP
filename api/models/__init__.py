@@ -42,3 +42,9 @@ from .data.equipment import Equipment, EquipmentDepreciation  # noqa: F401
 from .data.loan import Loan, LoanPayment  # noqa: F401
 from .data.account import Account, AccountEntry, EntryType  # noqa: F401
 from .data.notification import Notification  # noqa: F401
+from .data.cash_register import (  # noqa: F401
+    CashRegister,
+    CashSession,
+    CashTransaction,
+    CashCountLine,
+)

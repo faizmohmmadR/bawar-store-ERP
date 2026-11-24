@@ -36,6 +36,7 @@ from api.views.data.fiscal_year import FiscalYearViewSet
 
 from api.views.data.expenses import ExpenseViewSet, ExpenseCategoryViewSet
 from api.views.data.withdrawal import WithdrawalViewSet
+from api.views.data.cash_register import CashRegisterViewSet
 from api.views.data.currency_exchange import CurrencyExchangeViewSet
 from api.views.data.fx_revaluation import FxRevaluationViewSet
 from api.views.data.equipment import EquipmentViewSet
@@ -104,6 +105,7 @@ router.register(r'fiscal-years', FiscalYearViewSet, basename='fiscal-year')
 router.register(r'expense-categories', ExpenseCategoryViewSet, basename='expense-category')
 router.register(r'expenses', ExpenseViewSet, basename='expense')
 router.register(r'withdrawals', WithdrawalViewSet, basename='withdrawal')
+router.register(r'cash-register', CashRegisterViewSet, basename='cash-register')
 router.register(r'currency-exchanges', CurrencyExchangeViewSet, basename='currency-exchange')
 router.register(r'fx-revaluations', FxRevaluationViewSet, basename='fx-revaluation')
 router.register(r'equipment', EquipmentViewSet, basename='equipment')

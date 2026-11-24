@@ -106,6 +106,9 @@ export const salesEn = {
   partial: "Partially Paid",
   unpaid: "Unpaid",
   selectCustomer: "Select Customer",
+  walkIn: "Walk-in",
+  walkInOptional: "Walk-in (optional)",
+  walkInCashAuto: "Paid in cash automatically",
   plateNumber: "Plate Number",
   plateNumberPlaceholder: "Enter vehicle plate number",
 

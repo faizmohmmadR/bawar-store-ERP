@@ -128,7 +128,11 @@ export const SaleList = () => {
       className: 'max-w-[180px]',
       render: (value, record) => {
         const employeeName = record?.employee_details?.full_name;
-        const name = employeeName || value?.name || t('common.notAvailable');
+        const walkIn = !employeeName && !value?.name && !record?.vendor_details?.name;
+        const name = employeeName
+          || value?.name
+          || record?.vendor_details?.name
+          || (walkIn ? t('sales.walkIn', 'Walk-in') : t('common.notAvailable'));
         const line = employeeName
           ? `${name} · ${t('sales.employee', 'Employee')}`
           : formatListContactLine(name, value?.email);
@@ -251,6 +255,16 @@ export const SaleList = () => {
       icon: <DollarSign className="h-4 w-4" />,
       onClick: (record) => navigate(`/sale-payments/add?sale_id=${record.id}`),
       tooltip: t('sales.recordPayment'),
+      show: (record) => {
+        const total = parseFloat(String(record.final_total ?? record.total_amount ?? 0));
+        const paid = parseFloat(String(record.paid_amount ?? 0));
+        return !(
+          record.transaction_type === 'free'
+          || !!record.employee
+          || !!record.employee_details
+          || total - paid <= 0
+        );
+      },
     },
     {
       key: 'print',

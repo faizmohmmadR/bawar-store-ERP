@@ -1223,3 +1223,151 @@ def sync_stock_bottle_damage_journal(damage):
 def sync_storage_tank_leak_journal(leak):
     delete_journal_for_source(leak)
     return None
+
+
+def sync_cash_transaction_journal(txn):
+    """Post GL only for drawer rows that own their journal (manual / over-short / close removals)."""
+    from api.models.data.cash_register import CashTransaction
+
+    if getattr(txn, 'deleted_at', None) is not None or txn.status != CashTransaction.STATUS_POSTED:
+        delete_journal_for_source(txn)
+        return
+    if not getattr(txn, 'posts_own_journal', False):
+        delete_journal_for_source(txn)
+        return
+    if not _ready(txn):
+        return
+
+    amount = d(txn.amount)
+    if amount <= 0:
+        delete_journal_for_source(txn)
+        return
+
+    currency_id = int(getattr(txn, 'currency', None) or source_currency_id(txn))
+    cash_account = getattr(getattr(txn, 'cash_register', None), 'linked_cash_account', None)
+    if cash_account is None:
+        cash_account = get_payment_asset_account('cash', currency_id=currency_id)
+
+    bank_account = get_payment_asset_account('bank', currency_id=currency_id)
+    entry_date = getattr(txn, 'transaction_date', None) or timezone.now()
+    if hasattr(entry_date, 'date'):
+        entry_date = entry_date.date()
+
+    cat = txn.category
+    desc = (txn.description or cat).strip()
+    ref = f'CR-{txn.id}'
+
+    # Source-mirrored / unclassified — never hit the GL from the drawer alone
+    if cat in (
+        CashTransaction.CAT_SESSION_REMOVAL,
+        CashTransaction.CAT_CASH_SALE,
+        CashTransaction.CAT_CUSTOMER_DEBT_COLLECTION,
+        CashTransaction.CAT_BUSINESS_EXPENSE,
+        CashTransaction.CAT_CASH_PURCHASE,
+        CashTransaction.CAT_SUPPLIER_PAYMENT,
+        CashTransaction.CAT_CUSTOMER_REFUND,
+    ):
+        delete_journal_for_source(txn)
+        return
+
+    # Opening deposit: Dr Cash · Cr Owner equity (not sales revenue)
+    if cat == CashTransaction.CAT_INITIAL_CASH:
+        lines = [
+            {'gl_account': cash_account, 'debit': amount, 'credit': Decimal('0'), 'description': desc},
+            {
+                'gl_account': gl_for_source('opening_balance_equity', txn),
+                'debit': Decimal('0'),
+                'credit': amount,
+                'description': 'Opening cash deposit',
+            },
+        ]
+        replace_journal_for_source(
+            txn,
+            entry_date=entry_date,
+            reference_number=ref,
+            description=desc or 'Opening cash deposit',
+            lines=lines,
+        )
+        return
+
+    if cat == CashTransaction.CAT_CASH_OVERAGE:
+        lines = [
+            {'gl_account': cash_account, 'debit': amount, 'credit': Decimal('0'), 'description': desc},
+            {
+                'gl_account': gl_for_source('other_income', txn),
+                'debit': Decimal('0'),
+                'credit': amount,
+                'description': 'Cash overage',
+            },
+        ]
+    elif cat == CashTransaction.CAT_CASH_SHORTAGE:
+        lines = [
+            {
+                'gl_account': gl_for_source('operating_expense', txn),
+                'debit': amount,
+                'credit': Decimal('0'),
+                'description': 'Cash shortage',
+            },
+            {'gl_account': cash_account, 'debit': Decimal('0'), 'credit': amount, 'description': desc},
+        ]
+    elif cat == CashTransaction.CAT_OWNER_CAPITAL:
+        lines = [
+            {'gl_account': cash_account, 'debit': amount, 'credit': Decimal('0'), 'description': desc},
+            {
+                'gl_account': gl_for_source('opening_balance_equity', txn),
+                'debit': Decimal('0'),
+                'credit': amount,
+                'description': 'Owner capital contribution',
+            },
+        ]
+    elif cat == CashTransaction.CAT_OWNER_WITHDRAWAL:
+        lines = [
+            {
+                'gl_account': gl_for_source('owner_draw', txn),
+                'debit': amount,
+                'credit': Decimal('0'),
+                'description': "Owner's draw",
+            },
+            {'gl_account': cash_account, 'debit': Decimal('0'), 'credit': amount, 'description': desc},
+        ]
+    elif cat == CashTransaction.CAT_BANK_DEPOSIT:
+        lines = [
+            {
+                'gl_account': bank_account,
+                'debit': amount,
+                'credit': Decimal('0'),
+                'description': 'Bank deposit from drawer',
+            },
+            {'gl_account': cash_account, 'debit': Decimal('0'), 'credit': amount, 'description': desc},
+        ]
+    elif cat == CashTransaction.CAT_OTHER_RECEIPT:
+        lines = [
+            {'gl_account': cash_account, 'debit': amount, 'credit': Decimal('0'), 'description': desc},
+            {
+                'gl_account': gl_for_source('other_income', txn),
+                'debit': Decimal('0'),
+                'credit': amount,
+                'description': 'Other cash receipt',
+            },
+        ]
+    elif cat == CashTransaction.CAT_OTHER_PAYMENT:
+        lines = [
+            {
+                'gl_account': gl_for_source('operating_expense', txn),
+                'debit': amount,
+                'credit': Decimal('0'),
+                'description': 'Other cash payment',
+            },
+            {'gl_account': cash_account, 'debit': Decimal('0'), 'credit': amount, 'description': desc},
+        ]
+    else:
+        delete_journal_for_source(txn)
+        return
+
+    replace_journal_for_source(
+        txn,
+        entry_date=entry_date,
+        reference_number=ref,
+        description=desc or f'Cash drawer {cat}',
+        lines=lines,
+    )

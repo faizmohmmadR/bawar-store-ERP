@@ -680,7 +680,8 @@ export function SaleOrderFormContent({
                       ? t('rawMaterialPurchases.vendor')
                       : employeeParty
                         ? t('sales.employee', 'Employee')
-                        : t('sales.customer')} *
+                        : t('sales.customer')}
+                    {(vendorParty || employeeParty) ? ' *' : ''}
                   </FormLabel>
                   <FormControl>
                     <Autocomplete
@@ -693,7 +694,7 @@ export function SaleOrderFormContent({
                           ? t('rawMaterialPurchases.selectVendor', 'Select vendor')
                           : employeeParty
                             ? t('sales.selectEmployee', 'Select employee')
-                            : t('sales.selectCustomer', 'Select customer')
+                            : t('sales.walkInOptional', 'Walk-in (optional)')
                       }
                       getOptionLabel={(c) => (employeeParty ? (c.full_name || c.name) : c.name)}
                       getOptionValue={(c) => c.id.toString()}

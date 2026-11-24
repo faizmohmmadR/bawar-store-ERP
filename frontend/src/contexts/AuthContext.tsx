@@ -1,6 +1,5 @@
-// contexts/auth-context.tsx
 import React, { createContext, useContext, useState, useEffect } from "react";
-import api from "@/api/client";
+import api, { AUTH_EXPIRED_EVENT, clearAuthSession } from "@/api/client";
 import {
   isCompleteSessionUser,
   normalizeStoredUser,
@@ -59,9 +58,25 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+const isUnauthorizedError = (error: unknown): boolean => {
+  const err = error as { response?: { status?: number; data?: { detail?: string } } };
+  const detail = err?.response?.data?.detail;
+  return (
+    err?.response?.status === 401 ||
+    detail === 'Invalid token.' ||
+    detail === 'Authentication credentials were not provided.' ||
+    detail === 'Token has expired'
+  );
+};
+
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUserState] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const clearSession = () => {
+    clearAuthSession();
+    setUserState(null);
+  };
 
   const validateToken = async (): Promise<boolean> => {
     try {
@@ -98,11 +113,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         localStorage.setItem("user", JSON.stringify(refreshedUser));
         setUserState(refreshedUser);
+        return true;
       }
 
-      return response.status === 200;
+      return false;
     } catch (error) {
       console.error("Token validation failed:", error);
+      if (isUnauthorizedError(error)) {
+        clearSession();
+      }
       return false;
     }
   };
@@ -117,10 +136,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         let normalizedUser = normalizeStoredUser(parsedUser);
         if (!normalizedUser) {
           console.warn("Stored user data is incomplete:", parsedUser);
-          localStorage.removeItem("user");
-          setUserState(null);
+          clearSession();
           return;
         }
+
+        // Keep a provisional session so the UI can render while we verify.
+        setUserState(normalizedUser);
 
         try {
           const response = await api.get('/profile/');
@@ -136,29 +157,39 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 is_superuser: profile.is_superuser ?? normalizedUser.is_superuser,
               }),
             };
+            setUserState(normalizedUser);
+            localStorage.setItem("user", JSON.stringify(normalizedUser));
           }
         } catch (profileError) {
           console.warn("Profile refresh failed during auth init:", profileError);
+          // Invalid/expired token → clear session and show login (no page reload).
+          if (isUnauthorizedError(profileError)) {
+            clearSession();
+            return;
+          }
+          // Network blip: keep stored session so a temporary offline state does not log out.
         }
-
-        setUserState(normalizedUser);
-        localStorage.setItem("user", JSON.stringify(normalizedUser));
       } catch (error) {
         console.error("Failed to initialize auth:", error);
-        localStorage.removeItem("user");
-        setUserState(null);
+        clearSession();
       } finally {
         setIsLoading(false);
       }
     };
 
     initializeAuth();
+
+    const onAuthExpired = () => {
+      setUserState(null);
+      setIsLoading(false);
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
   }, []);
 
   const setUser = (userData: User | null): boolean => {
     if (!userData) {
-      localStorage.removeItem("user");
-      setUserState(null);
+      clearSession();
       return true;
     }
 
@@ -185,11 +216,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const logout = () => {
-    localStorage.removeItem("user");
-    setUserState(null);
-    if (window.location.pathname !== "/") {
-      window.location.href = "/";
-    }
+    clearSession();
   };
 
   const getUser = (): User | null => {

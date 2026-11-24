@@ -104,6 +104,22 @@ DEFAULT_PERMISSIONS = [
     {'name': 'Delete Withdrawals', 'codename': 'delete_withdrawals',
         'module': 'withdrawals', 'description': 'Can delete withdrawals'},
 
+    # Cash register (دخل)
+    {'name': 'View Cash Register', 'codename': 'view_cash_register',
+        'module': 'cash_register', 'description': 'Can view the cash drawer dashboard'},
+    {'name': 'Open Cash Session', 'codename': 'open_cash_session',
+        'module': 'cash_register', 'description': 'Can open a cash drawer session'},
+    {'name': 'Close Cash Session', 'codename': 'close_cash_session',
+        'module': 'cash_register', 'description': 'Can count and close a cash session'},
+    {'name': 'Record Cash Adjustment', 'codename': 'record_cash_adjustment',
+        'module': 'cash_register', 'description': 'Can record authorized manual cash movements'},
+    {'name': 'View Cash Transactions', 'codename': 'view_cash_transactions',
+        'module': 'cash_register', 'description': 'Can view cash drawer transactions'},
+    {'name': 'Approve Cash Difference', 'codename': 'approve_cash_difference',
+        'module': 'cash_register', 'description': 'Can approve cash shortage/overage at close'},
+    {'name': 'View Cash Reports', 'codename': 'view_cash_reports',
+        'module': 'cash_register', 'description': 'Can view cash register reports'},
+
     {'name': 'View Equipment', 'codename': 'view_equipment',
         'module': 'equipment', 'description': 'Can view equipment'},
     {'name': 'Add Equipment', 'codename': 'add_equipment',

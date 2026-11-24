@@ -17,6 +17,7 @@ import { attendanceRoutes } from './attendanceRoutes';
 import { expenseRoutes } from './expenseRoutes';
 import { loanRoutes } from './loanRoutes';
 import { withdrawalRoutes } from './withdrawalRoutes';
+import { cashRegisterRoutes } from './cashRegisterRoutes';
 import { equipmentRoutes } from './equipmentRoutes';
 import { productRoutes } from './productRoutes';
 import { purchaseRoutes } from './purchaseRoutes';
@@ -51,6 +52,7 @@ export const appRoutes = (
     {/* Financial Management */}
     {accountRoutes}
     {expenseRoutes}
+    {cashRegisterRoutes}
     {withdrawalRoutes}
     {salePaymentRoutes}
     {purchasePaymentRoutes}

@@ -113,7 +113,11 @@ export const commonFa = {
     currencies: "ارزها",
     exchangeRates: "نرخ ارز",
     profile: "پروفایل",
-    activityLogs: "گزارش فعالیتها"
+    activityLogs: "گزارش فعالیتها",
+    cashRegister: "دخل",
+    cashRegisterDashboard: "داشبورد",
+    cashRegisterTransactions: "تراکنش‌ها",
+    cashRegisterReports: "گزارشات",
   },
   app: {
     title: "باوار سوپر استور",

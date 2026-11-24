@@ -164,8 +164,11 @@ def handle_payment_journal(sender, instance, **kwargs):
         related = instance.content_object
         if related and not instance.is_advance:
             sync_order_paid_amount(related)
+        # Soft-deleted payments: leave historical drawer row; do not auto-void here.
         return
     sync_payment_journal(instance)
+    from api.services.cash_register import sync_drawer_from_payment
+    sync_drawer_from_payment(instance)
 
 
 @receiver(post_delete, sender='api.Payment')
@@ -233,6 +236,8 @@ def handle_expense_journal(sender, instance, **kwargs):
         delete_journal_for_source(instance)
         return
     sync_expense_journal(instance)
+    from api.services.cash_register import sync_drawer_from_expense
+    sync_drawer_from_expense(instance)
 
 
 @receiver(post_delete, sender='api.Expense')
@@ -248,6 +253,8 @@ def handle_withdrawal_journal(sender, instance, **kwargs):
         delete_journal_for_source(instance)
         return
     sync_withdrawal_journal(instance)
+    from api.services.cash_register import sync_drawer_from_withdrawal
+    sync_drawer_from_withdrawal(instance)
 
 
 @receiver(post_delete, sender='api.Withdrawal')

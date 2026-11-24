@@ -112,7 +112,11 @@ export const commonPs = {
     currencies: "اسعارو",
     exchangeRates: "د اسعارو نرخ",
     profile: "پروفایل",
-    activityLogs: "د فعالیتونو راپورونه"
+    activityLogs: "د فعالیتونو راپورونه",
+    cashRegister: "دخل",
+    cashRegisterDashboard: "ډشبورډ",
+    cashRegisterTransactions: "معاملې",
+    cashRegisterReports: "راپورونه",
   },
   app: {
     title: "باوار سوپر سټور",

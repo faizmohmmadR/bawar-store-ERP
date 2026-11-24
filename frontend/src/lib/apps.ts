@@ -154,6 +154,20 @@ export const ERP_APPS: AppDefinition[] = [
     ],
   },
   {
+    key: 'cashRegister',
+    icon: Banknote,
+    path: '/cash-register',
+    section: 'finance',
+    color: 'bg-black',
+    colorHover: 'hover:bg-neutral-900',
+    ...navPerm('cashRegister'),
+    subItems: [
+      { key: 'cashRegisterDashboard', icon: Banknote, path: '/cash-register', ...navPerm('cashRegisterDashboard') },
+      { key: 'cashRegisterTransactions', icon: ListTree, path: '/cash-register/transactions', ...navPerm('cashRegisterTransactions') },
+      { key: 'cashRegisterReports', icon: FileBarChart, path: '/cash-register/reports', ...navPerm('cashRegisterReports') },
+    ],
+  },
+  {
     key: 'withdrawals',
     icon: Banknote,
     path: '/withdrawals',

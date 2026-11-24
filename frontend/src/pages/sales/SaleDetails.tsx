@@ -106,7 +106,14 @@ const SaleDetails = () => {
           {sale.transaction_type === 'free' && <span className="text-sm font-semibold text-blue-600 dark:text-blue-300">{t('common.free', 'Free')}</span>}
         </div>
         <div className="flex flex-wrap gap-2 justify-end">
-          <Button disabled={sale.transaction_type === 'free' || !!sale.employee} onClick={() => navigate(`/sale-payments/add?sale_id=${id}`)}>
+          <Button
+            disabled={
+              sale.transaction_type === 'free'
+              || !!sale.employee
+              || currentRemaining <= 0
+            }
+            onClick={() => navigate(`/sale-payments/add?sale_id=${id}`)}
+          >
             <Plus className="h-4 w-4" />
             {t('sales.addPayment')}
           </Button>
@@ -186,6 +193,20 @@ const SaleDetails = () => {
                         {t('sales.salarySettled', 'Settled as salary')}
                       </p>
                     )}
+                  </div>
+                </div>
+              )}
+              {!sale.customer_details && !sale.vendor_details && !sale.employee_details && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 font-semibold">
+                    <User className="h-4 w-4" />
+                    {t('sales.customer')}
+                  </div>
+                  <div className="space-y-2 pl-6">
+                    <p className="font-semibold text-lg">{t('sales.walkIn', 'Walk-in')}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t('sales.walkInCashAuto', 'Paid in cash automatically')}
+                    </p>
                   </div>
                 </div>
               )}

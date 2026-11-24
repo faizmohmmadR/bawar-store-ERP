@@ -55,6 +55,7 @@ from api.services.accounting.reports import (  # noqa: F401
 from api.services.accounting.sync import (  # noqa: F401
     SKIP_JOURNAL_STATUSES,
     sync_batch_allocation_journal,
+    sync_cash_transaction_journal,
     sync_expense_journal,
     sync_withdrawal_journal,
     sync_inventory_batch_journal,

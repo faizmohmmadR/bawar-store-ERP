@@ -252,9 +252,8 @@ export const createSaleFormSchema = (t: TranslateFn) => {
             path: ['transaction_type'],
           });
         }
-      } else if (!data.customer) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: t('sales.selectCustomer', 'Select a customer'), path: ['customer'] });
       }
+      // party_type customer with empty customer = walk-in cash sale (auto-paid)
       if (data.party_type === 'vendor' && saleType !== 'raw_material') ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Vendor transactions must use raw-material stock.', path: ['party_type'] });
       if (data.party_type === 'vendor' && data.vendor_transaction === 'purchase_return' && data.transaction_type === 'free') ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Purchase returns require a value.', path: ['transaction_type'] });
       const isEmptyLine = (item: (typeof data.items)[number]) => {
@@ -807,7 +806,7 @@ const buildSalePayload = (
 
   return {
     transaction_type: data.transaction_type || 'paid',
-    customer: data.party_type === 'customer' ? data.customer : null,
+    customer: data.party_type === 'customer' && data.customer ? data.customer : null,
     vendor: data.party_type === 'vendor' ? Number(data.vendor) : null,
     employee: data.party_type === 'employee' ? Number(data.employee) : null,
     vendor_transaction: data.party_type === 'vendor' ? data.vendor_transaction : 'sale',

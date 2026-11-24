@@ -81,6 +81,9 @@ import { authPs } from "./languages/auth/ps";
 import { modulesEn } from "./languages/modules/en";
 import { modulesFa } from "./languages/modules/fa";
 import { modulesPs } from "./languages/modules/ps";
+import { cashRegisterEn } from "./languages/cashRegister/en";
+import { cashRegisterFa } from "./languages/cashRegister/fa";
+import { cashRegisterPs } from "./languages/cashRegister/ps";
 export type Language = "en" | "ps" | "fa";
 
 // Base translation interface
@@ -136,6 +139,7 @@ const en = {
   backups: backupsEn,
   trash: trashEn,
   auth: authEn,
+  cashRegister: cashRegisterEn,
   ...modulesEn,
 };
 
@@ -166,6 +170,7 @@ const fa = {
   backups: backupsFa,
   trash: trashFa,
   auth: authFa,
+  cashRegister: cashRegisterFa,
   ...modulesFa,
 };
 
@@ -196,6 +201,7 @@ const ps = {
   backups: backupsPs,
   trash: trashPs,
   auth: authPs,
+  cashRegister: cashRegisterPs,
   ...modulesPs,
 };
 

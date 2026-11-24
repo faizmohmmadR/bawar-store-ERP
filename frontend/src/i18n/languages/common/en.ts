@@ -116,7 +116,11 @@ export const commonEn = {
     currencies: "Currencies",
     exchangeRates: "Exchange Rates",
     profile: "Profile",
-    activityLogs: "Activity Logs"
+    activityLogs: "Activity Logs",
+    cashRegister: "Cash Register (دخل)",
+    cashRegisterDashboard: "Dashboard",
+    cashRegisterTransactions: "Transactions",
+    cashRegisterReports: "Reports",
   },
   app: {
     title: "BAWAR Super Store",
