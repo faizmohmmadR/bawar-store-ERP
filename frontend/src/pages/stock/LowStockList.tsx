@@ -28,8 +28,13 @@ const LowStockList = () => {
       if (!searchTerm.trim()) return true;
       const name = row.product_details?.name || '';
       const sku = row.product_details?.sku || '';
+      const barcode = row.product_details?.barcode || '';
       const q = searchTerm.toLowerCase();
-      return name.toLowerCase().includes(q) || sku.toLowerCase().includes(q);
+      return (
+        name.toLowerCase().includes(q)
+        || sku.toLowerCase().includes(q)
+        || barcode.toLowerCase().includes(q)
+      );
     });
 
   const columns: TableColumn<InventoryBalance>[] = [

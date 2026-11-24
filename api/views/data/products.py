@@ -20,7 +20,15 @@ class ProductViewSet(DataRootViewSet):
     )
     parser_classes = (JSONParser, MultiPartParser, FormParser)
     serializer_class = ProductSerializer
-    search_fields = ['name', 'barcode', 'sku', 'description', 'brand']
+    search_fields = [
+        'name',
+        'barcode',
+        'sku',
+        'description',
+        'brand',
+        'packagings__barcode',
+        'barcodes__barcode',
+    ]
     filterset_fields = ['category', 'base_uom', 'is_active', 'track_inventory']
     http_method_names = ['get', 'post', 'put', 'patch', 'head', 'options', 'delete']
 

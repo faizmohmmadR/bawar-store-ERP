@@ -13,6 +13,8 @@ import {
   formatPackagingBreakdown,
   stockValue,
 } from '@/lib/inventoryDisplay';
+import { resolveBarcode } from '@/lib/resolveBarcode';
+import { notifyError } from '@/lib/notify';
 import type { InventoryBalance } from '@/types/inventory';
 
 const StockList = () => {
@@ -194,7 +196,10 @@ const StockList = () => {
           </div>
         }
         searchable
-        searchPlaceholder={t('stock.searchProducts', 'Search products…')}
+        searchPlaceholder={t(
+          'stock.searchProductsBarcode',
+          'Search name, SKU, or barcode…',
+        )}
         searchValue={searchTerm}
         onSearch={(value) => {
           setSearchTerm(value);
@@ -234,8 +239,27 @@ const StockList = () => {
                   setProductFilter(value?.toString() || '');
                   setCurrentPage(1);
                 }}
+                onCodeSubmit={async (code) => {
+                  const resolved = await resolveBarcode(code);
+                  if (!resolved) {
+                    notifyError(
+                      t('products.barcodeNotFound', 'No product found for this barcode'),
+                    );
+                    return false;
+                  }
+                  setProductFilter(String(resolved.product.id));
+                  setSearchTerm('');
+                  setCurrentPage(1);
+                  return true;
+                }}
                 placeholder={t('stock.allProducts', 'All products')}
-                getOptionLabel={(p) => p.name}
+                searchPlaceholder={t(
+                  'products.scanOrSearchProduct',
+                  'Scan barcode or search name / SKU',
+                )}
+                getOptionLabel={(p) =>
+                  [p.sku, p.name].filter(Boolean).join(' · ') || p.name
+                }
                 getOptionValue={(p) => p.id.toString()}
                 className="h-9 w-full"
               />

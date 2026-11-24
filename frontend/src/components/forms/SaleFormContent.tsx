@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Control, UseFormSetValue, useFieldArray, useFormState, useWatch } from 'react-hook-form';
 import { ArrowLeft, ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,8 +32,14 @@ import { CurrencySelect } from '@/components/forms/CurrencySelect';
 import { AfnReportingPreview } from '@/components/forms/AfnReportingPreview';
 import { FormActions } from '@/components/forms/FormActions';
 import { DatePickerInput } from '@/components/ui/date-picker-input';
+import { ProductScanBar } from '@/components/products/ProductScanBar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { resolveCurrencySymbol } from '@/lib/currencyChoices';
+import {
+  barcodeUnitPrice,
+  planBarcodeLineApply,
+} from '@/lib/applyBarcodeToLines';
+import { resolveBarcode, type ResolvedBarcode } from '@/lib/resolveBarcode';
 import {
   calculateSaleSubtotal,
   calculateSaleTotal,
@@ -41,6 +47,7 @@ import {
   type SalePackagingFormValues,
 } from '@/lib/salePackagingFormSchemas';
 import { formatOrderNumeric, ORDER_NUMERIC_STEP } from '@/lib/orderNumeric';
+import { notifyError } from '@/lib/notify';
 import useFetchObjects from '@/api/useFetchObjects';
 
 type PackagingOption = {
@@ -95,6 +102,59 @@ export function SaleFormContent({
     () => calculateSaleTotal(items, Number(discount) || 0),
     [items, discount],
   );
+
+  const applyResolvedBarcode = useCallback((resolved: ResolvedBarcode) => {
+    if (resolved.packaging.for_sale === false) {
+      notifyError(
+        t('products.barcodeNotForSale', 'This barcode packaging is not enabled for sale'),
+      );
+      return false;
+    }
+    const plan = planBarcodeLineApply(items, resolved, 1);
+    const price = barcodeUnitPrice(resolved, 'sale');
+    const qtyInBase = Number(resolved.packaging.qty_in_base) || 1;
+    const productId = String(resolved.product.id);
+    const packagingId = String(resolved.packaging.id);
+
+    if (plan.action === 'increment') {
+      setValue(`items.${plan.index}.quantity`, plan.quantity);
+      if (!(Number(items[plan.index]?.sell_price) > 0) && price > 0) {
+        setValue(`items.${plan.index}.sell_price`, price);
+      }
+      return true;
+    }
+
+    if (plan.action === 'insert') {
+      insert(plan.index, {
+        ...defaultSalePackagingItem(),
+        product: productId,
+        packaging: packagingId,
+        packaging_name: resolved.packaging.name,
+        qty_in_base: qtyInBase,
+        quantity: 1,
+        sell_price: price,
+      });
+      return true;
+    }
+
+    setValue(`items.${plan.index}.product`, productId);
+    setValue(`items.${plan.index}.packaging`, packagingId);
+    setValue(`items.${plan.index}.packaging_name`, resolved.packaging.name);
+    setValue(`items.${plan.index}.qty_in_base`, qtyInBase);
+    setValue(`items.${plan.index}.quantity`, 1);
+    if (price > 0) setValue(`items.${plan.index}.sell_price`, price);
+    if (plan.index === 0) insert(0, defaultSalePackagingItem());
+    return true;
+  }, [insert, items, setValue, t]);
+
+  const handleProductCodeSubmit = useCallback(async (code: string) => {
+    const resolved = await resolveBarcode(code);
+    if (!resolved) {
+      notifyError(t('products.barcodeNotFound', 'No product found for this barcode'));
+      return false;
+    }
+    return applyResolvedBarcode(resolved);
+  }, [applyResolvedBarcode, t]);
 
   const itemsError =
     (errors.items as { message?: string; root?: { message?: string } } | undefined)?.message
@@ -270,12 +330,15 @@ export function SaleFormContent({
       <div className="flex flex-col gap-5 px-3 py-4 sm:gap-6 sm:px-5 sm:py-5 lg:flex-row lg:items-start">
         <div className="flex min-w-0 flex-1 flex-col">
           <Card className="overflow-hidden">
-            <div className="flex items-center justify-between gap-3 border-b bg-muted/30 px-4 py-3">
-              <h3 className="text-sm font-semibold">{t('sales.items', 'Items')}</h3>
-              <Button type="button" variant="outline" size="sm" onClick={() => insert(1, defaultSalePackagingItem())}>
-                <Plus className="h-4 w-4" />
-                {t('sales.addItem', 'Add item')}
-              </Button>
+            <div className="flex flex-col gap-2 border-b bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="shrink-0 text-sm font-semibold">{t('sales.items', 'Items')}</h3>
+              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:max-w-xl sm:flex-row sm:items-center sm:justify-end">
+                <ProductScanBar require="sale" onResolved={applyResolvedBarcode} />
+                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => insert(1, defaultSalePackagingItem())}>
+                  <Plus className="h-4 w-4" />
+                  {t('sales.addItem', 'Add item')}
+                </Button>
+              </div>
             </div>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -315,6 +378,7 @@ export function SaleFormContent({
                         insert={insert}
                         move={move}
                         remove={remove}
+                        onProductCodeSubmit={handleProductCodeSubmit}
                       />
                     ))}
                   </TableBody>
@@ -391,6 +455,7 @@ function SaleLineRow({
   insert,
   move,
   remove,
+  onProductCodeSubmit,
 }: {
   index: number;
   control: Control<SalePackagingFormValues>;
@@ -401,6 +466,7 @@ function SaleLineRow({
   insert: (index: number, value: ReturnType<typeof defaultSalePackagingItem>) => void;
   move: (from: number, to: number) => void;
   remove: (index: number) => void;
+  onProductCodeSubmit: (code: string) => Promise<boolean>;
 }) {
   const { t } = useLanguage();
   const item = items[index];
@@ -454,11 +520,10 @@ function SaleLineRow({
                 <Autocomplete
                   endpoint="products"
                   queryParams={{ is_active: true }}
-                  excludeValues={items.flatMap((row, rowIndex) =>
-                    rowIndex !== index && row.product ? [row.product] : [],
-                  )}
                   pageSize={30}
                   value={productField.value}
+                  onCodeSubmit={onProductCodeSubmit}
+                  keepOpenAfterCodeSubmit
                   onChange={(value, option) => {
                     const selectedId = value?.toString() || '';
                     const changed = productField.value?.toString() !== selectedId;
@@ -474,6 +539,10 @@ function SaleLineRow({
                     }
                   }}
                   placeholder={t('sales.selectProduct', 'Select product')}
+                  searchPlaceholder={t(
+                    'products.scanOrSearchProduct',
+                    'Scan barcode or search name / SKU',
+                  )}
                   getOptionLabel={(p) => [p.sku, p.name].filter(Boolean).join(' · ') || p.name}
                   getOptionValue={(p) => p.id.toString()}
                   className="h-10 w-full"

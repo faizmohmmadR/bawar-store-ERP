@@ -55,6 +55,13 @@ interface AutocompleteProps {
   initialLabel?: string;
   /** Match list-page filter toolbar styling (DataTable). */
   variant?: 'default' | 'filter';
+  /**
+   * When Enter is pressed in the search box with text (and no arrow highlight),
+   * call this first — used for barcode/SKU exact resolve. Return true if handled.
+   */
+  onCodeSubmit?: (code: string) => boolean | Promise<boolean>;
+  /** Keep the dropdown open and clear search after a successful onCodeSubmit. */
+  keepOpenAfterCodeSubmit?: boolean;
 }
 
 export const Autocomplete: React.FC<AutocompleteProps> = ({
@@ -80,9 +87,12 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   tabIndex = 0,
   initialLabel,
   variant = 'default',
+  onCodeSubmit,
+  keepOpenAfterCodeSubmit = false,
 }) => {
   const { user } = useAuth();
   const { t, direction } = useLanguage();
+  const [codeSubmitting, setCodeSubmitting] = useState(false);
 
   const defaultGetOptionLabel = useCallback((option: Option) => {
     if (getOptionLabel) return getOptionLabel(option);
@@ -337,23 +347,62 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
       return;
     }
 
-    if (visibleOptions.length === 0) return;
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setHighlightedIndex((prev) => (prev < visibleOptions.length - 1 ? prev + 1 : prev));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
-    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
-      e.preventDefault();
-      handleSelect(visibleOptions[highlightedIndex]);
-    } else if (e.key === 'Escape') {
+    if (e.key === 'Escape') {
       e.preventDefault();
       setIsOpen(false);
       setSearchTerm('');
       setHighlightedIndex(-1);
       triggerRef.current?.focus();
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      if (visibleOptions.length === 0) return;
+      e.preventDefault();
+      setHighlightedIndex((prev) => (prev < visibleOptions.length - 1 ? prev + 1 : prev));
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
+      if (visibleOptions.length === 0) return;
+      e.preventDefault();
+      setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const code = searchTerm.trim();
+
+      // Arrow-highlighted row wins (typed navigation).
+      if (highlightedIndex >= 0 && visibleOptions[highlightedIndex]) {
+        handleSelect(visibleOptions[highlightedIndex]);
+        return;
+      }
+
+      // Scanner / exact code: resolve before waiting on debounced search results.
+      if (code && onCodeSubmit && !codeSubmitting) {
+        setCodeSubmitting(true);
+        Promise.resolve(onCodeSubmit(code))
+          .then((handled) => {
+            if (!handled) return;
+            setSearchTerm('');
+            setHighlightedIndex(-1);
+            if (keepOpenAfterCodeSubmit) {
+              setIsOpen(true);
+              requestAnimationFrame(() => searchInputRef.current?.focus());
+            } else {
+              setIsOpen(false);
+            }
+          })
+          .finally(() => setCodeSubmitting(false));
+        return;
+      }
+
+      // Single visible match — select it (typed search + Enter).
+      if (visibleOptions.length === 1) {
+        handleSelect(visibleOptions[0]);
+      }
     }
   };
 

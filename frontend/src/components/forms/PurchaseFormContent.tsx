@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Control, UseFormSetValue, useFieldArray, useFormState, useWatch } from 'react-hook-form';
 import { ArrowLeft, ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,8 +32,14 @@ import { CurrencySelect } from '@/components/forms/CurrencySelect';
 import { AfnReportingPreview } from '@/components/forms/AfnReportingPreview';
 import { FormActions } from '@/components/forms/FormActions';
 import { DatePickerInput } from '@/components/ui/date-picker-input';
+import { ProductScanBar } from '@/components/products/ProductScanBar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { resolveCurrencySymbol } from '@/lib/currencyChoices';
+import {
+  barcodeUnitPrice,
+  planBarcodeLineApply,
+} from '@/lib/applyBarcodeToLines';
+import { resolveBarcode, type ResolvedBarcode } from '@/lib/resolveBarcode';
 import {
   calculatePurchaseSubtotal,
   calculatePurchaseTotal,
@@ -43,6 +49,7 @@ import {
   type PurchaseFormValues,
 } from '@/lib/purchaseFormSchemas';
 import { formatOrderNumeric, ORDER_NUMERIC_STEP } from '@/lib/orderNumeric';
+import { notifyError } from '@/lib/notify';
 import useFetchObjects from '@/api/useFetchObjects';
 
 type PackagingOption = {
@@ -98,6 +105,74 @@ export function PurchaseFormContent({
 
   const currencySymbol = resolveCurrencySymbol(currency);
   const subtotal = useMemo(() => calculatePurchaseSubtotal(items), [items]);
+
+  const applyResolvedBarcode = useCallback((resolved: ResolvedBarcode) => {
+    if (resolved.packaging.for_purchase === false) {
+      notifyError(
+        t('products.barcodeNotForPurchase', 'This barcode packaging is not enabled for purchase'),
+      );
+      return false;
+    }
+    const plan = planBarcodeLineApply(items, resolved, 1);
+    const buyPrice = barcodeUnitPrice(resolved, 'purchase');
+    const retail = Number(resolved.retail_price ?? resolved.price ?? 0) || 0;
+    const percent = Number(profitPercent) || 0;
+    const salePrice = retail > 0
+      ? retail
+      : buyPrice > 0 && percent > 0
+        ? salePriceFromProfitPercent(buyPrice, percent)
+        : 0;
+    const qtyInBase = Number(resolved.packaging.qty_in_base) || 1;
+    const productId = String(resolved.product.id);
+    const packagingId = String(resolved.packaging.id);
+    const isVariable = Boolean(resolved.packaging.is_variable_weight);
+
+    if (plan.action === 'increment') {
+      setValue(`items.${plan.index}.quantity`, plan.quantity);
+      return true;
+    }
+
+    const line = {
+      ...defaultPurchaseItem(),
+      product: productId,
+      packaging: packagingId,
+      packaging_name: resolved.packaging.name,
+      qty_in_base: qtyInBase,
+      is_variable_weight: isVariable,
+      quantity: 1,
+      price_per_unit: buyPrice,
+      profit_percent: percent,
+      sale_price: salePrice,
+    };
+
+    if (plan.action === 'insert') {
+      insert(plan.index, line);
+      return true;
+    }
+
+    setValue(`items.${plan.index}.product`, productId);
+    setValue(`items.${plan.index}.packaging`, packagingId);
+    setValue(`items.${plan.index}.packaging_name`, resolved.packaging.name);
+    setValue(`items.${plan.index}.qty_in_base`, qtyInBase);
+    setValue(`items.${plan.index}.is_variable_weight`, isVariable);
+    setValue(`items.${plan.index}.quantity`, 1);
+    setValue(`items.${plan.index}.price_per_unit`, buyPrice);
+    setValue(`items.${plan.index}.profit_percent`, percent);
+    setValue(`items.${plan.index}.sale_price`, salePrice);
+    if (plan.index === 0) {
+      insert(0, { ...defaultPurchaseItem(), profit_percent: percent });
+    }
+    return true;
+  }, [insert, items, profitPercent, setValue, t]);
+
+  const handleProductCodeSubmit = useCallback(async (code: string) => {
+    const resolved = await resolveBarcode(code);
+    if (!resolved) {
+      notifyError(t('products.barcodeNotFound', 'No product found for this barcode'));
+      return false;
+    }
+    return applyResolvedBarcode(resolved);
+  }, [applyResolvedBarcode, t]);
   const total = useMemo(() => calculatePurchaseTotal(items), [items]);
 
   const applyProfitPercentToItems = (percent: number) => {
@@ -318,22 +393,26 @@ export function PurchaseFormContent({
       <div className="flex flex-col gap-5 px-3 py-4 sm:gap-6 sm:px-5 sm:py-5 lg:flex-row lg:items-start">
         <div className="flex min-w-0 flex-1 flex-col gap-5 sm:gap-6">
           <Card className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <div className="flex items-center justify-between gap-3 border-b bg-muted/30 px-4 py-3">
-              <h3 className="text-sm font-semibold">{t('purchases.items', 'Items')}</h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  insert(1, {
-                    ...defaultPurchaseItem(),
-                    profit_percent: Number(profitPercent) || 0,
-                  })
-                }
-              >
-                <Plus className="h-4 w-4" />
-                {t('purchases.addItem', 'Add item')}
-              </Button>
+            <div className="flex flex-col gap-2 border-b bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="shrink-0 text-sm font-semibold">{t('purchases.items', 'Items')}</h3>
+              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:max-w-xl sm:flex-row sm:items-center sm:justify-end">
+                <ProductScanBar require="purchase" onResolved={applyResolvedBarcode} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() =>
+                    insert(1, {
+                      ...defaultPurchaseItem(),
+                      profit_percent: Number(profitPercent) || 0,
+                    })
+                  }
+                >
+                  <Plus className="h-4 w-4" />
+                  {t('purchases.addItem', 'Add item')}
+                </Button>
+              </div>
             </div>
             <CardContent className="min-w-0 p-0">
               <div className="overflow-x-auto">
@@ -376,6 +455,7 @@ export function PurchaseFormContent({
                         insert={insert}
                         move={move}
                         remove={remove}
+                        onProductCodeSubmit={handleProductCodeSubmit}
                       />
                     ))}
                   </TableBody>
@@ -461,6 +541,7 @@ function PurchaseLineRow({
   insert,
   move,
   remove,
+  onProductCodeSubmit,
 }: {
   index: number;
   control: Control<PurchaseFormValues>;
@@ -472,6 +553,7 @@ function PurchaseLineRow({
   insert: (index: number, value: ReturnType<typeof defaultPurchaseItem>) => void;
   move: (from: number, to: number) => void;
   remove: (index: number) => void;
+  onProductCodeSubmit: (code: string) => Promise<boolean>;
 }) {
   const { t } = useLanguage();
   const item = items[index];
@@ -564,12 +646,11 @@ function PurchaseLineRow({
                 <Autocomplete
                   endpoint="products"
                   queryParams={{ is_active: true }}
-                  excludeValues={items.flatMap((row, rowIndex) =>
-                    rowIndex !== index && row.product ? [row.product] : [],
-                  )}
                   pageSize={30}
                   dropdownMinWidth={360}
                   value={productField.value}
+                  onCodeSubmit={onProductCodeSubmit}
+                  keepOpenAfterCodeSubmit
                   onChange={(value, option) => {
                     const selectedId = value?.toString() || '';
                     const productChanged = productField.value?.toString() !== selectedId;
@@ -597,7 +678,10 @@ function PurchaseLineRow({
                     }
                   }}
                   placeholder={t('purchases.selectProduct', 'Select product')}
-                  searchPlaceholder={t('common.search')}
+                  searchPlaceholder={t(
+                    'products.scanOrSearchProduct',
+                    'Scan barcode or search name / SKU',
+                  )}
                   getOptionLabel={(product) =>
                     [product.sku, product.name].filter(Boolean).join(' · ') || t('common.notAvailable')
                   }

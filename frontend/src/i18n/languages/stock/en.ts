@@ -10,6 +10,7 @@ export const stockEn = {
     purchaseToStock: 'Receive a product purchase to create stock balances.',
     noStockFound: 'No stock balances found',
     searchProducts: 'Search products…',
+    searchProductsBarcode: 'Search name, SKU, or barcode…',
     viewProduct: 'View product',
     loadError: 'Unable to load stock balance.',
     notFound: 'Stock balance not found',

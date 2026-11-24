@@ -23,7 +23,12 @@ class InventoryBalanceViewSet(DataRootViewSet):
         .order_by('product__name')
     )
     serializer_class = InventoryBalanceSerializer
-    search_fields = ['product__name', 'product__sku', 'product__barcode']
+    search_fields = [
+        'product__name',
+        'product__sku',
+        'product__barcode',
+        'product__packagings__barcode',
+    ]
     filterset_fields = ['product', 'warehouse', 'lot']
 
 
@@ -113,14 +118,27 @@ class StockMovementViewSet(DataRootViewSet):
             product = packaging.product
         if not product or not packaging:
             return Response({'detail': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
-        price = resolve_price(product, packaging)
+        from api.models.data.product_packaging import ProductPrice
+
+        retail = resolve_price(product, packaging, price_type=ProductPrice.PRICE_RETAIL)
+        wholesale = resolve_price(product, packaging, price_type=ProductPrice.PRICE_WHOLESALE)
         return Response({
+            'code': code,
             'product': serialize_product(product, request),
             'packaging': {
                 'id': packaging.id,
                 'name': packaging.name,
-                'qty_in_base': packaging.qty_in_base,
+                'qty_in_base': str(packaging.qty_in_base),
+                'barcode': packaging.barcode,
+                'is_base': packaging.is_base,
                 'for_sale': packaging.for_sale,
+                'for_purchase': packaging.for_purchase,
+                'is_default_sale': packaging.is_default_sale,
+                'is_default_purchase': packaging.is_default_purchase,
+                'is_variable_weight': packaging.is_variable_weight,
+                'is_active': packaging.is_active,
             },
-            'price': price,
+            'price': retail,
+            'retail_price': retail,
+            'wholesale_price': wholesale,
         })
