@@ -1,4 +1,4 @@
-import { formatDecimalDisplay } from './decimalDisplay';
+import { formatDisplayMoney } from './displayMoney';
 
 /** Reporting base currency fallbacks when API data is unavailable. */
 export const FALLBACK_BASE_CODE = 'AFN';
@@ -26,14 +26,16 @@ export function formatCurrencyAmount(
   currency?: CurrencyDetails | null,
   options?: { showCode?: boolean; decimals?: number; prefixSign?: '+' | '-' },
 ): string {
-  const value = Number(amount);
-  const decimals = options?.decimals ?? 2;
-  const formatted = formatDecimalDisplay(value, decimals);
+  const code = getCurrencyCode(currency);
+  // Currency-aware display: AFN whole (ceil), USD one decimal.
+  // `decimals` is ignored for list/report display so callers stay consistent.
+  void options?.decimals;
+  const formatted = formatDisplayMoney(amount, code);
   const symbol = getCurrencySymbol(currency);
   const sign = options?.prefixSign ?? '';
   const base = `${sign}${symbol}${formatted}`;
   if (options?.showCode) {
-    return `${base} ${getCurrencyCode(currency)}`;
+    return `${base} ${code}`;
   }
   return base;
 }

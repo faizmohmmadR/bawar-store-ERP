@@ -9,6 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
 import useDelete from '@/api/useDelete';
 import { ListDate } from '@/components/display/ListDate';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 import { formatListContactLine, listBadgeClass, listTextClass } from '@/lib/listTableFormat';
 
 const AccountEntryList = () => {
@@ -77,14 +78,22 @@ const AccountEntryList = () => {
       title: t('accounts.debit'),
       width: '6.5rem',
       className: 'whitespace-nowrap',
-      render: (value) => <span className="text-primary font-semibold tabular-nums">{parseFloat(value || 0).toFixed(2)}</span>
+      render: (value) => (
+        <span className="text-primary font-semibold tabular-nums">
+          {formatDisplayMoney(value || 0, 'AFN')}
+        </span>
+      ),
     },
     {
       key: 'credit_amount',
       title: t('accounts.credit'),
       width: '6.5rem',
       className: 'whitespace-nowrap',
-      render: (value) => <span className="text-red-600 font-semibold tabular-nums">{parseFloat(value || 0).toFixed(2)}</span>
+      render: (value) => (
+        <span className="text-red-600 font-semibold tabular-nums">
+          {formatDisplayMoney(value || 0, 'AFN')}
+        </span>
+      ),
     },
     {
       key: 'reference_number',

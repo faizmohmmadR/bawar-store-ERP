@@ -28,22 +28,25 @@ export function ReportAmount({
   );
 }
 
-/** Section-report money: AFN whole / foreign 2dp, always LTR for fa/ps tables. */
+/** Section-report money: AFN whole (ceil) / foreign 1dp, always LTR for fa/ps tables. */
 export function ReportMoney({
   value,
   code,
+  currency,
   className,
 }: {
   value: number;
-  code: string;
+  code?: string;
+  currency?: string;
   className?: string;
 }) {
+  const moneyCode = code || currency || 'AFN';
   return (
     <span
       dir="ltr"
       className={cn('inline-block tabular-nums whitespace-nowrap', className)}
     >
-      {formatReportMoney(value, code)} {code}
+      {formatReportMoney(value, moneyCode)} {moneyCode}
     </span>
   );
 }

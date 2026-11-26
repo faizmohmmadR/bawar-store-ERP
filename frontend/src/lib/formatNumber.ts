@@ -1,5 +1,12 @@
 import { formatDecimalDisplay } from './decimalDisplay';
+import { formatDisplayMoney } from './displayMoney';
 import { FALLBACK_BASE_CODE } from '@/lib/currencies';
+
+export {
+  formatDisplayMoney,
+  isAfnMoneyCode,
+  roundDisplayMoney,
+} from './displayMoney';
 
 export function formatCurrency(amount: number, currency: string = FALLBACK_BASE_CODE): string {
   return new Intl.NumberFormat('en-US', {
@@ -14,20 +21,9 @@ export function formatNumber(num: number): string {
   return new Intl.NumberFormat().format(num);
 }
 
-const reportForeignMoneyFormatter = new Intl.NumberFormat(undefined, {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
-
-/** Section-report money: AFN → whole afghanis; USD/others → up to 2 decimals. */
+/** Section-report money: AFN whole (ceil); USD/others one decimal. */
 export function formatReportMoney(num: number, currency?: string): string {
-  const amount = Number(num);
-  const safe = Number.isFinite(amount) ? amount : 0;
-  const code = (currency || '').toUpperCase();
-  if (code === 'AFN' || !code) {
-    return formatNumber(Math.round(safe));
-  }
-  return reportForeignMoneyFormatter.format(Math.round(safe * 100) / 100);
+  return formatDisplayMoney(num, currency);
 }
 
 export function formatLiterAmount(amount: number): string {
@@ -38,13 +34,13 @@ export function formatTonAmount(amount: number): string {
   return `${formatDecimalDisplay(amount, 3)}T`;
 }
 
-const priceFormatter = new Intl.NumberFormat(undefined, {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
-
-/** Round displayed monetary amounts only; keep calculation and input precision. */
-export function formatPrice(value: string | number | null | undefined): string {
-  const amount = Number(value ?? 0);
-  return priceFormatter.format(Number.isFinite(amount) ? amount : 0);
+/**
+ * Generic price display (defaults to AFN rules).
+ * Pass currency when the amount is USD / foreign.
+ */
+export function formatPrice(
+  value: string | number | null | undefined,
+  currency?: string | null,
+): string {
+  return formatDisplayMoney(value, currency ?? 'AFN');
 }

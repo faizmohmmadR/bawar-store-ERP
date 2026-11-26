@@ -7,6 +7,7 @@ import { Autocomplete } from '@/components/ui/autocomplete';
 import DataTable, { TableColumn, TableAction } from '@/components/ui/data-table';
 import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 import { formatOrderNumeric } from '@/lib/orderNumeric';
 import {
   baseUomLabel,
@@ -142,14 +143,17 @@ const StockList = () => {
       title: t('stock.avgCost', 'Avg cost (AFN)'),
       width: '8rem',
       className: 'whitespace-nowrap tabular-nums',
-      render: (value) => formatOrderNumeric(Number(value) || 0),
+      render: (value) => formatDisplayMoney(Number(value) || 0, 'AFN'),
     },
     {
       key: 'stock_value',
       title: t('stock.onHandValue', 'Value'),
       width: '8rem',
       className: 'whitespace-nowrap tabular-nums',
-      render: (_value, row) => formatOrderNumeric(stockValue(row.quantity_on_hand, row.average_cost)),
+      render: (_value, row) => formatDisplayMoney(
+        stockValue(row.quantity_on_hand, row.average_cost),
+        'AFN',
+      ),
     },
     {
       key: 'status',

@@ -1,10 +1,12 @@
 import { CurrencyDetails, formatCurrencyAmount, getCurrencyCode, getCurrencySymbol } from '@/lib/currencies';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 import { cn } from '@/lib/utils';
 
 type CurrencyAmountProps = {
   amount: number | string | null | undefined;
   currency?: CurrencyDetails | null;
   showCode?: boolean;
+  /** @deprecated Display decimals follow currency rules (AFN whole, USD 1dp). */
   decimals?: number;
   prefixSign?: '+' | '-';
   className?: string;
@@ -16,16 +18,16 @@ export function CurrencyAmount({
   amount,
   currency,
   showCode = false,
-  decimals = 2,
+  decimals,
   prefixSign,
   className,
   codeClassName,
   layout = 'inline',
 }: CurrencyAmountProps) {
-  const value = Number(amount);
-  const formatted = Number.isFinite(value) ? value.toFixed(decimals) : (0).toFixed(decimals);
-  const symbol = getCurrencySymbol(currency);
+  void decimals;
   const code = getCurrencyCode(currency);
+  const formatted = formatDisplayMoney(amount, code);
+  const symbol = getCurrencySymbol(currency);
 
   if (layout === 'stacked') {
     return (
@@ -43,7 +45,7 @@ export function CurrencyAmount({
   if (showCode) {
     return (
       <span className={className}>
-        {formatCurrencyAmount(amount, currency, { showCode: true, decimals, prefixSign })}
+        {formatCurrencyAmount(amount, currency, { showCode: true, prefixSign })}
       </span>
     );
   }

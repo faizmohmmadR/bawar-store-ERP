@@ -1,4 +1,4 @@
-import { formatPrice } from '@/lib/formatNumber';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 import useFetchObjects from '@/api/useFetchObjects';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +29,7 @@ export function DualCurrencyAmount({ afn, rate }: {
 }) {
   const exchangeRate = Number(rate);
   return <bdi dir="ltr" className="font-medium tabular-nums">
-    AFN {afn == null ? '—' : formatPrice(afn)} | USD {exchangeRate > 0 && afn != null ? formatPrice(Number(afn) / exchangeRate) : '—'}
+    AFN {afn == null ? '—' : formatDisplayMoney(afn, 'AFN')} | USD {exchangeRate > 0 && afn != null ? formatDisplayMoney(Number(afn) / exchangeRate, 'USD') : '—'}
   </bdi>;
 }
 
@@ -51,7 +51,7 @@ export function DualCurrencyCosts({ rows, rate: savedRate, atDate, compact = fal
       </div>
     ))}
     {!compact && <p className="text-xs text-muted-foreground">
-      {rate > 0 ? `1 USD = ${formatPrice(rate)} AFN` : isLoading && savedRate === undefined ? t('common.loading', 'Loading…') : t('costs.rateUnavailable', 'USD cost unavailable: no exchange rate for this date.')}
+      {rate > 0 ? `1 USD = ${formatDisplayMoney(rate, 'AFN')} AFN` : isLoading && savedRate === undefined ? t('common.loading', 'Loading…') : t('costs.rateUnavailable', 'USD cost unavailable: no exchange rate for this date.')}
       {rate > 0 && (savedRate === undefined || basis === 'current' ? ` · ${t('costs.reportingRate', 'Reporting rate')}` : ` · ${t('costs.savedRate', 'Saved rate')}`)}
     </p>}
   </div>;

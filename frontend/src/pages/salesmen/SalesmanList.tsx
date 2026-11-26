@@ -8,6 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
 import useDelete from '@/api/useDelete';
 import { formatListContactLine, listTextClass } from '@/lib/listTableFormat';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 import { formatOrderNumeric } from '@/lib/orderNumeric';
 import { FALLBACK_BASE_SYMBOL } from '@/lib/currencies';
 import { resolveCurrencySymbol } from '@/lib/currencyChoices';
@@ -84,7 +85,7 @@ export const Salesmen = () => {
   const totalItems = salesmenData?.count || 0;
   const afnSymbol = resolveCurrencySymbol(1) || FALLBACK_BASE_SYMBOL;
   const formatAfn = (amount: number) =>
-    `${formatOrderNumeric(amount)} ${afnSymbol}`;
+    `${formatDisplayMoney(amount, 'AFN')} ${afnSymbol}`;
 
   useEffect(() => {
     setSelectedSalesmenById((prev) => {

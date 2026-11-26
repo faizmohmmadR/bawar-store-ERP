@@ -21,6 +21,7 @@ import { useCalendarPreference, type CalendarSystem } from '@/contexts/CalendarP
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { Language } from '@/i18n';
 import { formatAppDate, formatAppDateTime } from '@/lib/calendarDate';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +29,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+
+const MONEY_COLUMN_RE =
+  /(amount|value|balance|total|paid|cost|price|debit|credit|revenue|cogs|profit|afn|usd)/i;
+
+function formatReportingNumber(value: number, column?: string): string {
+  const key = column || '';
+  if (!MONEY_COLUMN_RE.test(key)) {
+    return Number.isInteger(value)
+      ? value.toLocaleString('en-US')
+      : value.toLocaleString('en-US', { maximumFractionDigits: 4 });
+  }
+  const code = /usd/i.test(key) ? 'USD' : 'AFN';
+  return formatDisplayMoney(value, code);
+}
 
 type Scope = 'period' | 'cutoff' | 'current' | 'opening';
 type ReportDefinition = {
@@ -278,16 +293,11 @@ const display = (
     return formatReportDateValue(value, options.calendar, options.language);
   }
   if (typeof value === 'number') {
-    return Number.isInteger(value)
-      ? value.toLocaleString()
-      : value.toLocaleString(undefined, { maximumFractionDigits: 4 });
+    return formatReportingNumber(value, options?.column);
   }
   if (typeof value === 'string') {
     if (/^-?\d+(\.\d+)?$/.test(value)) {
-      const num = Number(value);
-      return Number.isInteger(num)
-        ? num.toLocaleString()
-        : num.toLocaleString(undefined, { maximumFractionDigits: 4 });
+      return formatReportingNumber(Number(value), options?.column);
     }
     return value;
   }

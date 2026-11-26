@@ -9,7 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
 import useDelete from '@/api/useDelete';
 import { ListDate } from '@/components/display/ListDate';
-import { formatOrderNumeric } from '@/lib/orderNumeric';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 import { FALLBACK_BASE_SYMBOL } from '@/lib/currencies';
 import { resolveCurrencySymbol } from '@/lib/currencyChoices';
 import { listBadgeClass } from '@/lib/listTableFormat';
@@ -74,7 +74,7 @@ const SalesmanCommissionPaymentList = () => {
       className: 'whitespace-nowrap',
       render: (value) => (
         <span className="font-semibold tabular-nums">
-          {formatOrderNumeric(Number(value) || 0)} {afnSymbol}
+          {formatDisplayMoney(Number(value) || 0, 'AFN')} {afnSymbol}
         </span>
       ),
     },

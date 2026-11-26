@@ -23,6 +23,7 @@ import type { Language } from '@/i18n';
 import useFetchObjects from '@/api/useFetchObjects';
 import { formatAppDate } from '@/lib/calendarDate';
 import { FALLBACK_BASE_CODE, FALLBACK_BASE_SYMBOL, type CurrencyDetails } from '@/lib/currencies';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 import { formatJournalDate, glCategoryBadgeClass, glCategoryLabel, journalSourceLabel } from '@/lib/journalLabels';
 import { cn } from '@/lib/utils';
 
@@ -105,15 +106,13 @@ function formatPeriodLabel(
 
 function formatMoney(
   value: number,
-  language: string,
+  _language: string,
   currencyCode?: string | null,
   opts?: { showZeroAsDash?: boolean },
 ) {
   if (opts?.showZeroAsDash && !(Number(value) > 0)) return '—';
-  const formatted = Number(value || 0).toLocaleString(language === 'fa' ? 'fa-AF' : 'en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
+  const code = currencyCode || 'AFN';
+  const formatted = formatDisplayMoney(value, code);
   return currencyCode ? `${formatted} ${currencyCode}` : formatted;
 }
 

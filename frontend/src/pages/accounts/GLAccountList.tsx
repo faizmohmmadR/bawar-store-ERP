@@ -12,6 +12,7 @@ import useDelete from '@/api/useDelete';
 import { cn, toApiList } from '@/lib/utils';
 import DataTable, { TableAction, TableColumn } from '@/components/ui/data-table';
 import { FALLBACK_BASE_CODE, FALLBACK_BASE_SYMBOL } from '@/lib/currencies';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 import { glCategoryBadgeClass } from '@/lib/journalLabels';
 
 type GlAccountTotals = {
@@ -48,12 +49,10 @@ const GLAccountList = () => {
     STATIC_CURRENCIES.find((c) => c.id === 1)?.symbol || FALLBACK_BASE_SYMBOL;
 
   const fmtAmount = (value: number, currencyCode?: string | null) => {
-    const amount = Number(value || 0).toLocaleString(language === 'fa' ? 'fa-AF' : 'en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    });
-    if (currencyCode && currencyCode !== FALLBACK_BASE_CODE) {
-      return `${amount} ${currencyCode}`;
+    const code = currencyCode || FALLBACK_BASE_CODE;
+    const amount = formatDisplayMoney(value, code);
+    if (code !== FALLBACK_BASE_CODE) {
+      return `${amount} ${code}`;
     }
     return `${baseSymbol}${amount}`;
   };

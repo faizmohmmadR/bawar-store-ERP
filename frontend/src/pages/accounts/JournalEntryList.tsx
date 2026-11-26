@@ -10,6 +10,7 @@ import useFetchObjects from '@/api/useFetchObjects';
 import useDelete from '@/api/useDelete';
 import { toApiList } from '@/lib/utils';
 import { formatJournalDate, journalSourceLabel } from '@/lib/journalLabels';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 import { listBadgeClass } from '@/lib/listTableFormat';
 
 const JournalEntryList = () => {
@@ -107,14 +108,14 @@ const JournalEntryList = () => {
         if (mixed) {
           return (
             <span className="text-xs text-muted-foreground">
-              {Number(record.total_base_debit || 0).toLocaleString()} AFN
+              {formatDisplayMoney(record.total_base_debit || 0, 'AFN')} AFN
             </span>
           );
         }
-        const code = record.native_currency?.code || '';
+        const code = record.native_currency?.code || 'AFN';
         return (
           <span>
-            {Number(value || 0).toLocaleString()}
+            {formatDisplayMoney(value || 0, code)}
             {code ? ` ${code}` : ''}
           </span>
         );
@@ -130,14 +131,14 @@ const JournalEntryList = () => {
         if (mixed) {
           return (
             <span className="text-xs text-muted-foreground">
-              {Number(record.total_base_credit || 0).toLocaleString()} AFN
+              {formatDisplayMoney(record.total_base_credit || 0, 'AFN')} AFN
             </span>
           );
         }
-        const code = record.native_currency?.code || '';
+        const code = record.native_currency?.code || 'AFN';
         return (
           <span>
-            {Number(value || 0).toLocaleString()}
+            {formatDisplayMoney(value || 0, code)}
             {code ? ` ${code}` : ''}
           </span>
         );
@@ -148,8 +149,8 @@ const JournalEntryList = () => {
       title: t('accounts.afnEquivalentReporting'),
       render: (_, record) => (
         <span className="text-xs text-muted-foreground whitespace-nowrap">
-          {Number(record.total_base_debit || 0).toLocaleString()} /{' '}
-          {Number(record.total_base_credit || 0).toLocaleString()} AFN
+          {formatDisplayMoney(record.total_base_debit || 0, 'AFN')} /{' '}
+          {formatDisplayMoney(record.total_base_credit || 0, 'AFN')} AFN
         </span>
       ),
     },

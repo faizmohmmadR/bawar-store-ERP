@@ -11,6 +11,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
 import { printEquipmentSerialLabel } from '@/pages/equipment/printEquipmentLabel';
 import EquipmentDepreciationSection from '@/pages/equipment/EquipmentDepreciationSection';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 
 const acquisitionLabelKey: Record<string, string> = {
   new_purchase: 'equipment.acquisitionNew',
@@ -100,7 +101,7 @@ export default function EquipmentDetails() {
           <div className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             <DetailField label={t('equipment.unitCost', 'Price')}>
               <span className="tabular-nums">
-                {Number(item.unit_cost || 0).toFixed(2)} {currencyCode}
+                {formatDisplayMoney(item.unit_cost || 0, currencyCode)} {currencyCode}
               </span>
             </DetailField>
             <DetailField label={t('equipment.quantity', 'Quantity')}>
@@ -114,7 +115,7 @@ export default function EquipmentDetails() {
             {Number(item.accumulated_depreciation || 0) > 0 ? (
               <DetailField label={t('equipment.accumulatedDepreciation', 'Already depreciated')}>
                 <span className="tabular-nums">
-                  {Number(item.accumulated_depreciation).toFixed(2)} {currencyCode}
+                  {formatDisplayMoney(item.accumulated_depreciation, currencyCode)} {currencyCode}
                 </span>
               </DetailField>
             ) : null}

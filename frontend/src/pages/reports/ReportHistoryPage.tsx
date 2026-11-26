@@ -18,7 +18,7 @@ import { useCalendarPreference } from '@/contexts/CalendarPreferenceContext';
 import type { CalendarSystem } from '@/contexts/CalendarPreferenceContext';
 import type { Language } from '@/i18n';
 import { formatAppDate } from '@/lib/calendarDate';
-import { formatNumber } from '@/lib/formatNumber';
+import { formatReportMoney } from '@/lib/formatNumber';
 import { formatJournalDate } from '@/lib/journalLabels';
 
 type ReportHistoryRow = {
@@ -132,7 +132,7 @@ export default function ReportHistoryPage() {
   );
 
   const fmt = (value: number, curr?: string) =>
-    `${formatNumber(value)}${curr ? ` ${curr}` : ''}`;
+    `${formatReportMoney(value, curr || 'AFN')}${curr ? ` ${curr}` : ''}`;
 
   const statusLabel = (status?: string) => {
     if (!status) return '—';

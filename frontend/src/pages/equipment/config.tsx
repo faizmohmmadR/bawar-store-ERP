@@ -14,6 +14,7 @@ import {
   equipmentFieldDisabled,
   equipmentFieldVisible,
 } from '@/pages/equipment/equipmentFormRules';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 
 const equipmentFieldRules = (name: string): Pick<CrudField, 'visibleWhen' | 'disabledWhen' | 'clearValue'> => ({
   visibleWhen: (values) => equipmentFieldVisible(name, values),
@@ -405,8 +406,10 @@ export function useEquipmentConfig(): CrudConfig {
           title: t('equipment.unitCost', 'Price'),
           width: '7rem',
           className: 'whitespace-nowrap',
-          render: (value, row) =>
-            `${Number(value || 0).toFixed(2)} ${row.currency_details?.code || ''}`.trim(),
+          render: (value, row) => {
+            const code = row.currency_details?.code || 'AFN';
+            return `${formatDisplayMoney(value || 0, code)} ${code}`.trim();
+          },
         },
         {
           key: 'acquisition_type',

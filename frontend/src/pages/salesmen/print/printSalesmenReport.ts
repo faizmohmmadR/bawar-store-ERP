@@ -2,7 +2,7 @@ import { formatStoredDate, formatStoredDateTime } from '@/lib/calendarDate';
 import type { Language } from '@/i18n';
 import { BRAND } from '@/lib/brand';
 import { GOOGLE_FONTS_URL, getFontStacks } from '@/lib/fonts';
-import { formatOrderNumeric } from '@/lib/orderNumeric';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 import { printHtmlInHiddenIframe } from '@/lib/printHtml';
 import api from '@/api/client';
 
@@ -60,7 +60,7 @@ function fmt(value: string | null | undefined, fallback = '—'): string {
 
 function fmtAfn(value: number | undefined, suffix: string): string {
   const amount = Number(value) || 0;
-  return escapeHtml(`${formatOrderNumeric(amount)} ${suffix}`);
+  return escapeHtml(`${formatDisplayMoney(amount, 'AFN')} ${suffix}`);
 }
 
 function buildSalesmanRow(salesman: SalesmanPrintRow, index: number, suffix: string): string {

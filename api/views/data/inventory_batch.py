@@ -255,12 +255,28 @@ class StockAdjustmentViewSet(DataRootViewSet):
     permission_module = 'stock'
     """ViewSet for StockAdjustment management."""
     queryset = StockAdjustment.objects.select_related(
-        'inventory_batch', 'adjusted_by'
+        'inventory_batch',
+        'inventory_batch__product',
+        'product',
+        'warehouse',
+        'adjusted_by',
     ).all()
     serializer_class = StockAdjustmentSerializer
-    filterset_fields = ['inventory_batch', 'adjustment_type']
-    search_fields = ['inventory_batch__batch_number',
-                     'reason', 'reference_number']
+    filterset_fields = [
+        'inventory_batch',
+        'adjustment_type',
+        'product',
+        'warehouse',
+    ]
+    search_fields = [
+        'inventory_batch__batch_number',
+        'product__name',
+        'product__sku',
+        'product__barcode',
+        'reason',
+        'reference_number',
+        'warehouse__name',
+    ]
     ordering = ['-adjustment_date']
 
     def get_queryset(self):
@@ -270,8 +286,68 @@ class StockAdjustmentViewSet(DataRootViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return StockAdjustmentCreateSerializer
+        if self.action == 'record_damage':
+            from api.serializers.data.inventory_batch import RecordDamagedStockSerializer
+            return RecordDamagedStockSerializer
         return StockAdjustmentSerializer
 
     def perform_create(self, serializer):
         """Set the adjusted_by field to current user."""
         serializer.save(adjusted_by=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='record-damage')
+    def record_damage(self, request):
+        """
+        Record damaged finished goods from sellable stock.
+
+        Body: product, warehouse (optional), packaging (optional),
+        quantity and/or base_quantity, reason, notes, adjustment_date.
+        """
+        from api.models.data.products import Product
+        from api.models.data.product_packaging import ProductPackaging
+        from api.models.data.warehouse import Warehouse
+        from api.serializers.data.inventory_batch import RecordDamagedStockSerializer
+        from api.services.inventory.damage import record_damaged_stock
+        from api.services.inventory.engine import get_default_warehouse
+
+        serializer = RecordDamagedStockSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        product = Product.objects.filter(pk=data['product']).first()
+        if not product:
+            return Response({'product': 'Product not found.'}, status=400)
+
+        warehouse = None
+        if data.get('warehouse'):
+            warehouse = Warehouse.objects.filter(pk=data['warehouse']).first()
+            if not warehouse:
+                return Response({'warehouse': 'Warehouse not found.'}, status=400)
+        else:
+            warehouse = get_default_warehouse()
+
+        packaging = None
+        if data.get('packaging'):
+            packaging = ProductPackaging.objects.filter(
+                pk=data['packaging'], product=product,
+            ).first()
+            if not packaging:
+                return Response({'packaging': 'Packaging not found for product.'}, status=400)
+
+        result = record_damaged_stock(
+            product=product,
+            warehouse=warehouse,
+            quantity=data.get('quantity'),
+            packaging=packaging,
+            base_quantity=data.get('base_quantity'),
+            reason=(data.get('reason') or '').strip(),
+            notes=(data.get('notes') or '').strip(),
+            user=request.user,
+            occurred_at=data.get('adjustment_date'),
+        )
+        return Response(
+            StockAdjustmentSerializer(
+                result['adjustment'], context={'request': request},
+            ).data,
+            status=201,
+        )

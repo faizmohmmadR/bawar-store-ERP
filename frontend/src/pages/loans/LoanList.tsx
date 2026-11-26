@@ -13,7 +13,6 @@ import useDelete from '@/api/useDelete';
 import {
   toCurrencyFilterOptions,
 } from '@/lib/currencyChoices';
-import { formatNumber } from '@/lib/formatNumber';
 import { formatLoanMoney, getLoanCurrencyCode } from '@/lib/loanFormat';
 import {
   getLoanDirectionLabel,
@@ -134,7 +133,7 @@ const LoanList = () => {
       className: 'whitespace-nowrap text-start',
       render: (value, record) => (
         <span className="text-sm font-semibold tabular-nums">
-          {formatNumber(Number(value))} {getLoanCurrencyCode(record)}
+          {formatLoanMoney(value, record)} {getLoanCurrencyCode(record)}
         </span>
       ),
     },
@@ -186,7 +185,7 @@ const LoanList = () => {
               {t('loans.status.unpaid')}
             </Badge>
             <span className="text-muted-foreground tabular-nums">
-              {formatNumber(Number(record.balance_due))}
+              {formatLoanMoney(record.balance_due, record)}
             </span>
           </span>
         )

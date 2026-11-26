@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import DataTable, { TableColumn, TableAction } from '@/components/ui/data-table';
 import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 import { formatOrderNumeric } from '@/lib/orderNumeric';
 import {
   baseUomLabel,
@@ -93,7 +94,7 @@ const LowStockList = () => {
       width: '8rem',
       className: 'tabular-nums',
       render: (_value, row) =>
-        formatOrderNumeric(stockValue(row.quantity_on_hand, row.average_cost)),
+        formatDisplayMoney(stockValue(row.quantity_on_hand, row.average_cost), 'AFN'),
     },
     {
       key: 'status',

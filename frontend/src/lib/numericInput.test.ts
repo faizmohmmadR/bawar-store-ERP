@@ -64,11 +64,14 @@ test('fractional order amounts retain meaningful digits up to four places', () =
 
 test('currency and return formatters omit trailing zeros and retain symbols', () => {
   assert.equal(formatCurrencyAmount(2000, { symbol: '؋', code: 'AFN' }), '؋2,000');
+  assert.equal(formatCurrencyAmount(12.1, { symbol: '؋', code: 'AFN' }), '؋13');
   assert.equal(formatCurrencyAmount('12.5000', { symbol: '$', code: 'USD' }, { showCode: true }), '$12.5 USD');
+  assert.equal(formatCurrencyAmount(12, { symbol: '$', code: 'USD' }), '$12.0');
   assert.equal(formatReturnAmount(12.5), '12.5');
   assert.equal(formatReturnAmount(12), '12');
   assert.equal(formatPrice(12), '12');
-  assert.equal(formatPrice(12.5), '12.5');
+  assert.equal(formatPrice(12.1), '13');
+  assert.equal(formatPrice(12.5, 'USD'), '12.5');
   assert.equal(formatDecimalDisplay(NaN), '0');
   assert.equal(formatOrderNumeric(-0.00001), '0');
 });

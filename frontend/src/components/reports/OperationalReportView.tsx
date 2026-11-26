@@ -25,7 +25,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatNumber } from '@/lib/formatNumber';
+import { formatNumber, formatReportMoney } from '@/lib/formatNumber';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
@@ -170,7 +170,7 @@ function Money({
 }) {
   return (
     <span className={cn('tabular-nums font-semibold', className)}>
-      {formatNumber(value || 0)}{' '}
+      {formatReportMoney(value || 0, currency)}{' '}
       <span className="text-sm font-medium text-muted-foreground">{currency}</span>
     </span>
   );
@@ -217,7 +217,7 @@ function KpiCard({
               {title}
             </p>
             <p className={cn('text-xl sm:text-2xl font-semibold tabular-nums', valueClass)}>
-              {formatNumber(value || 0)}
+              {currency ? formatReportMoney(value || 0, currency) : formatNumber(value || 0)}
               {suffix ? (
                 <span className="text-sm font-medium text-muted-foreground"> {suffix}</span>
               ) : currency ? (
@@ -733,13 +733,13 @@ export function OperationalReportView({
                       </td>
                       <td className="py-2 text-start tabular-nums">{formatNumber(p.quantity_pieces)}</td>
                       <td className="py-2 text-start tabular-nums">
-                        {formatNumber(p.revenue_base)} {currency}
+                        {formatReportMoney(p.revenue_base, currency)} {currency}
                       </td>
                       <td className="py-2 text-start tabular-nums">
-                        {formatNumber(p.cogs_base)} {currency}
+                        {formatReportMoney(p.cogs_base, currency)} {currency}
                       </td>
                       <td className="py-2 text-start tabular-nums font-semibold">
-                        {formatNumber(p.gross_profit_base)} {currency}
+                        {formatReportMoney(p.gross_profit_base, currency)} {currency}
                       </td>
                     </tr>
                   ))}

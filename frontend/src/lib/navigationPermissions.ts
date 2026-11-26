@@ -9,6 +9,7 @@ export const NAV_PERMISSIONS = {
   stockReport: 'view_stock',
   lowStock: 'view_stock',
   expiringStock: 'view_stock',
+  damagedStock: 'view_stock',
   sales: 'view_sales',
   salesReport: 'view_sales',
   returns: 'view_returns',

@@ -64,6 +64,7 @@ export const corePs = {
     stockReport: 'د موجودي راپور',
     expiringStock: 'ختمیدونکی موجودي',
     lowStock: 'کم موجودي',
+    damagedStock: 'زیانمن شوي محصولات',
     branches: 'څانګې',
     withdrawals: 'ایستل',
     withdrawalsList: 'ایستلونه',

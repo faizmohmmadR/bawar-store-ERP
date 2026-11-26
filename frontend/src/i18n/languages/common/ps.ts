@@ -90,6 +90,7 @@ export const commonPs = {
     allStock: "ٹول سټاک",
     expiringStock: "ختمیدونکی سټاک",
     lowStock: "کم سټاک",
+    damagedStock: "زیانمن شوي محصولات",
     customers: "پیرودونکي",
     vendors: "پلورونکي",
     salesmen: "د پلور استازي",

@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useFetchObjects, useAdd } from '@/api';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 
 interface DepreciationEntry {
   id: number;
@@ -77,7 +78,7 @@ export default function EquipmentDepreciationSection({
     }
     if (amountNum > netBookValue) {
       setFormError(
-        t('equipment.depreciation.exceedsNBV', `Amount exceeds net book value (${netBookValue.toFixed(2)} ${currencyCode}).`)
+        t('equipment.depreciation.exceedsNBV', `Amount exceeds net book value (${formatDisplayMoney(netBookValue, currencyCode)} ${currencyCode}).`)
       );
       return;
     }
@@ -131,7 +132,7 @@ export default function EquipmentDepreciationSection({
               {t('equipment.depreciation.totalDepreciated', 'Total Depreciated')}
             </p>
             <p className="mt-1 text-sm font-semibold tabular-nums">
-              {totalDepreciated.toFixed(2)} {currencyCode}
+              {formatDisplayMoney(totalDepreciated, currencyCode)} {currencyCode}
             </p>
           </div>
           <div>
@@ -139,7 +140,7 @@ export default function EquipmentDepreciationSection({
               {t('equipment.netBookValue', 'Net Book Value')}
             </p>
             <p className="mt-1 text-sm font-semibold tabular-nums text-primary">
-              {netBookValue.toFixed(2)} {currencyCode}
+              {formatDisplayMoney(netBookValue, currencyCode)} {currencyCode}
             </p>
           </div>
         </div>
@@ -176,7 +177,7 @@ export default function EquipmentDepreciationSection({
                     step="0.01"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    placeholder={`Max: ${netBookValue.toFixed(2)}`}
+                    placeholder={`Max: ${formatDisplayMoney(netBookValue, currencyCode)}`}
                   />
                 </div>
               </div>
@@ -237,10 +238,10 @@ export default function EquipmentDepreciationSection({
                   <tr key={entry.id} className="border-b border-border/30 last:border-0">
                     <td className="py-2.5 pr-4 font-semibold tabular-nums">{entry.year}</td>
                     <td className="py-2.5 pr-4 tabular-nums text-muted-foreground">
-                      {parseFloat(entry.net_book_value_before).toFixed(2)} {currencyCode}
+                      {formatDisplayMoney(entry.net_book_value_before, currencyCode)} {currencyCode}
                     </td>
                     <td className="py-2.5 pr-4 font-medium tabular-nums text-destructive">
-                      − {parseFloat(entry.amount).toFixed(2)} {currencyCode}
+                      − {formatDisplayMoney(entry.amount, currencyCode)} {currencyCode}
                     </td>
                     <td className="py-2.5 text-muted-foreground">{entry.notes || '—'}</td>
                   </tr>

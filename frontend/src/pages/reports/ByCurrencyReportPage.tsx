@@ -20,7 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ReportFilters } from '@/components/reports/ReportFilters';
 import useFetchObjects from '@/api/useFetchObjects';
 import { buildFinancialReportParams } from '@/lib/reportPeriod';
-import { formatNumber } from '@/lib/formatNumber';
+import { formatReportMoney } from '@/lib/formatNumber';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
@@ -85,7 +85,7 @@ function Money({
         tone === 'muted' && 'text-muted-foreground',
       )}
     >
-      {formatNumber(value)} {code}
+      {formatReportMoney(value, code)} {code}
     </span>
   );
 }
@@ -116,7 +116,7 @@ function Stat({
           tone === 'bad' && 'text-red-700 dark:text-red-400',
         )}
       >
-        {formatNumber(value)}{' '}
+        {formatReportMoney(value, code)}{' '}
         <span className="text-xs font-medium text-muted-foreground">{code}</span>
       </p>
     </div>
@@ -145,7 +145,7 @@ function MiniBreakdown({
               <tr key={row.type} className="border-t">
                 <td className="px-3 py-2">{row.type}</td>
                 <td className="px-3 py-2 text-right tabular-nums font-medium whitespace-nowrap">
-                  {formatNumber(row.amount)} {code}
+                  {formatReportMoney(row.amount, code)} {code}
                 </td>
               </tr>
             ))}

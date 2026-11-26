@@ -1,4 +1,5 @@
 import { CurrencyDetails, FALLBACK_BASE_CODE, FALLBACK_BASE_SYMBOL, getCurrencyCode, getCurrencySymbol } from '@/lib/currencies';
+import { formatDisplayMoney } from '@/lib/displayMoney';
 
 type LoanCurrencySource = {
   currency_details?: CurrencyDetails | null;
@@ -17,8 +18,8 @@ export function formatLoanMoney(
   record: LoanCurrencySource | null | undefined,
 ): string {
   const symbol = getLoanCurrencySymbol(record);
-  const value = Number(amount);
-  return `${symbol}${Number.isFinite(value) ? value.toLocaleString() : '0'}`;
+  const code = getLoanCurrencyCode(record);
+  return `${symbol}${formatDisplayMoney(amount, code)}`;
 }
 
 export { FALLBACK_BASE_CODE, FALLBACK_BASE_SYMBOL };

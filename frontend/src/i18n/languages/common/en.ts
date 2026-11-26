@@ -88,6 +88,7 @@ export const commonEn = {
     allStock: "All Stock",
     expiringStock: "Expiring Stock",
     lowStock: "Low Stock",
+    damagedStock: "Damaged Products",
     customers: "Customers",
     vendors: "Vendors",
     salesmen: "Salesmen",

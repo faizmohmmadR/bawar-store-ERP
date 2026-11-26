@@ -121,6 +121,7 @@ export const ERP_APPS: AppDefinition[] = [
       { key: 'stockReport', icon: FileBarChart, path: '/stock/report', ...navPerm('stockReport') },
       { key: 'lowStock', icon: TrendingDown, path: '/stock/low-stock', ...navPerm('lowStock') },
       { key: 'expiringStock', icon: AlertTriangle, path: '/stock/expiring', ...navPerm('expiringStock') },
+      { key: 'damagedStock', icon: AlertOctagon, path: '/stock/damaged', ...navPerm('damagedStock') },
     ],
   },
   {

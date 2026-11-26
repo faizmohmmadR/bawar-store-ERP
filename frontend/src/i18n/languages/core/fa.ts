@@ -64,6 +64,7 @@ export const coreFa = {
     stockReport: 'گزارش موجودی',
     expiringStock: 'موجودی منقضی شونده',
     lowStock: 'موجودی کم',
+    damagedStock: 'محصولات آسیب‌دیده',
     branches: 'برنچ‌ها',
     withdrawals: 'برداشت',
     withdrawalsList: 'برداشت‌ها',

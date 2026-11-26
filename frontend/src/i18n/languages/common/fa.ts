@@ -90,6 +90,7 @@ export const commonFa = {
     allStock: "همه موجودی",
     expiringStock: "موجودی در حال انقضا",
     lowStock: "موجودی کم",
+    damagedStock: "محصولات آسیب‌دیده",
     customers: "مشتریان",
     vendors: "فروشندگان",
     salesmen: "نمایندگان فروش",

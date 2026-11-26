@@ -64,6 +64,7 @@ export const coreEn = {
     stockReport: 'Stock Report',
     expiringStock: 'Expiring Stock',
     lowStock: 'Low Stock',
+    damagedStock: 'Damaged Products',
     branches: 'Branches',
     withdrawals: 'Withdrawals',
     withdrawalsList: 'Withdrawals',
