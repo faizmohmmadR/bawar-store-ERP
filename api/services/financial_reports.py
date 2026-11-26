@@ -821,6 +821,7 @@ def get_top_products(*, start_date=None, end_date=None, limit=10):
             bucket = {
                 'product_id': pid,
                 'name': product.name or '—',
+                'sku': getattr(product, 'sku', '') or '',
                 'barcode': getattr(product, 'barcode', '') or '',
                 'quantity_pieces': Decimal('0'),
                 'revenue_base': Decimal('0'),
@@ -843,6 +844,7 @@ def get_top_products(*, start_date=None, end_date=None, limit=10):
         {
             'product_id': row['product_id'],
             'name': row['name'],
+            'sku': row['sku'],
             'barcode': row['barcode'],
             'quantity_pieces': _float(row['quantity_pieces']),
             'revenue_base': _float(row['revenue_base']),

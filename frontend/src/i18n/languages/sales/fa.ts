@@ -16,6 +16,7 @@ export const salesFa = {
   reportMarginHint: "مفاد ناخالص ÷ درآمد کالا",
   reportTopProducts: "برترین محصولات از نظر مفاد",
   reportTopProductsHint: "درآمد، هزینه و مفاد هر محصول (افغانی)",
+  productCode: "کد",
   reportQty: "مقدار",
   reportRevenue: "درآمد",
   reportNoProductProfit: "در این دوره محصول فروخته‌شده با هزینه نیست",

@@ -1,4 +1,6 @@
-/** Logical permission matrix: groups → sections → View/Add/Edit/Delete codenames. */
+/** Logical permission matrix: groups → sections → View/Add/Edit/Delete codenames.
+ * Keep aligned with ERP_APPS sections and api/services/default_permissions.py.
+ */
 
 export type CrudAction = 'view' | 'add' | 'edit' | 'delete';
 
@@ -50,9 +52,36 @@ export const PERMISSION_CATALOG: PermissionGroupDef[] = [
     id: 'inventory',
     labelKey: 'user.permissionGroups.inventory',
     rows: [
-      { id: 'stock', labelKey: 'core.navigation.stock', actions: crud('stock') },
+      {
+        id: 'stock',
+        labelKey: 'core.navigation.stock',
+        actions: {
+          view: ['view_stock'],
+          add: ['add_stock'],
+          edit: ['edit_stock'],
+          delete: ['delete_stock'],
+        },
+      },
+      {
+        id: 'damaged_stock',
+        labelKey: 'core.navigation.damagedStock',
+        actions: {
+          view: ['view_stock'],
+          add: ['record_damaged_stock'],
+        },
+      },
+      {
+        id: 'expiring_stock',
+        labelKey: 'core.navigation.expiringStock',
+        actions: {
+          view: ['view_stock'],
+          edit: ['record_expired_stock'],
+        },
+      },
       { id: 'products', labelKey: 'core.navigation.products', actions: crud('products') },
       { id: 'purchases', labelKey: 'core.navigation.purchases', actions: crud('purchases') },
+      { id: 'warehouses', labelKey: 'user.permissionModules.warehouses', actions: crud('warehouses') },
+      { id: 'uom', labelKey: 'user.permissionModules.uom', actions: crud('uom') },
       { id: 'equipment', labelKey: 'core.navigation.equipment', actions: crud('equipment') },
     ],
   },
@@ -66,7 +95,6 @@ export const PERMISSION_CATALOG: PermissionGroupDef[] = [
         id: 'sale_payments',
         labelKey: 'core.navigation.salePayments',
         actions: {
-          // view_payments is synced in the UI when either payment view is granted
           view: ['view_sale_payments'],
           add: ['add_payments'],
           edit: ['edit_payments'],
@@ -130,6 +158,15 @@ export const PERMISSION_CATALOG: PermissionGroupDef[] = [
     id: 'finance',
     labelKey: 'user.permissionGroups.finance',
     rows: [
+      {
+        id: 'cash_register',
+        labelKey: 'core.navigation.cashRegister',
+        actions: {
+          view: ['view_cash_register', 'view_cash_transactions', 'view_cash_reports'],
+          add: ['open_cash_session', 'record_cash_adjustment'],
+          edit: ['close_cash_session', 'approve_cash_difference'],
+        },
+      },
       { id: 'withdrawals', labelKey: 'core.navigation.withdrawals', actions: crud('withdrawals') },
       {
         id: 'expenses',

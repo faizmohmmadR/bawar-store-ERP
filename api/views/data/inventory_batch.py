@@ -252,8 +252,20 @@ class SaleBatchAllocationViewSet(DataRootViewSet):
 
 
 class StockAdjustmentViewSet(DataRootViewSet):
+    """ViewSet for StockAdjustment management (damage / expiry write-offs)."""
+
     permission_module = 'stock'
-    """ViewSet for StockAdjustment management."""
+    permission_action_map = {
+        'list': 'view_stock',
+        'retrieve': 'view_stock',
+        'create': 'edit_stock',
+        'update': 'edit_stock',
+        'partial_update': 'edit_stock',
+        'destroy': 'delete_stock',
+        # Prefer dedicated write-off perms; edit_stock kept as OR for existing roles.
+        'record_damage': ['record_damaged_stock', 'edit_stock'],
+        'record_expiry': ['record_expired_stock', 'edit_stock'],
+    }
     queryset = StockAdjustment.objects.select_related(
         'inventory_batch',
         'inventory_batch__product',

@@ -16,6 +16,7 @@ export const salesPs = {
   reportMarginHint: "ناخالصه ګټه ÷ د توکو عاید",
   reportTopProducts: "تر ټولو ګټور محصولات",
   reportTopProductsHint: "عاید، لګښت او ناخالصه ګټه په محصول (افغانۍ)",
+  productCode: "کوډ",
   reportQty: "مقدار",
   reportRevenue: "عاید",
   reportNoProductProfit: "په دې دوره کې د لګښت لرونکي پلورل شوي محصولات نشته",

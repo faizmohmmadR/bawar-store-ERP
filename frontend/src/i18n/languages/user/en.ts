@@ -224,5 +224,11 @@ export const userEn = {
     sales_reports: "Sales Reports",
     inventory_reports: "Inventory Reports",
     hr_reports: "HR Reports",
+    warehouses: "Warehouses",
+    uom: "Units of Measure",
+    cash_register: "Safe",
+    expense_categories: "Expense Categories",
+    record_damaged_stock: "Record Damaged Stock",
+    record_expired_stock: "Write Off Expired Stock",
   },
 };

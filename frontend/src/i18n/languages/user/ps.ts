@@ -221,5 +221,11 @@ export const userPs = {
     sales_reports: "د پلور راپورونه",
     inventory_reports: "د ذخیرې راپورونه",
     hr_reports: "د بشري سرچینو راپورونه",
+    warehouses: "ګودامونه",
+    uom: "د اندازې واحدونه",
+    cash_register: "صندوق",
+    expense_categories: "د لګښت کټګورۍ",
+    record_damaged_stock: "زیانمن ذخیره ثبت",
+    record_expired_stock: "د پای نیټې ذخیره لیکل",
   },
 };

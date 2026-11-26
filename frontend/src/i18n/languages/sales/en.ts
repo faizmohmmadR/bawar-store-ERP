@@ -16,6 +16,7 @@ export const salesEn = {
   reportMarginHint: "Gross profit ÷ sold goods revenue",
   reportTopProducts: "Top products by profit",
   reportTopProductsHint: "Revenue, cost, and gross profit per product (AFN)",
+  productCode: "Code",
   reportQty: "Qty",
   reportRevenue: "Revenue",
   reportNoProductProfit: "No sold products with cost in this period",

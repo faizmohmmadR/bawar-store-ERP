@@ -218,5 +218,11 @@ export const userFa = {
     sales_reports: "گزارش‌های فروش",
     inventory_reports: "گزارش‌های موجودی",
     hr_reports: "گزارش‌های منابع انسانی",
+    warehouses: "انبارها",
+    uom: "واحدهای اندازه‌گیری",
+    cash_register: "صندوق",
+    expense_categories: "دسته‌بندی هزینه‌ها",
+    record_damaged_stock: "ثبت محصول آسیب‌دیده",
+    record_expired_stock: "ابطال موجودی منقضی",
   },
 };

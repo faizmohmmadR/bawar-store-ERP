@@ -42,6 +42,7 @@ type CurrencySection = {
 type TopProduct = {
   product_id: number;
   name: string;
+  sku?: string;
   barcode?: string;
   quantity_pieces: number;
   revenue_base: number;
@@ -359,9 +360,10 @@ const SalesReportPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[720px]">
+              <table className="w-full text-sm min-w-[800px]">
                 <thead>
                   <tr className="border-b text-muted-foreground">
+                    <ReportTh>{t('sales.productCode', 'Code')}</ReportTh>
                     <ReportTh>{t('sales.product', 'Product')}</ReportTh>
                     <ReportTh>{t('sales.reportQty', 'Qty')}</ReportTh>
                     <ReportTh>{t('sales.reportRevenue', 'Revenue')}</ReportTh>
@@ -370,31 +372,30 @@ const SalesReportPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {topProducts.map((row) => (
-                    <tr key={row.product_id} className="border-b last:border-0">
-                      <td className="py-2 font-medium">
-                        {row.name}
-                        {row.barcode ? (
-                          <span dir="ltr" className="ms-2 text-xs text-muted-foreground">
-                            {row.barcode}
-                          </span>
-                        ) : null}
-                      </td>
-                      <td className="py-2"><ReportNumber value={row.quantity_pieces} /></td>
-                      <td className="py-2 tabular-nums">
-                        <ReportMoney value={row.revenue_base} code="AFN" />
-                      </td>
-                      <td className="py-2 tabular-nums">
-                        <ReportMoney value={row.cogs_base} code="AFN" />
-                      </td>
-                      <td className="py-2 tabular-nums font-medium">
-                        <ReportMoney value={row.gross_profit_base} code="AFN" />
-                      </td>
-                    </tr>
-                  ))}
+                  {topProducts.map((row) => {
+                    const code = (row.sku || row.barcode || '').trim();
+                    return (
+                      <tr key={row.product_id} className="border-b last:border-0">
+                        <td className="py-2 tabular-nums text-muted-foreground" dir="ltr">
+                          {code || '—'}
+                        </td>
+                        <td className="py-2 font-medium">{row.name || '—'}</td>
+                        <td className="py-2"><ReportNumber value={row.quantity_pieces} /></td>
+                        <td className="py-2 tabular-nums">
+                          <ReportMoney value={row.revenue_base} code="AFN" />
+                        </td>
+                        <td className="py-2 tabular-nums">
+                          <ReportMoney value={row.cogs_base} code="AFN" />
+                        </td>
+                        <td className="py-2 tabular-nums font-medium">
+                          <ReportMoney value={row.gross_profit_base} code="AFN" />
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {!topProducts.length && (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={6} className="py-8 text-center text-muted-foreground">
                         {t('sales.reportNoProductProfit', 'No sold products with cost in this period')}
                       </td>
                     </tr>
