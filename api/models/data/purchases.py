@@ -69,6 +69,18 @@ class Purchase(BaseModel):
             self.invoice_number = allocate_purchase_invoice_number()
         super().save(*args, **kwargs)
 
+    def soft_delete(self, user=None):
+        """Trash the purchase, reverse received stock, and reverse Safe cash payments."""
+        from django.db import transaction
+
+        from api.services.cash_register import soft_delete_linked_payments
+        from api.services.inventory.engine import reverse_purchase_receipts
+
+        with transaction.atomic():
+            soft_delete_linked_payments(self, user=user)
+            reverse_purchase_receipts(self, user=user)
+            super().soft_delete(user=user)
+
     def __str__(self):
         return f'{self.invoice_number} - {self.vendor_id}'
 
@@ -199,6 +211,11 @@ class PurchaseItem(BaseModel):
             total_amount=total,
             total_amount_base=total_base,
         )
+        # Item post_save runs inside super().save() before totals are written, so
+        # re-sync the purchase journal once the header totals are final.
+        from api.services.accounting import sync_purchase_journal
+        purchase.refresh_from_db()
+        sync_purchase_journal(purchase)
 
 
 class PurchaseLandedCost(BaseModel):

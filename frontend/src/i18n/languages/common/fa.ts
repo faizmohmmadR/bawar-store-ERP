@@ -45,6 +45,8 @@ export const commonFa = {
   createdAt: "تاریخ ایجاد",
   updatedAt: "تاریخ بهروزرسانی",
   status: "وضعیت",
+  currency: "ارز",
+  optional: "اختیاری",
   active: "فعال",
   inactive: "غیرفعال",
   roles: {
@@ -114,7 +116,7 @@ export const commonFa = {
     exchangeRates: "نرخ ارز",
     profile: "پروفایل",
     activityLogs: "گزارش فعالیتها",
-    cashRegister: "دخل",
+    cashRegister: "سیف",
     cashRegisterDashboard: "داشبورد",
     cashRegisterTransactions: "تراکنش‌ها",
     cashRegisterReports: "گزارشات",

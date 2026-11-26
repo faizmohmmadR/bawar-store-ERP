@@ -14,7 +14,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useCalendarPreference } from '@/contexts/CalendarPreferenceContext';
 import { getStaticCurrencyById } from '@/components/forms/CurrencySelect';
 import { FALLBACK_BASE_CODE, FALLBACK_BASE_SYMBOL, type CurrencyDetails } from '@/lib/currencies';
-import { formatJournalDate, glCategoryLabel, journalSourceLabel } from '@/lib/journalLabels';
+import { formatJournalDate, glCategoryBadgeClass, glCategoryLabel, journalSourceLabel } from '@/lib/journalLabels';
 import { cn } from '@/lib/utils';
 
 export type JournalLineRow = {
@@ -168,7 +168,12 @@ function JournalLineMobileRow({
         <span className="w-14 shrink-0 font-mono text-[11px] font-semibold">{glCode(line)}</span>
         <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">{glName(line)}</span>
         {showAccountType ? (
-          <span className="hidden shrink-0 truncate max-w-[72px] text-[10px] text-muted-foreground sm:inline">
+          <span
+            className={cn(
+              'hidden shrink-0 truncate max-w-[84px] rounded border px-1.5 py-0.5 text-[10px] font-medium sm:inline',
+              glCategoryBadgeClass(glCategory(line)),
+            )}
+          >
             {typeLabel}
           </span>
         ) : null}
@@ -316,7 +321,12 @@ export function JournalLinesTable({
                   </TableCell>
                   {showAccountType ? (
                     <TableCell className={cellClass}>
-                      <span className="truncate text-[11px] text-muted-foreground">
+                      <span
+                        className={cn(
+                          'inline-flex max-w-full truncate rounded border px-1.5 py-0.5 text-[11px] font-medium',
+                          glCategoryBadgeClass(glCategory(line)),
+                        )}
+                      >
                         {glCategoryLabel(glCategory(line), t)}
                       </span>
                     </TableCell>

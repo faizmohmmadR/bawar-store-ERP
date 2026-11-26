@@ -1,4 +1,4 @@
-"""Cash drawer (دخل) operational services — does not duplicate GL for source docs."""
+"""Safe (cash register) operational services — does not duplicate GL for source docs."""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -286,6 +286,53 @@ def record_transaction(
             status=CashTransaction.STATUS_POSTED,
         ).first()
         if existing:
+            # Source documents can be edited after the first Safe post — keep the
+            # drawer amount/description in sync so expected closing matches reality.
+            rate = d(exchange_rate or 1) or Decimal('1')
+            new_amount = _q(amount)
+            new_base = _q(new_amount * rate)
+            new_currency = int(currency or existing.currency or session.currency or BASE_CURRENCY_ID)
+            previous_session_id = existing.cash_session_id
+            changed_fields = []
+            if existing.amount != new_amount:
+                existing.amount = new_amount
+                changed_fields.append('amount')
+            if existing.amount_base != new_base:
+                existing.amount_base = new_base
+                changed_fields.append('amount_base')
+            if existing.exchange_rate != rate:
+                existing.exchange_rate = rate
+                changed_fields.append('exchange_rate')
+            if existing.currency != new_currency:
+                existing.currency = new_currency
+                changed_fields.append('currency')
+            if description and existing.description != description:
+                existing.description = description
+                changed_fields.append('description')
+            if transaction_date and existing.transaction_date != transaction_date:
+                existing.transaction_date = transaction_date
+                changed_fields.append('transaction_date')
+            if previous_session_id != session.pk:
+                existing.cash_session = session
+                existing.cash_register = register
+                changed_fields.extend(['cash_session', 'cash_register'])
+            if changed_fields:
+                changed_fields.append('updated_at')
+                existing.save(update_fields=list(dict.fromkeys(changed_fields)))
+                totals = session_totals(session)
+                CashSession.objects.filter(pk=session.pk).update(
+                    expected_closing_balance=totals['expected_closing_balance'],
+                )
+                if previous_session_id and previous_session_id != session.pk:
+                    other = CashSession.objects.filter(pk=previous_session_id).first()
+                    if other:
+                        other_totals = session_totals(other)
+                        CashSession.objects.filter(pk=other.pk).update(
+                            expected_closing_balance=other_totals['expected_closing_balance'],
+                        )
+                if posts_own_journal or existing.posts_own_journal:
+                    from api.services.accounting.sync import sync_cash_transaction_journal
+                    sync_cash_transaction_journal(existing)
             return existing
 
     if category in INFLOW_CATEGORIES:
@@ -359,6 +406,8 @@ def categorize_payment(payment) -> tuple[str, str] | None:
 def sync_drawer_from_payment(payment, user=None):
     mapped = categorize_payment(payment)
     if not mapped:
+        # Bank/sarafi edits or soft-deletes must clear any prior cash Safe row.
+        void_drawer_for_source(payment, user=user)
         return None
     direction, category = mapped
     return record_transaction(
@@ -375,12 +424,75 @@ def sync_drawer_from_payment(payment, user=None):
     )
 
 
+@transaction.atomic
+def void_drawer_for_source(source, user=None) -> int:
+    """
+    Reverse Safe movements that came from a source document (payment / expense / …).
+
+    When a cash sale, purchase payment, expense, or withdrawal is deleted, the
+    Safe row it created must be voided so the open balance is correct again.
+    """
+    if source is None or not getattr(source, 'pk', None):
+        return 0
+
+    ct = ContentType.objects.get_for_model(source, for_concrete_model=False)
+    qs = (
+        CashTransaction.objects.select_for_update()
+        .filter(
+            content_type=ct,
+            object_id=source.pk,
+            status=CashTransaction.STATUS_POSTED,
+            deleted_at__isnull=True,
+        )
+    )
+    session_ids = set()
+    count = 0
+    for txn in qs:
+        txn.status = CashTransaction.STATUS_VOID
+        txn.save(update_fields=['status', 'updated_at'])
+        if getattr(txn, 'posts_own_journal', False):
+            from api.services.accounting import delete_journal_for_source
+            delete_journal_for_source(txn)
+        session_ids.add(txn.cash_session_id)
+        count += 1
+
+    for session_id in session_ids:
+        session = CashSession.objects.filter(pk=session_id).first()
+        if not session:
+            continue
+        totals = session_totals(session)
+        CashSession.objects.filter(pk=session.pk).update(
+            expected_closing_balance=totals['expected_closing_balance'],
+        )
+    return count
+
+
+def soft_delete_linked_payments(source, user=None) -> int:
+    """
+    Soft-delete bill payments linked to a sale/purchase.
+
+    Each payment soft-delete voids its Safe movement via the payment signal.
+    """
+    if source is None or not getattr(source, 'pk', None):
+        return 0
+    from api.models.data.payment import Payment
+
+    ct = ContentType.objects.get_for_model(source, for_concrete_model=False)
+    count = 0
+    for payment in Payment.objects.filter(content_type=ct, object_id=source.pk):
+        payment.soft_delete(user=user)
+        count += 1
+    return count
+
+
 def sync_drawer_from_expense(expense, user=None):
     method = (getattr(expense, 'payment_method', None) or 'cash').lower()
     if method != 'cash' or getattr(expense, 'deleted_at', None):
+        void_drawer_for_source(expense, user=user)
         return None
     amount = d(getattr(expense, 'amount', 0) or 0)
     if amount <= 0:
+        void_drawer_for_source(expense, user=user)
         return None
     return record_transaction(
         direction=CashTransaction.DIRECTION_OUT,
@@ -424,9 +536,11 @@ def deposit_cash_to_drawer(*, amount, description: str = '', user=None, currency
 def sync_drawer_from_withdrawal(withdrawal, user=None):
     method = (getattr(withdrawal, 'payment_method', None) or 'cash').lower()
     if method != 'cash' or getattr(withdrawal, 'deleted_at', None):
+        void_drawer_for_source(withdrawal, user=user)
         return None
     amount = d(getattr(withdrawal, 'amount', 0) or 0)
     if amount <= 0:
+        void_drawer_for_source(withdrawal, user=user)
         return None
     return record_transaction(
         direction=CashTransaction.DIRECTION_OUT,
@@ -438,6 +552,115 @@ def sync_drawer_from_withdrawal(withdrawal, user=None):
         currency=getattr(withdrawal, 'currency', None),
         exchange_rate=getattr(withdrawal, 'exchange_rate', 1) or 1,
         transaction_date=getattr(withdrawal, 'withdrawal_date', None),
+        posts_own_journal=False,
+    )
+
+
+def sync_drawer_from_payroll(payroll, user=None):
+    """Cash salary/advance paid from the Safe — bank/sarafi/goods skip the drawer."""
+    method = (getattr(payroll, 'payment_method', None) or 'cash').lower()
+    if method != 'cash' or getattr(payroll, 'deleted_at', None):
+        void_drawer_for_source(payroll, user=user)
+        return None
+    if getattr(payroll, 'source_sale_id', None):
+        void_drawer_for_source(payroll, user=user)
+        return None
+    amount = d(getattr(payroll, 'net_salary', 0) or getattr(payroll, 'amount', 0) or 0)
+    if amount <= 0:
+        void_drawer_for_source(payroll, user=user)
+        return None
+    label = getattr(payroll, 'get_payroll_type_display', lambda: 'Payroll')()
+    return record_transaction(
+        direction=CashTransaction.DIRECTION_OUT,
+        category=CashTransaction.CAT_OTHER_PAYMENT,
+        amount=amount,
+        description=getattr(payroll, 'notes', None) or f'{label} cash payment',
+        user=user,
+        source=payroll,
+        currency=getattr(payroll, 'currency', None),
+        exchange_rate=getattr(payroll, 'exchange_rate', 1) or 1,
+        transaction_date=getattr(payroll, 'payment_date', None),
+        posts_own_journal=False,
+    )
+
+
+def sync_drawer_from_loan(loan, user=None):
+    """Cash loan in → Safe income; cash loan out → Safe outcome. Opening balances skip."""
+    if getattr(loan, 'deleted_at', None):
+        void_drawer_for_source(loan, user=user)
+        return None
+    if getattr(loan, 'is_opening_balance', False) or getattr(loan, 'source_payment_id', None):
+        void_drawer_for_source(loan, user=user)
+        return None
+    method = (getattr(loan, 'payment_method', None) or 'cash').lower()
+    if method != 'cash':
+        void_drawer_for_source(loan, user=user)
+        return None
+    amount = d(getattr(loan, 'amount', 0) or 0)
+    if amount <= 0:
+        void_drawer_for_source(loan, user=user)
+        return None
+    if getattr(loan, 'loan_type', None) == 'loan_in':
+        direction = CashTransaction.DIRECTION_IN
+        category = CashTransaction.CAT_OTHER_RECEIPT
+        desc = 'Cash loan received'
+    else:
+        direction = CashTransaction.DIRECTION_OUT
+        category = CashTransaction.CAT_OTHER_PAYMENT
+        desc = 'Cash loan given'
+    return record_transaction(
+        direction=direction,
+        category=category,
+        amount=amount,
+        description=getattr(loan, 'notes', None) or desc,
+        user=user,
+        source=loan,
+        currency=getattr(loan, 'currency', None),
+        exchange_rate=getattr(loan, 'exchange_rate', 1) or 1,
+        transaction_date=getattr(loan, 'loan_date', None),
+        posts_own_journal=False,
+    )
+
+
+def sync_drawer_from_loan_payment(payment, user=None):
+    """Collecting a loan-out brings cash in; repaying a loan-in takes cash out."""
+    if getattr(payment, 'deleted_at', None):
+        void_drawer_for_source(payment, user=user)
+        return None
+    loan = getattr(payment, 'loan', None)
+    if loan is None:
+        void_drawer_for_source(payment, user=user)
+        return None
+    method = (
+        getattr(payment, 'payment_method', None)
+        or getattr(loan, 'payment_method', None)
+        or 'cash'
+    ).lower()
+    if method != 'cash':
+        void_drawer_for_source(payment, user=user)
+        return None
+    amount = d(getattr(payment, 'amount', 0) or 0)
+    if amount <= 0:
+        void_drawer_for_source(payment, user=user)
+        return None
+    if getattr(loan, 'loan_type', None) == 'loan_in':
+        direction = CashTransaction.DIRECTION_OUT
+        category = CashTransaction.CAT_OTHER_PAYMENT
+        desc = 'Cash loan repayment'
+    else:
+        direction = CashTransaction.DIRECTION_IN
+        category = CashTransaction.CAT_OTHER_RECEIPT
+        desc = 'Cash loan collection'
+    return record_transaction(
+        direction=direction,
+        category=category,
+        amount=amount,
+        description=getattr(payment, 'notes', None) or desc,
+        user=user,
+        source=payment,
+        currency=getattr(payment, 'currency', None) or getattr(loan, 'currency', None),
+        exchange_rate=getattr(payment, 'exchange_rate', None) or getattr(loan, 'exchange_rate', 1) or 1,
+        transaction_date=getattr(payment, 'payment_date', None),
         posts_own_journal=False,
     )
 

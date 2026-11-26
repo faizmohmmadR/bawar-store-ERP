@@ -1,4 +1,4 @@
-"""Single physical cash drawer (دخل) — operational layer over GL Cash."""
+"""Single physical Safe (cash register) — operational layer over GL Cash."""
 from __future__ import annotations
 
 from decimal import Decimal

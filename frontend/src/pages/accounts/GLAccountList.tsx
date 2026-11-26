@@ -9,9 +9,10 @@ import { STATIC_CURRENCIES } from '@/components/forms/CurrencySelect';
 import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
 import useDelete from '@/api/useDelete';
-import { toApiList } from '@/lib/utils';
+import { cn, toApiList } from '@/lib/utils';
 import DataTable, { TableAction, TableColumn } from '@/components/ui/data-table';
 import { FALLBACK_BASE_CODE, FALLBACK_BASE_SYMBOL } from '@/lib/currencies';
+import { glCategoryBadgeClass } from '@/lib/journalLabels';
 
 type GlAccountTotals = {
   total_debit: number;
@@ -165,7 +166,15 @@ const GLAccountList = () => {
       className: 'max-w-[7rem]',
       render: (_, row: GLAccount) => {
         const label = row.category_display || row.category;
-        return <Badge variant="outline" className="max-w-full truncate" title={label}>{label}</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className={cn('max-w-full truncate font-medium', glCategoryBadgeClass(row.category))}
+            title={label}
+          >
+            {label}
+          </Badge>
+        );
       },
     },
     {
@@ -334,11 +343,31 @@ const GLAccountList = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('common.all')}</SelectItem>
-                  <SelectItem value="asset">Asset</SelectItem>
-                  <SelectItem value="liability">Liability</SelectItem>
-                  <SelectItem value="equity">Equity</SelectItem>
-                  <SelectItem value="revenue">Revenue</SelectItem>
-                  <SelectItem value="expense">Expense</SelectItem>
+                  <SelectItem value="asset">
+                    <span className={cn('rounded px-1.5 py-0.5 text-xs font-medium', glCategoryBadgeClass('asset'))}>
+                      Asset
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="liability">
+                    <span className={cn('rounded px-1.5 py-0.5 text-xs font-medium', glCategoryBadgeClass('liability'))}>
+                      Liability
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="equity">
+                    <span className={cn('rounded px-1.5 py-0.5 text-xs font-medium', glCategoryBadgeClass('equity'))}>
+                      Equity
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="revenue">
+                    <span className={cn('rounded px-1.5 py-0.5 text-xs font-medium', glCategoryBadgeClass('revenue'))}>
+                      Revenue
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="expense">
+                    <span className={cn('rounded px-1.5 py-0.5 text-xs font-medium', glCategoryBadgeClass('expense'))}>
+                      Expense
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             ),

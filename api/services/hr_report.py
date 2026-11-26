@@ -5,9 +5,10 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.db.models import Count, Sum
 
 from api.models.data.attendance import Attendance
+from api.models.data.currency import BASE_CURRENCY_ID
 from api.models.data.employee import Employee
 from api.models.data.employee_pay_entries import EmployeeAbsenceEntry, EmployeeOvertimeEntry
-from api.services.financial_reports import _d, _float, _period_advances, _period_payroll, _sum_base
+from api.services.financial_reports import _d, _float, _period_advances, _period_payroll
 from api.utils.date_filters import apply_date_range
 
 ZERO = Decimal('0')
@@ -22,6 +23,22 @@ def _qty(value):
     return _float(_d(value))
 
 
+def _payroll_afn(row):
+    """AFN payable for a payroll row — match list amount when amount_base is missing."""
+    base = _d(getattr(row, 'amount_base', 0) or getattr(row, 'net_salary_base', 0))
+    if base > 0:
+        return base
+    native = _d(getattr(row, 'amount', 0) or getattr(row, 'net_salary', 0))
+    if int(getattr(row, 'currency', BASE_CURRENCY_ID) or BASE_CURRENCY_ID) == BASE_CURRENCY_ID:
+        return native
+    rate = _d(getattr(row, 'exchange_rate', 1) or 1) or Decimal('1')
+    return (native * rate).quantize(CENT, rounding=ROUND_HALF_UP)
+
+
+def _sum_payroll_afn(qs):
+    return sum((_payroll_afn(row) for row in qs.iterator(chunk_size=200)), ZERO)
+
+
 def get_hr_report(start_date=None, end_date=None):
     active_qs = Employee.objects.filter(is_active=True)
     inactive_count = Employee.objects.filter(is_active=False).count()
@@ -29,10 +46,10 @@ def get_hr_report(start_date=None, end_date=None):
 
     salary_qs = _period_payroll(start_date, end_date)
     advance_qs = _period_advances(start_date, end_date)
-    salary_paid = _sum_base(salary_qs, 'amount_base')
-    advances_paid = _sum_base(advance_qs, 'amount_base')
-    salary_cash = _sum_base(salary_qs.exclude(payment_method='goods'), 'amount_base')
-    salary_goods = _sum_base(salary_qs.filter(payment_method='goods'), 'amount_base')
+    salary_paid = _sum_payroll_afn(salary_qs)
+    advances_paid = _sum_payroll_afn(advance_qs)
+    salary_cash = _sum_payroll_afn(salary_qs.exclude(payment_method='goods'))
+    salary_goods = _sum_payroll_afn(salary_qs.filter(payment_method='goods'))
 
     overtime_qs = apply_date_range(
         EmployeeOvertimeEntry.objects.all(),
@@ -76,20 +93,14 @@ def get_hr_report(start_date=None, end_date=None):
     # Payments by method (AFN)
     by_method = []
     method_buckets = defaultdict(lambda: {'count': 0, 'amount_afn': ZERO})
-    for row in salary_qs.values('payment_method').annotate(
-        count=Count('id'),
-        amount=Sum('amount_base'),
-    ):
-        method = row['payment_method'] or 'cash'
-        method_buckets[method]['count'] += int(row['count'] or 0)
-        method_buckets[method]['amount_afn'] += _d(row['amount'])
-    for row in advance_qs.values('payment_method').annotate(
-        count=Count('id'),
-        amount=Sum('amount_base'),
-    ):
-        method = row['payment_method'] or 'cash'
-        method_buckets[method]['count'] += int(row['count'] or 0)
-        method_buckets[method]['amount_afn'] += _d(row['amount'])
+    for pay in salary_qs.iterator(chunk_size=200):
+        method = pay.payment_method or 'cash'
+        method_buckets[method]['count'] += 1
+        method_buckets[method]['amount_afn'] += _payroll_afn(pay)
+    for pay in advance_qs.iterator(chunk_size=200):
+        method = pay.payment_method or 'cash'
+        method_buckets[method]['count'] += 1
+        method_buckets[method]['amount_afn'] += _payroll_afn(pay)
     for method, bucket in sorted(method_buckets.items(), key=lambda item: -item[1]['amount_afn']):
         by_method.append({
             'payment_method': method,
@@ -118,11 +129,11 @@ def get_hr_report(start_date=None, end_date=None):
 
     for pay in salary_qs.select_related('employee').iterator(chunk_size=200):
         bucket = _emp_bucket(pay.employee_id, getattr(pay.employee, 'full_name', ''))
-        bucket['salary_paid_afn'] += _d(pay.amount_base)
+        bucket['salary_paid_afn'] += _payroll_afn(pay)
         bucket['payment_count'] += 1
     for pay in advance_qs.select_related('employee').iterator(chunk_size=200):
         bucket = _emp_bucket(pay.employee_id, getattr(pay.employee, 'full_name', ''))
-        bucket['advances_paid_afn'] += _d(pay.amount_base)
+        bucket['advances_paid_afn'] += _payroll_afn(pay)
         bucket['payment_count'] += 1
     for row in overtime_qs.select_related('employee').iterator(chunk_size=200):
         bucket = _emp_bucket(row.employee_id, getattr(row.employee, 'full_name', ''))

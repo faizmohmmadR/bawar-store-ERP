@@ -64,6 +64,15 @@ const GL_CATEGORY_KEYS: Record<string, string> = {
   expense: 'accounts.glCategories.expense',
 };
 
+/** Soft badge colors for CoA categories (readable on light UI, no purple). */
+const GL_CATEGORY_BADGE_CLASS: Record<string, string> = {
+  asset: 'border-sky-200 bg-sky-50 text-sky-900',
+  liability: 'border-amber-200 bg-amber-50 text-amber-950',
+  equity: 'border-slate-200 bg-slate-100 text-slate-800',
+  revenue: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+  expense: 'border-rose-200 bg-rose-50 text-rose-900',
+};
+
 export function glCategoryLabel(
   category: string | null | undefined,
   t: (key: string, defaultValue?: string) => string,
@@ -71,4 +80,12 @@ export function glCategoryLabel(
   if (!category) return '—';
   const key = GL_CATEGORY_KEYS[category.toLowerCase()];
   return key ? t(key) : category;
+}
+
+export function glCategoryBadgeClass(category: string | null | undefined): string {
+  if (!category) return 'border-border bg-muted/40 text-muted-foreground';
+  return (
+    GL_CATEGORY_BADGE_CLASS[category.toLowerCase()]
+    || 'border-border bg-muted/40 text-muted-foreground'
+  );
 }

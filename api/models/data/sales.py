@@ -102,6 +102,18 @@ class Sales(BaseModel):
             self.invoice_number = allocate_sale_invoice_number()
         super().save(*args, **kwargs)
 
+    def soft_delete(self, user=None):
+        """Trash the sale, restore delivered stock, and reverse linked Safe payments."""
+        from django.db import transaction
+
+        from api.services.cash_register import soft_delete_linked_payments
+        from api.services.inventory.engine import reverse_sale_deliveries
+
+        with transaction.atomic():
+            soft_delete_linked_payments(self, user=user)
+            reverse_sale_deliveries(self, user=user)
+            super().soft_delete(user=user)
+
     @property
     def subtotal_amount(self):
         total = Decimal('0')

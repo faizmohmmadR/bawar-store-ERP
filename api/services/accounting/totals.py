@@ -57,19 +57,24 @@ def recalculate_return_totals(return_order):
 def sync_order_paid_amount(order):
     """Recalculate paid_amount for sales (and other payment-linked orders)."""
     from django.db.models import Sum
+    from api.models.data.currency import BASE_CURRENCY_ID
     from api.models.data.payment import Payment
     from api.services.currency_conversion import _quantize_money
 
     content_type = ContentType.objects.get_for_model(order)
-    total_paid = Payment.objects.filter(
+    payments = Payment.objects.filter(
         content_type=content_type,
         object_id=order.pk,
-    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-
-    total_paid_base = Payment.objects.filter(
-        content_type=content_type,
-        object_id=order.pk,
-    ).aggregate(total=Sum('amount_base'))['total'] or Decimal('0')
+    )
+    total_paid = payments.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    total_paid_base = payments.aggregate(total=Sum('amount_base'))['total'] or Decimal('0')
+    # AFN payments often stored with amount_base=0; keep list/report bases aligned.
+    if (
+        not total_paid_base
+        and total_paid
+        and int(getattr(order, 'currency', BASE_CURRENCY_ID) or BASE_CURRENCY_ID) == BASE_CURRENCY_ID
+    ):
+        total_paid_base = total_paid
 
     update_fields = {'paid_amount': total_paid}
     if hasattr(order, 'paid_amount_base'):
@@ -78,5 +83,5 @@ def sync_order_paid_amount(order):
     order.__class__.objects.filter(pk=order.pk).update(**update_fields)
     order.paid_amount = total_paid
     if hasattr(order, 'paid_amount_base'):
-        order.paid_amount_base = _quantize_money(total_paid_base)
+        order.paid_amount_base = update_fields['paid_amount_base']
     return total_paid

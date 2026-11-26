@@ -130,7 +130,7 @@ class FinancialReportViewSet(ViewSet):
     def operational(self, request):
         """
         Professional operational report (AFN):
-        income sources, collected/uncollected, expenses, production, packing, profit.
+        sales, purchases, stock, expenses, payroll, loans, and profit.
         """
         start_date, end_date = self._parse_date_filter()
         try:

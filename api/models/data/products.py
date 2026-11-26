@@ -108,6 +108,22 @@ class Product(BaseModel):
             self.sku = None
         return super().save(*args, **kwargs)
 
+    def soft_delete(self, user=None):
+        """Cascade soft-delete packagings/extra barcodes and free barcodes for reuse."""
+        from api.models.data.product_packaging import ProductBarcode, ProductPackaging
+
+        for pack in ProductPackaging.all_objects.filter(product_id=self.pk, deleted_at__isnull=True):
+            if pack.barcode:
+                pack.barcode = None
+                pack.save(update_fields=['barcode', 'updated_at'])
+            pack.soft_delete(user=user)
+        for extra in ProductBarcode.all_objects.filter(product_id=self.pk, deleted_at__isnull=True):
+            extra.soft_delete(user=user)
+        if self.barcode:
+            self.barcode = None
+            self.save(update_fields=['barcode', 'updated_at'])
+        super().soft_delete(user=user)
+
     def __str__(self):
         return self.name
 

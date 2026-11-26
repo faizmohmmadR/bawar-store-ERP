@@ -6,7 +6,14 @@ import DataTable, { TableColumn } from '@/components/ui/data-table';
 import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
 import { formatAfn } from '@/lib/formatMoney';
+import { cn } from '@/lib/utils';
 import { cashSessionStatusLabel } from './i18nHelpers';
+
+function sessionStatusBadgeClass(status: string | null | undefined): string {
+  if (status === 'open') return 'border-emerald-200 bg-emerald-50 text-emerald-900';
+  if (status === 'closed') return 'border-slate-200 bg-slate-100 text-slate-800';
+  return 'border-border bg-muted/40 text-muted-foreground';
+}
 
 export default function CashReports() {
   const { t } = useLanguage();
@@ -21,7 +28,11 @@ export default function CashReports() {
     {
       key: 'status',
       title: t('cashRegister.status'),
-      render: (v) => <Badge variant="outline">{cashSessionStatusLabel(t, v)}</Badge>,
+      render: (v) => (
+        <Badge variant="outline" className={cn('font-medium', sessionStatusBadgeClass(v))}>
+          {cashSessionStatusLabel(t, v)}
+        </Badge>
+      ),
     },
     {
       key: 'opened_at',

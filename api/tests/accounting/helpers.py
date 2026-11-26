@@ -242,30 +242,46 @@ def create_expense(*, amount, currency=AFN, when=TXN_WHEN, description='phase0 e
 
 
 def create_confirmed_sale(*, amount, currency=AFN, when=TXN_WHEN, product=None):
-    """Confirmed sale with one line so totals and the sales journal post."""
+    """Confirmed sale with one packaging line so totals and the sales journal post."""
     from api.models.data.customers import Customer
+    from api.models.data.product_packaging import ProductPackaging
     from api.models.data.products import Product
     from api.models.data.sales import Sales, SalesItems
-    from api.models.data.stock import Stock
+    from api.models.data.uom import UnitCategory, UnitOfMeasure
 
     if product is None:
+        category, _ = UnitCategory.objects.get_or_create(code='count', defaults={'name': 'Count'})
+        piece, _ = UnitOfMeasure.objects.get_or_create(
+            category=category,
+            code='piece',
+            defaults={
+                'name': 'Piece',
+                'symbol': 'pc',
+                'is_category_reference': True,
+            },
+        )
         product = Product.objects.create(
             name=f'Phase0 Product {amount}',
-            bottle_capacity_liters=Decimal('1'),
-            bottles_per_carton=8,
+            sku=f'P0-{amount}',
+            base_uom=piece,
+            track_inventory=False,
+            is_active=True,
+        )
+        ProductPackaging.objects.create(
+            product=product,
+            name='Piece',
+            qty_in_base=Decimal('1'),
+            is_base=True,
+            for_sale=True,
+            for_purchase=True,
+            for_stock=True,
+            uom=piece,
         )
 
+    packaging = product.packagings.filter(is_base=True).first() or product.packagings.first()
     customer = Customer.objects.create(is_active=True)
-    stock = Stock(
-        product=product,
-        piece_amount=Decimal('8'),
-        buy_price=Decimal('0'),
-        currency=currency,
-    )
-    stock._skip_stock_journal = True
-    stock.save()
 
-    sale = Sales.objects.create(
+    sale = Sales(
         customer=customer,
         sale_date=when,
         status='confirmed',
@@ -273,12 +289,19 @@ def create_confirmed_sale(*, amount, currency=AFN, when=TXN_WHEN, product=None):
         total_amount=amount,
         notes='phase0 usd sale',
     )
+    populate_base_amounts(
+        sale,
+        amount_fields=['total_amount'],
+        at_datetime=when,
+        raise_if_missing=True,
+    )
+    sale.save()
     SalesItems.objects.create(
         sales=sale,
-        stock=stock,
-        unit=SalesItems.UNIT_DANA,
+        product=product,
+        packaging=packaging,
         quantity=Decimal('1'),
-        liter_amount=Decimal('0'),
+        conversion_factor=Decimal(str(getattr(packaging, 'qty_in_base', 1) or 1)),
         sell_price=amount,
         unit_cost=Decimal('0'),
     )

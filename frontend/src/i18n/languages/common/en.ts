@@ -44,6 +44,8 @@ export const commonEn = {
   createdAt: "Created At",
   updatedAt: "Updated At",
   status: "Status",
+  currency: "Currency",
+  optional: "optional",
   active: "Active",
   inactive: "Inactive",
   roles: {
@@ -117,7 +119,7 @@ export const commonEn = {
     exchangeRates: "Exchange Rates",
     profile: "Profile",
     activityLogs: "Activity Logs",
-    cashRegister: "Cash Register (دخل)",
+    cashRegister: "Safe",
     cashRegisterDashboard: "Dashboard",
     cashRegisterTransactions: "Transactions",
     cashRegisterReports: "Reports",

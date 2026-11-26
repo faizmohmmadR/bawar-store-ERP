@@ -139,7 +139,7 @@ def _filter_by_date_range(qs, field_name, start_date, end_date):
 
 def _period_sales(start_date, end_date):
     return _filter_by_date_range(
-        Sales.objects.exclude(status__in=SKIP_SALE_STATUSES).exclude(vendor_transaction='purchase_return'),
+        Sales.objects.exclude(status__in=SKIP_SALE_STATUSES),
         'sale_date',
         start_date,
         end_date,
@@ -147,7 +147,7 @@ def _period_sales(start_date, end_date):
 
 
 def _period_purchases(start_date, end_date):
-    """Received raw-material purchases (AP / inventory intake)."""
+    """Received product purchases (AP / inventory intake)."""
     return _filter_by_date_range(
         RawMaterialPurchase.objects.filter(status='received'),
         'purchase_date',
@@ -790,11 +790,7 @@ def _item_revenue_base(item) -> Decimal:
 def _item_cogs_base(item) -> Decimal:
     from api.utils.packaging import sales_item_pieces
 
-    if item.sale_source == 'raw_material':
-        from api.services.raw_material_sales import raw_stock_quantity
-        pieces = raw_stock_quantity(item)
-    else:
-        pieces = sales_item_pieces(item)
+    pieces = sales_item_pieces(item)
     unit_cost = _d(getattr(item, 'unit_cost', 0))
     if pieces <= 0 or unit_cost <= 0:
         return Decimal('0')
@@ -810,11 +806,13 @@ def get_top_products(*, start_date=None, end_date=None, limit=10):
 
     qs = SalesItems.objects.filter(
         sales__in=_period_sales(start_date, end_date),
-    ).select_related('stock__product', 'sales')
+    ).select_related('product', 'packaging', 'packaging__product', 'sales')
 
     buckets = {}
     for item in qs.iterator(chunk_size=500):
-        product = getattr(getattr(item, 'stock', None), 'product', None)
+        product = getattr(item, 'product', None)
+        if product is None and getattr(item, 'packaging', None) is not None:
+            product = getattr(item.packaging, 'product', None)
         if not product:
             continue
         pid = product.id
@@ -1127,7 +1125,7 @@ def get_management_report(*, start_date=None, end_date=None, top_limit=10):
     Professional AFN management/operational report.
 
     Delegates to operational_report for a single accurate source of truth
-    (income sources, collected/uncollected, expenses, production, packing).
+    (sales, purchases, stock, expenses, payroll, loans, profit).
     """
     from api.services.operational_report import get_operational_report
 

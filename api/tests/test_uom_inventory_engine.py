@@ -227,6 +227,43 @@ class UomInventoryEngineTests(TestCase):
         with self.assertRaises(ValidationError):
             assert_same_category(self.kg, self.liter)
 
+    def test_sale_consumes_lot_balance_when_track_expiry(self):
+        """Purchases with expiry tracking post to lot balances; sales must deduct them."""
+        product = Product.objects.create(
+            name='Maryam', base_uom=self.piece, sku='M1', track_expiry=True,
+        )
+        piece = ProductPackaging.objects.create(
+            product=product, name='Piece', qty_in_base=1, is_base=True, for_sale=True,
+        )
+        carton = ProductPackaging.objects.create(
+            product=product, name='Carton', qty_in_base=12, for_purchase=True, for_sale=True,
+        )
+        purchase = Purchase.objects.create(
+            vendor=self.vendor, warehouse=self.wh, currency=1, status='received', total_amount=0,
+        )
+        receive_purchase_item(PurchaseItem.objects.create(
+            purchase=purchase, product=product, packaging=carton,
+            quantity=50, conversion_factor=12, price_per_unit=10,
+            expiry_date='2027-01-01',
+        ))
+        lot_bal = InventoryBalance.objects.get(product=product, warehouse=self.wh)
+        self.assertIsNotNone(lot_bal.lot_id)
+        self.assertEqual(lot_bal.quantity_on_hand, Decimal('600'))
+
+        sale = Sales.objects.create(
+            customer=self.customer, warehouse=self.wh, currency=1,
+            status='confirmed', total_amount=0,
+        )
+        line = SalesItems.objects.create(
+            sales=sale, product=product, packaging=carton,
+            quantity=1, conversion_factor=12, sell_price=12,
+        )
+        deliver_sale_item(line, warehouse=self.wh)
+        lot_bal.refresh_from_db()
+        self.assertEqual(lot_bal.quantity_on_hand, Decimal('588'))
+        line.refresh_from_db()
+        self.assertEqual(line.unit_cost, Decimal('0.833333'))
+
 
 class ConcurrencyStockTests(TransactionTestCase):
     def test_11_concurrency_does_not_oversell(self):

@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
-  Gift,
   HandCoins,
   Loader2,
-  Package,
+  Percent,
+  Scale,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
@@ -34,32 +34,19 @@ type CurrencySection = {
   collected_native: number;
   uncollected_native: number;
   invoice_count: number;
+  cogs_afn?: number;
+  gross_profit_afn?: number;
+  margin_pct?: number;
 };
 
-type FreeCurrencySection = {
-  code: string;
+type TopProduct = {
+  product_id: number;
   name: string;
-  invoice_count: number;
-  pieces: number;
-  carton_amount?: number;
-  bottle_amount?: number;
-  plastic_amount?: number;
-  cost_afn: number;
-};
-
-type FreeItemRow = {
-  key: string;
-  name: string;
-  item_type: string;
   barcode?: string;
-  invoice_count: number;
-  carton_amount: number;
-  bottle_amount: number;
-  plastic_amount: number;
-  liter_amount?: number;
-  kg_amount?: number;
-  pieces: number;
-  cost_afn: number;
+  quantity_pieces: number;
+  revenue_base: number;
+  cogs_base: number;
+  gross_profit_base: number;
 };
 
 type SalesReportResponse = {
@@ -70,27 +57,21 @@ type SalesReportResponse = {
     net_billed_afn: number;
     collected_afn: number;
     uncollected_afn: number;
+    cogs_afn?: number;
+    gross_profit_afn?: number;
+    margin_pct?: number;
     invoice_count: number;
-    free_invoice_count: number;
-    free_pieces: number;
-    free_carton_amount?: number;
-    free_bottle_amount?: number;
-    free_plastic_amount?: number;
-    free_cost_afn: number;
   };
+  profit?: {
+    revenue_afn?: number;
+    cogs_afn?: number;
+    gross_profit_afn?: number;
+    margin_pct?: number;
+    note?: string;
+  };
+  top_products?: TopProduct[];
   by_currency?: Record<string, CurrencySection>;
   currency_codes?: string[];
-  free?: {
-    invoice_count: number;
-    pieces: number;
-    carton_amount?: number;
-    bottle_amount?: number;
-    plastic_amount?: number;
-    cost_afn: number;
-    items?: FreeItemRow[];
-    by_currency?: Record<string, FreeCurrencySection>;
-    currency_codes?: string[];
-  };
 };
 
 const PERIODS = ['daily', 'weekly', 'monthly', 'yearly', 'custom'];
@@ -167,13 +148,15 @@ const SalesReportPage = () => {
 
   const currency = data?.currency || 'AFN';
   const kpis = data?.kpis;
+  const profit = data?.profit;
+  const topProducts = data?.top_products || [];
   const currencyCodes = data?.currency_codes?.length
     ? data.currency_codes
     : Object.keys(data?.by_currency || {});
-  const free = data?.free;
-  const freeCurrencyCodes = free?.currency_codes?.length
-    ? free.currency_codes
-    : Object.keys(free?.by_currency || {});
+
+  const cogs = Number(kpis?.cogs_afn ?? profit?.cogs_afn ?? 0);
+  const grossProfit = Number(kpis?.gross_profit_afn ?? profit?.gross_profit_afn ?? 0);
+  const marginPct = Number(kpis?.margin_pct ?? profit?.margin_pct ?? 0);
 
   return (
     <div className="w-full max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
@@ -181,16 +164,21 @@ const SalesReportPage = () => {
         title={t('sales.reportTitle', 'Sales Report')}
         subtitle={t(
           'sales.reportHint',
-          'Paid sales and free goods — billed, collected, and cost by currency',
+          'Billed, collected, unpaid, and gross profit from sold goods',
         )}
         icon={<TrendingUp className="h-7 w-7 text-primary shrink-0" />}
         headerAction={
-          <Button variant="outline" asChild>
-            <Link to="/sales">
-              <ArrowLeft className="h-4 w-4" />
-              {t('sales.title', 'Sales')}
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/reports">{t('reports.hubTitle', 'Reports')}</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/sales">
+                <ArrowLeft className="h-4 w-4" />
+                {t('sales.title', 'Sales')}
+              </Link>
+            </Button>
+          </div>
         }
         periods={PERIODS}
         period={period}
@@ -218,49 +206,69 @@ const SalesReportPage = () => {
 
       {!isLoading && kpis && (
         <>
-          <div className="space-y-3">
-            <div>
-              <h2 className="text-base font-semibold">
-                {t('sales.reportPaidSection', 'Paid sales')}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {t(
-                  'sales.reportPaidSectionHint',
-                  'Invoices with sell price — free goods are excluded',
-                )}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-              <KpiCard
-                title={t('reports.netBilled', 'Net billed')}
-                value={kpis.net_billed_afn}
-                currency={currency}
-                hint={`${formatNumber(kpis.invoice_count)} ${t('sales.reportInvoices', 'invoices')} · ${t('reports.returns', 'Returns')} ${formatReportMoney(kpis.returns_afn, currency)}`}
-                icon={<TrendingUp className="h-5 w-5" />}
-              />
-              <KpiCard
-                title={t('reports.collected', 'Collected')}
-                value={kpis.collected_afn}
-                currency={currency}
-                icon={<HandCoins className="h-5 w-5" />}
-                tone="good"
-              />
-              <KpiCard
-                title={t('reports.uncollected', 'Uncollected')}
-                value={kpis.uncollected_afn}
-                currency={currency}
-                icon={<TrendingDown className="h-5 w-5" />}
-                tone={kpis.uncollected_afn > 0 ? 'bad' : 'default'}
-              />
-              <KpiCard
-                title={t('reports.returns', 'Returns')}
-                value={kpis.returns_afn}
-                currency={currency}
-                hint={`${t('sales.reportBilled', 'Billed')} ${formatReportMoney(kpis.billed_afn, currency)} ${currency}`}
-                icon={<TrendingDown className="h-5 w-5" />}
-                tone="neutral"
-              />
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+            <KpiCard
+              title={t('reports.netBilled', 'Net billed')}
+              value={kpis.net_billed_afn}
+              currency={currency}
+              hint={`${formatNumber(kpis.invoice_count)} ${t('sales.reportInvoices', 'invoices')} · ${t('reports.returns', 'Returns')} ${formatReportMoney(kpis.returns_afn, currency)}`}
+              icon={<TrendingUp className="h-5 w-5" />}
+            />
+            <KpiCard
+              title={t('reports.collected', 'Collected')}
+              value={kpis.collected_afn}
+              currency={currency}
+              icon={<HandCoins className="h-5 w-5" />}
+              tone="good"
+            />
+            <KpiCard
+              title={t('reports.uncollected', 'Uncollected')}
+              value={kpis.uncollected_afn}
+              currency={currency}
+              icon={<TrendingDown className="h-5 w-5" />}
+              tone={kpis.uncollected_afn > 0 ? 'bad' : 'default'}
+            />
+            <KpiCard
+              title={t('reports.returns', 'Returns')}
+              value={kpis.returns_afn}
+              currency={currency}
+              hint={`${t('sales.reportBilled', 'Billed')} ${formatReportMoney(kpis.billed_afn, currency)} ${currency}`}
+              icon={<TrendingDown className="h-5 w-5" />}
+              tone="neutral"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <KpiCard
+              title={t('sales.reportCogs', 'Cost of goods')}
+              value={cogs}
+              currency={currency}
+              hint={t(
+                'sales.reportCogsHint',
+                'AVCO cost on sold lines in this period (AFN)',
+              )}
+              icon={<Scale className="h-5 w-5" />}
+              tone="neutral"
+            />
+            <KpiCard
+              title={t('sales.reportGrossProfit', 'Gross profit')}
+              value={grossProfit}
+              currency={currency}
+              hint={t(
+                'sales.reportGrossProfitHint',
+                'Sold goods revenue − cost of goods',
+              )}
+              icon={<TrendingUp className="h-5 w-5" />}
+              tone={grossProfit >= 0 ? 'good' : 'bad'}
+            />
+            <KpiCard
+              title={t('sales.reportMargin', 'Margin')}
+              value={marginPct}
+              hint={t('sales.reportMarginHint', 'Gross profit ÷ sold goods revenue')}
+              icon={<Percent className="h-5 w-5" />}
+              tone={marginPct >= 0 ? 'good' : 'bad'}
+              formatValue={(v) => `${formatNumber(v)}%`}
+            />
           </div>
 
           <Card className="shadow-sm">
@@ -271,12 +279,12 @@ const SalesReportPage = () => {
               <CardDescription>
                 {t(
                   'sales.reportByCurrencyHint',
-                  'Native amounts per currency — not mixed',
+                  'Native billed amounts; COGS and profit always in AFN',
                 )}
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[900px]">
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <ReportTh>{t('rawMaterials.reportCurrency', 'Currency')}</ReportTh>
@@ -286,6 +294,9 @@ const SalesReportPage = () => {
                     <ReportTh>{t('reports.netBilled', 'Net billed')}</ReportTh>
                     <ReportTh>{t('reports.collected', 'Collected')}</ReportTh>
                     <ReportTh>{t('reports.uncollected', 'Uncollected')}</ReportTh>
+                    <ReportTh>{t('sales.reportCogs', 'COGS')}</ReportTh>
+                    <ReportTh>{t('sales.reportGrossProfit', 'Profit')}</ReportTh>
+                    <ReportTh>{t('sales.reportMargin', 'Margin')}</ReportTh>
                   </tr>
                 </thead>
                 <tbody>
@@ -311,12 +322,21 @@ const SalesReportPage = () => {
                         <td className="py-2 tabular-nums">
                           <ReportMoney value={row.uncollected_native} code={code} />
                         </td>
+                        <td className="py-2 tabular-nums">
+                          <ReportMoney value={row.cogs_afn || 0} code="AFN" />
+                        </td>
+                        <td className="py-2 tabular-nums font-medium">
+                          <ReportMoney value={row.gross_profit_afn || 0} code="AFN" />
+                        </td>
+                        <td className="py-2 tabular-nums">
+                          <ReportNumber value={row.margin_pct || 0} />%
+                        </td>
                       </tr>
                     );
                   })}
                   {!currencyCodes.length && (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={10} className="py-8 text-center text-muted-foreground">
                         {t('sales.reportNoData', 'No sales in this period')}
                       </td>
                     </tr>
@@ -326,66 +346,15 @@ const SalesReportPage = () => {
             </CardContent>
           </Card>
 
-          <div className="space-y-3">
-            <div>
-              <h2 className="text-base font-semibold">
-                {t('sales.reportFreeSection', 'Free sales')}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {t(
-                  'sales.reportFreeSectionHint',
-                  'Goods given away — valued at distribution cost (AFN), not sell price',
-                )}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 sm:gap-4">
-              <KpiCard
-                title={t('sales.reportFreeInvoices', 'Free invoices')}
-                value={kpis.free_invoice_count ?? free?.invoice_count ?? 0}
-                icon={<Gift className="h-5 w-5" />}
-                tone="neutral"
-                formatValue={(v) => formatNumber(v)}
-              />
-              <KpiCard
-                title={t('sales.carton', 'Carton')}
-                value={kpis.free_carton_amount ?? free?.carton_amount ?? 0}
-                icon={<Package className="h-5 w-5" />}
-                tone="neutral"
-                formatValue={(v) => formatNumber(v)}
-              />
-              <KpiCard
-                title={t('sales.bottle', 'Bottle')}
-                value={kpis.free_bottle_amount ?? free?.bottle_amount ?? 0}
-                icon={<Package className="h-5 w-5" />}
-                tone="neutral"
-                formatValue={(v) => formatNumber(v)}
-              />
-              <KpiCard
-                title={t('sales.plastic', 'Plastic')}
-                value={kpis.free_plastic_amount ?? free?.plastic_amount ?? 0}
-                icon={<Package className="h-5 w-5" />}
-                tone="neutral"
-                formatValue={(v) => formatNumber(v)}
-              />
-              <KpiCard
-                title={t('sales.reportFreeCost', 'Distribution cost')}
-                value={kpis.free_cost_afn ?? free?.cost_afn ?? 0}
-                currency={currency}
-                icon={<TrendingDown className="h-5 w-5" />}
-                tone="bad"
-              />
-            </div>
-          </div>
-
           <Card className="shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">
-                {t('sales.reportFreeItems', 'Free items')}
+                {t('sales.reportTopProducts', 'Top products by profit')}
               </CardTitle>
               <CardDescription>
                 {t(
-                  'sales.reportFreeItemsHint',
-                  'Each product given away — carton, bottle, and plastic amounts',
+                  'sales.reportTopProductsHint',
+                  'Revenue, cost, and gross profit per product (AFN)',
                 )}
               </CardDescription>
             </CardHeader>
@@ -393,16 +362,16 @@ const SalesReportPage = () => {
               <table className="w-full text-sm min-w-[720px]">
                 <thead>
                   <tr className="border-b text-muted-foreground">
-                    <ReportTh>{t('sales.reportFreeItem', 'Item')}</ReportTh>
-                    <ReportTh>{t('sales.carton', 'Carton')}</ReportTh>
-                    <ReportTh>{t('sales.bottle', 'Bottle')}</ReportTh>
-                    <ReportTh>{t('sales.plastic', 'Plastic')}</ReportTh>
-                    <ReportTh>{t('sales.reportFreeCost', 'Distribution cost')}</ReportTh>
+                    <ReportTh>{t('sales.product', 'Product')}</ReportTh>
+                    <ReportTh>{t('sales.reportQty', 'Qty')}</ReportTh>
+                    <ReportTh>{t('sales.reportRevenue', 'Revenue')}</ReportTh>
+                    <ReportTh>{t('sales.reportCogs', 'COGS')}</ReportTh>
+                    <ReportTh>{t('sales.reportGrossProfit', 'Profit')}</ReportTh>
                   </tr>
                 </thead>
                 <tbody>
-                  {(free?.items || []).map((row) => (
-                    <tr key={row.key} className="border-b last:border-0">
+                  {topProducts.map((row) => (
+                    <tr key={row.product_id} className="border-b last:border-0">
                       <td className="py-2 font-medium">
                         {row.name}
                         {row.barcode ? (
@@ -411,71 +380,22 @@ const SalesReportPage = () => {
                           </span>
                         ) : null}
                       </td>
-                      <td className="py-2"><ReportNumber value={row.carton_amount} /></td>
-                      <td className="py-2"><ReportNumber value={row.bottle_amount} /></td>
-                      <td className="py-2"><ReportNumber value={row.plastic_amount} /></td>
+                      <td className="py-2"><ReportNumber value={row.quantity_pieces} /></td>
+                      <td className="py-2 tabular-nums">
+                        <ReportMoney value={row.revenue_base} code="AFN" />
+                      </td>
+                      <td className="py-2 tabular-nums">
+                        <ReportMoney value={row.cogs_base} code="AFN" />
+                      </td>
                       <td className="py-2 tabular-nums font-medium">
-                        <ReportMoney value={row.cost_afn} code="AFN" />
+                        <ReportMoney value={row.gross_profit_base} code="AFN" />
                       </td>
                     </tr>
                   ))}
-                  {!(free?.items || []).length && (
+                  {!topProducts.length && (
                     <tr>
                       <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                        {t('sales.reportFreeNoData', 'No free sales in this period')}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">
-                {t('sales.reportFreeByCurrency', 'Free sales by currency')}
-              </CardTitle>
-              <CardDescription>
-                {t(
-                  'sales.reportFreeByCurrencyHint',
-                  'Count and pack amounts by invoice currency — cost always in AFN',
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[720px]">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <ReportTh>{t('rawMaterials.reportCurrency', 'Currency')}</ReportTh>
-                    <ReportTh>{t('sales.reportFreeInvoices', 'Free invoices')}</ReportTh>
-                    <ReportTh>{t('sales.carton', 'Carton')}</ReportTh>
-                    <ReportTh>{t('sales.bottle', 'Bottle')}</ReportTh>
-                    <ReportTh>{t('sales.plastic', 'Plastic')}</ReportTh>
-                    <ReportTh>{t('sales.reportFreeCost', 'Distribution cost')}</ReportTh>
-                  </tr>
-                </thead>
-                <tbody>
-                  {freeCurrencyCodes.map((code) => {
-                    const row = free?.by_currency?.[code];
-                    if (!row) return null;
-                    return (
-                      <tr key={code} className="border-b last:border-0">
-                        <td className="py-2"><ReportCurrencyLabel code={code} name={row.name} /></td>
-                        <td className="py-2"><ReportNumber value={row.invoice_count} /></td>
-                        <td className="py-2"><ReportNumber value={row.carton_amount || 0} /></td>
-                        <td className="py-2"><ReportNumber value={row.bottle_amount || 0} /></td>
-                        <td className="py-2"><ReportNumber value={row.plastic_amount || 0} /></td>
-                        <td className="py-2 tabular-nums font-medium">
-                          <ReportMoney value={row.cost_afn} code="AFN" />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {!freeCurrencyCodes.length && (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                        {t('sales.reportFreeNoData', 'No free sales in this period')}
+                        {t('sales.reportNoProductProfit', 'No sold products with cost in this period')}
                       </td>
                     </tr>
                   )}

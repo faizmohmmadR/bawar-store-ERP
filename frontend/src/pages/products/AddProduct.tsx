@@ -16,12 +16,14 @@ import { useSaveAndCreateNew } from '@/hooks/useSaveAndCreateNew';
 import { ProductImageField } from './ProductImageField';
 import useFetchObjects from '@/api/useFetchObjects';
 import { ProductPackagingEditor } from '@/components/products/ProductPackagingEditor';
+import { ProductCategorySelect } from '@/components/products/ProductCategorySelect';
 import {
   createProductFormSchema,
   defaultProductFormValues,
   productFormToPayload,
   type ProductFormValues,
 } from '@/lib/productFormSchemas';
+import { useSyncProductBasePackaging } from '@/hooks/useSyncProductBasePackaging';
 
 const AddProduct = () => {
   const { t } = useLanguage();
@@ -37,6 +39,17 @@ const AddProduct = () => {
     resolver: zodResolver(schema),
     defaultValues: defaultProductFormValues(),
   });
+
+  const uomOptions = useMemo(
+    () =>
+      (uoms?.results || uoms || []).map((u: { id: number; name: string; symbol?: string }) => ({
+        value: String(u.id),
+        label: `${u.name}${u.symbol ? ` (${u.symbol})` : ''}`,
+      })),
+    [uoms],
+  );
+
+  useSyncProductBasePackaging(form, uomOptions);
 
   const { handleAdd, loading, isSuccess } = useAdd({
     queryKey: 'products',
@@ -57,11 +70,6 @@ const AddProduct = () => {
   const onSubmit = (data: ProductFormValues) => {
     handleAdd(productFormToPayload(data));
   };
-
-  const uomOptions = (uoms?.results || uoms || []).map((u: { id: number; name: string; symbol?: string }) => ({
-    value: String(u.id),
-    label: `${u.name}${u.symbol ? ` (${u.symbol})` : ''}`,
-  }));
 
   const categoryOptions = (categories?.results || categories || []).map(
     (c: { id: number; name: string }) => ({
@@ -118,8 +126,14 @@ const AddProduct = () => {
                   <FormItem>
                     <FormLabel>{t('products.barcode', 'Product barcode')}</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} placeholder={t('products.barcodePlaceholder', 'Enter barcode')} />
                     </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      {t(
+                        'products.barcodeSyncHint',
+                        'Copied automatically to the base unit barcode below.',
+                      )}
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -138,6 +152,12 @@ const AddProduct = () => {
                         placeholder={t('products.selectUom', 'Select base unit')}
                       />
                     </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      {t(
+                        'products.baseUomSyncHint',
+                        'Sets the base unit name in Packaging / units (e.g. Piece).',
+                      )}
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -149,7 +169,7 @@ const AddProduct = () => {
                   <FormItem>
                     <FormLabel>{t('products.category', 'Category')}</FormLabel>
                     <FormControl>
-                      <FormSelect
+                      <ProductCategorySelect
                         value={field.value || ''}
                         onChange={field.onChange}
                         options={categoryOptions}

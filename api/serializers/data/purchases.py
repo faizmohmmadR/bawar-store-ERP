@@ -1,11 +1,15 @@
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
+from api.models.data.currency import BASE_CURRENCY_ID
+from api.models.data.product_packaging import ProductPrice
 from api.models.data.purchases import Purchase, PurchaseItem, PurchaseLandedCost
 from api.serializers.data.base import DataRootSerializer
 from api.serializers.data.products import serialize_product
+from api.services.currency_conversion import get_rate_to_base
 from api.services.inventory.engine import get_default_warehouse, receive_purchase_item
 from api.services.pricing import upsert_packaging_price
 from api.services.uom.conversion import snapshot_factor
@@ -91,6 +95,52 @@ class PurchaseSerializer(DataRootSerializer):
         attrs = super().validate(attrs)
         if not attrs.get('warehouse') and not (self.instance and self.instance.warehouse_id):
             attrs['warehouse'] = get_default_warehouse()
+        attrs = self._ensure_exchange_rate(attrs)
+        return attrs
+
+    def _ensure_exchange_rate(self, attrs):
+        """
+        Resolve FX → AFN for foreign-currency purchases.
+
+        Model default is 1 (AFN identity). That must never be kept for USD/KDR —
+        look up the rate for the purchase date, or reject the save.
+        """
+        currency = attrs.get('currency')
+        if currency is None and self.instance:
+            currency = self.instance.currency
+        if currency is None:
+            return attrs
+
+        currency = int(currency)
+        rate = attrs.get('exchange_rate')
+        if rate is None and self.instance:
+            rate = self.instance.exchange_rate
+        rate = Decimal(str(rate or 0))
+
+        if currency == BASE_CURRENCY_ID:
+            attrs['exchange_rate'] = Decimal('1')
+            return attrs
+
+        at = attrs.get('purchase_date')
+        if at is None and self.instance:
+            at = self.instance.purchase_date
+
+        # Treat missing / default 1 as "not set" — always resolve from exchange rates.
+        if rate <= 0 or rate == Decimal('1'):
+            try:
+                rate = get_rate_to_base(currency, at)
+            except DjangoValidationError as exc:
+                detail = getattr(exc, 'message_dict', None) or getattr(exc, 'messages', str(exc))
+                raise serializers.ValidationError(detail)
+
+        if rate <= 1:
+            raise serializers.ValidationError({
+                'exchange_rate': (
+                    'A real USD/KDR → AFN exchange rate is required before receiving stock. '
+                    'Add one in Settings → Exchange Rates.'
+                ),
+            })
+        attrs['exchange_rate'] = rate
         return attrs
 
     @transaction.atomic
@@ -131,7 +181,7 @@ class PurchaseSerializer(DataRootSerializer):
                 data['conversion_factor'] = snapshot_factor(packaging)
             self._sync_profit_fields(data)
             item = PurchaseItem.objects.create(purchase=purchase, **data)
-            self._apply_sale_price(item, purchase)
+            self._apply_afn_prices(item, purchase)
 
     def _sync_profit_fields(self, data):
         """Keep profit % and sale price consistent from cost when one side is missing."""
@@ -148,19 +198,55 @@ class PurchaseSerializer(DataRootSerializer):
             data['profit_percent'] = pct
             data['sale_price'] = sale
 
-    def _apply_sale_price(self, item, purchase):
+    def _apply_afn_prices(self, item, purchase):
+        """
+        Convert invoice buy/sale into AFN and store list prices in AFN only.
+        Stock valuation and sales defaults always read these AFN amounts.
+        """
         if purchase.is_free:
             return
-        sale = Decimal(str(item.sale_price or 0))
-        if sale <= 0:
+        rate = Decimal(str(purchase.exchange_rate or 1)) or Decimal('1')
+        on_date = purchase.purchase_date.date() if purchase.purchase_date else None
+
+        buy_native = Decimal(str(item.price_per_unit or 0))
+        buy_afn = Decimal(str(item.price_per_unit_base or 0))
+        if buy_afn <= 0:
+            buy_afn = (buy_native * rate).quantize(Decimal('0.000001'))
+        if buy_afn > 0:
+            upsert_packaging_price(
+                item.product,
+                item.packaging,
+                buy_afn,
+                price_type=ProductPrice.PRICE_PURCHASE,
+                currency=BASE_CURRENCY_ID,
+                on_date=on_date,
+            )
+
+        sale_native = Decimal(str(item.sale_price or 0))
+        if sale_native <= 0:
             return
+        sale_afn = (sale_native * rate).quantize(Decimal('0.000001'))
         upsert_packaging_price(
             item.product,
             item.packaging,
-            sale,
-            currency=purchase.currency,
-            on_date=purchase.purchase_date.date() if purchase.purchase_date else None,
+            sale_afn,
+            price_type=ProductPrice.PRICE_RETAIL,
+            currency=BASE_CURRENCY_ID,
+            on_date=on_date,
         )
+
+        factor = Decimal(str(item.conversion_factor or getattr(item.packaging, 'qty_in_base', 1) or 1))
+        if factor > 1:
+            base_pack = item.product.packagings.filter(is_base=True, deleted_at__isnull=True).first()
+            if base_pack and base_pack.id != item.packaging_id:
+                upsert_packaging_price(
+                    item.product,
+                    base_pack,
+                    (sale_afn / factor).quantize(Decimal('0.000001')),
+                    price_type=ProductPrice.PRICE_RETAIL,
+                    currency=BASE_CURRENCY_ID,
+                    on_date=on_date,
+                )
 
     def _maybe_receive(self, purchase, force=False):
         if purchase.status != 'received' and not force:

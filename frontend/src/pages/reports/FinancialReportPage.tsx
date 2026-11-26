@@ -41,7 +41,7 @@ const FinancialReportPage = () => {
         title={t('reports.operationalReport', 'Operations Report')}
         subtitle={t(
           'reports.operationalReportHint',
-          'Company performance in AFN: billed sales, collections, production, packing, expenses and accrual profit',
+          'Company performance in AFN from sales, purchases, stock, expenses, payroll and loans',
         )}
         icon={<Scale className="h-7 w-7 text-primary shrink-0" />}
         headerAction={

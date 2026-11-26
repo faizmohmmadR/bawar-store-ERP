@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import DataTable, { TableColumn, FilterOption } from '@/components/ui/data-table';
 import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
+import { Badge } from '@/components/ui/badge';
 import { formatAfn } from '@/lib/formatMoney';
-import { cashCategoryLabel } from './i18nHelpers';
+import { cn } from '@/lib/utils';
+import { cashCategoryBadgeClass, cashCategoryLabel } from './i18nHelpers';
 
 export default function CashTransactions() {
   const { t } = useLanguage();
@@ -35,7 +37,11 @@ export default function CashTransactions() {
     {
       key: 'category',
       title: t('cashRegister.category'),
-      render: (v) => cashCategoryLabel(t, v),
+      render: (v) => (
+        <Badge variant="outline" className={cn('font-medium', cashCategoryBadgeClass(v))}>
+          {cashCategoryLabel(t, v)}
+        </Badge>
+      ),
     },
     {
       key: 'description',

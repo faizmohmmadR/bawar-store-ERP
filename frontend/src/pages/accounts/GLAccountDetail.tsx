@@ -23,7 +23,8 @@ import type { Language } from '@/i18n';
 import useFetchObjects from '@/api/useFetchObjects';
 import { formatAppDate } from '@/lib/calendarDate';
 import { FALLBACK_BASE_CODE, FALLBACK_BASE_SYMBOL, type CurrencyDetails } from '@/lib/currencies';
-import { formatJournalDate, glCategoryLabel, journalSourceLabel } from '@/lib/journalLabels';
+import { formatJournalDate, glCategoryBadgeClass, glCategoryLabel, journalSourceLabel } from '@/lib/journalLabels';
+import { cn } from '@/lib/utils';
 
 type GlAccountTotals = {
   total_debit: number;
@@ -425,7 +426,10 @@ export default function GLAccountDetail() {
                   </h1>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant="outline">
+                  <Badge
+                    variant="outline"
+                    className={cn('font-medium', glCategoryBadgeClass(account.category))}
+                  >
                     {account.category_display || glCategoryLabel(account.category, t)}
                   </Badge>
                   <Badge variant="outline">{accountCurrencyCode}</Badge>

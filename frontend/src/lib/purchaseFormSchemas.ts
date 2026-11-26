@@ -43,6 +43,8 @@ export const createPurchaseFormSchema = (t: TranslateFn) => {
       bill_number: z.string().optional(),
       purchase_date: requiredString(messages.required),
       currency: requiredString(messages.required),
+      /** USD/KDR → AFN rate used to store stock costs in AFN. */
+      exchange_rate: z.coerce.number().optional(),
       status: z.enum(['draft', 'pending', 'received', 'cancelled']),
       /** Default markup % for this purchase — drives sales price from buy price. */
       profit_percent: z.coerce.number().min(0, t('purchases.profitPercentMin', 'Profit % cannot be negative')),
@@ -73,6 +75,18 @@ export const createPurchaseFormSchema = (t: TranslateFn) => {
           code: z.ZodIssueCode.custom,
           message: t('purchases.itemsRequired', 'At least one item is required'),
           path: ['items'],
+        });
+      }
+
+      const currencyId = Number(data.currency) || 1;
+      if (currencyId !== 1 && !(Number(data.exchange_rate) > 1)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t(
+            'purchases.exchangeRateRequired',
+            'Add a USD→AFN exchange rate in Settings before saving — stock must be stored in AFN.',
+          ),
+          path: ['currency'],
         });
       }
 
@@ -133,6 +147,7 @@ export const defaultPurchaseFormValues = (): PurchaseFormValues => ({
   bill_number: '',
   purchase_date: new Date().toISOString().slice(0, 10),
   currency: '1',
+  exchange_rate: 1,
   status: 'received',
   profit_percent: 0,
   items: [defaultPurchaseItem()],
@@ -165,6 +180,7 @@ export const purchaseToFormValues = (purchase: Purchase): PurchaseFormValues => 
     bill_number: purchase.bill_number || '',
     purchase_date: purchase.purchase_date ? purchase.purchase_date.slice(0, 10) : '',
     currency: resolveCurrencyId(purchase),
+    exchange_rate: Number(purchase.exchange_rate) || 1,
     status: (purchase.status as PurchaseFormValues['status']) || 'received',
     profit_percent: Number(headerPercent) || 0,
     items: [defaultPurchaseItem(), ...mappedItems],
@@ -222,13 +238,18 @@ export const purchaseFormToAddPayload = (data: PurchaseFormValues) => {
   const headerPercent = roundOrderNumeric(Number(data.profit_percent) || 0);
   const validItems = data.items.filter((item) => item.product && item.packaging);
 
+  const currencyId = toCurrencyFkId(data.currency);
+  const exchangeRate = Number(data.exchange_rate) || 0;
+
   return {
     transaction_type: 'paid',
     vendor: Number(data.vendor),
     warehouse: Number(data.warehouse),
     bill_number: data.bill_number || null,
     purchase_date: toPurchaseDateTime(data.purchase_date),
-    currency: toCurrencyFkId(data.currency),
+    currency: currencyId,
+    // Always send rate so stock never stores USD amounts as AFN at rate=1.
+    exchange_rate: currencyId === 1 ? 1 : exchangeRate,
     status: data.status || 'received',
     notes: data.notes || '',
     items: validItems.map((item) => {

@@ -27,6 +27,15 @@ type BalanceRow = {
 type StockReportResponse = {
   balances?: BalanceRow[];
   movement_count?: number;
+  kpis?: {
+    product_balance_count?: number;
+    total_on_hand?: number;
+    total_value_afn?: number;
+    low_stock_count?: number;
+    movement_count?: number;
+    qty_in?: number;
+    qty_out?: number;
+  };
   period?: { start?: string; end?: string };
 };
 
@@ -38,9 +47,13 @@ const StockReportPage = () => {
   });
 
   const balances = data?.balances || [];
-  const totalValue = balances.reduce((sum, row) => sum + (Number(row.value) || 0), 0);
-  const totalOnHand = balances.reduce((sum, row) => sum + (Number(row.on_hand) || 0), 0);
-  const skuCount = new Set(balances.map((row) => row.product_id)).size;
+  const kpis = data?.kpis;
+  const totalValue = Number(kpis?.total_value_afn ?? balances.reduce((sum, row) => sum + (Number(row.value) || 0), 0));
+  const totalOnHand = Number(kpis?.total_on_hand ?? balances.reduce((sum, row) => sum + (Number(row.on_hand) || 0), 0));
+  const skuCount = Number(
+    kpis?.product_balance_count
+    ?? new Set(balances.map((row) => row.product_id)).size,
+  );
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
@@ -104,7 +117,13 @@ const StockReportPage = () => {
               </CardHeader>
               <CardContent className="pt-0 text-xs text-muted-foreground">
                 {t('stock.movementsInPeriod', 'Movements')}:{' '}
-                {formatOrderNumeric(Number(data?.movement_count) || 0)}
+                {formatOrderNumeric(Number(kpis?.movement_count ?? data?.movement_count) || 0)}
+                {kpis?.qty_in || kpis?.qty_out ? (
+                  <> · {t('stock.qtyIn', 'In')} {formatOrderNumeric(Number(kpis?.qty_in) || 0)}
+                    {' / '}
+                    {t('stock.qtyOut', 'Out')} {formatOrderNumeric(Number(kpis?.qty_out) || 0)}
+                  </>
+                ) : null}
               </CardContent>
             </Card>
           </div>

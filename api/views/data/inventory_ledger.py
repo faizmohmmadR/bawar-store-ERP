@@ -11,6 +11,7 @@ from api.serializers.data.inventory_ledger import (
 )
 from api.serializers.data.products import serialize_product
 from api.services.inventory.engine import adjust_stock, get_default_warehouse, open_package, transfer_stock
+from api.services.inventory.positions import aggregate_balance_positions, serialize_position
 from api.services.pricing import resolve_price
 from api.views.data.base import DataRootViewSet
 
@@ -30,6 +31,45 @@ class InventoryBalanceViewSet(DataRootViewSet):
         'product__packagings__barcode',
     ]
     filterset_fields = ['product', 'warehouse', 'lot']
+
+    def list(self, request, *args, **kwargs):
+        """
+        Default: one row per product × warehouse (lots collapsed).
+        Pass aggregate=false to see raw lot-level balances.
+        """
+        aggregate = str(request.query_params.get('aggregate', 'true')).lower() not in {
+            '0', 'false', 'no',
+        }
+        if not aggregate:
+            return super().list(request, *args, **kwargs)
+
+        qs = self.filter_queryset(self.get_queryset())
+        positions = aggregate_balance_positions(qs)
+        page = self.paginate_queryset(positions)
+        payload = [
+            serialize_position(row, request)
+            for row in (page if page is not None else positions)
+        ]
+        if page is not None:
+            return self.get_paginated_response(payload)
+        return Response(payload)
+
+    @action(detail=True, methods=['get'], url_path='position')
+    def position(self, request, pk=None):
+        """Aggregated product×warehouse position for a balance id (includes lot rows)."""
+        balance = self.get_object()
+        qs = InventoryBalance.objects.filter(
+            product_id=balance.product_id,
+            warehouse_id=balance.warehouse_id,
+        ).select_related('product', 'warehouse', 'lot')
+        positions = aggregate_balance_positions(qs)
+        if not positions:
+            return Response({'detail': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+        position = serialize_position(positions[0], request)
+        position['lots'] = InventoryBalanceSerializer(
+            qs.order_by('lot_id', 'id'), many=True, context={'request': request},
+        ).data
+        return Response(position)
 
 
 class StockMovementViewSet(DataRootViewSet):
@@ -122,9 +162,19 @@ class StockMovementViewSet(DataRootViewSet):
 
         retail = resolve_price(product, packaging, price_type=ProductPrice.PRICE_RETAIL)
         wholesale = resolve_price(product, packaging, price_type=ProductPrice.PRICE_WHOLESALE)
+        from django.db.models import Sum
+        from api.models.data.inventory_ledger import InventoryBalance
+
+        stock_on_hand = (
+            InventoryBalance.objects.filter(product_id=product.id)
+            .aggregate(total=Sum('quantity_on_hand'))['total']
+            or 0
+        )
+        product_payload = serialize_product(product, request) or {}
+        product_payload['stock_on_hand'] = stock_on_hand
         return Response({
             'code': code,
-            'product': serialize_product(product, request),
+            'product': product_payload,
             'packaging': {
                 'id': packaging.id,
                 'name': packaging.name,
@@ -141,4 +191,5 @@ class StockMovementViewSet(DataRootViewSet):
             'price': retail,
             'retail_price': retail,
             'wholesale_price': wholesale,
+            'stock_on_hand': stock_on_hand,
         })

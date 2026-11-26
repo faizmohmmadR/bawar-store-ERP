@@ -56,26 +56,86 @@ export const AppsHome = () => {
           </div>
 
           <div className="border-b border-border/80 bg-muted/25 px-4 py-3 sm:px-5">
-            <div className="relative mx-auto w-full max-w-md">
-              <Search className={cn('pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground', isRtl ? 'right-3' : 'left-3')} />
-              <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder={t('core.apps.search', 'Search apps...')} className={cn('h-10 rounded-xl border-border/70 bg-background shadow-sm', isRtl ? 'pr-9 pl-9' : 'pl-9 pr-9')} />
-              {searchQuery && <button type="button" onClick={() => setSearchQuery('')} className={cn('absolute top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground', isRtl ? 'left-3' : 'right-3')} aria-label="Clear search"><X className="h-4 w-4" /></button>}
+            <div className="relative w-full">
+              <Search
+                className={cn(
+                  'pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground',
+                  isRtl ? 'right-3' : 'left-3',
+                )}
+              />
+              <Input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={t('core.apps.search', 'Search apps...')}
+                className={cn(
+                  'h-11 w-full rounded-xl border-border/70 bg-background shadow-sm',
+                  isRtl ? 'pr-9 pl-9' : 'pl-9 pr-9',
+                )}
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className={cn(
+                    'absolute top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground',
+                    isRtl ? 'left-3' : 'right-3',
+                  )}
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
             </div>
           </div>
 
           {visibleApps.length === 0 ? (
             <div className="px-6 py-16 text-center">
-              {noAccess ? <><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-muted"><ShieldAlert className="h-5 w-5 text-muted-foreground" /></div><p className="mt-4 font-medium">{t('core.apps.noPermissionsTitle', 'No applications available')}</p><p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{t('core.apps.noPermissions', 'Your account has no section permissions yet. Ask an administrator to grant access.')}</p></> : <p className="text-sm text-muted-foreground">{t('core.apps.noResults', 'No applications match your search or permissions.')}</p>}
+              {noAccess ? (
+                <>
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
+                    <ShieldAlert className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <p className="mt-4 font-medium">
+                    {t('core.apps.noPermissionsTitle', 'No applications available')}
+                  </p>
+                  <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                    {t(
+                      'core.apps.noPermissions',
+                      'Your account has no section permissions yet. Ask an administrator to grant access.',
+                    )}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {t('core.apps.noResults', 'No applications match your search or permissions.')}
+                </p>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 p-3 min-[480px]:grid-cols-3 sm:gap-3 sm:p-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
               {visibleApps.map((app) => {
                 const Icon = app.icon;
-                return <Link key={app.key} to={getAppLandingPath(app, permissionOpts)} className="group relative flex min-h-32 flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-border/70 bg-background px-2 py-4 text-center shadow-sm transition duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:min-h-36">
-                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-primary-dark to-brand-lime opacity-0 transition group-hover:opacity-100" />
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-950 text-primary shadow-md ring-1 ring-black/10 transition duration-200 group-hover:scale-105 group-hover:bg-neutral-900 group-hover:shadow-[0_12px_25px_-12px_hsl(var(--primary)/.75)] sm:h-16 sm:w-16"><Icon className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={1.7} /></div>
-                  <span className="line-clamp-2 text-sm font-semibold leading-snug text-slate-800 transition-colors group-hover:text-primary dark:text-slate-100">{t(`core.navigation.${app.key}`, app.key)}</span>
-                </Link>;
+                return (
+                  <Link
+                    key={app.key}
+                    to={getAppLandingPath(app, permissionOpts)}
+                    className="group relative flex min-h-32 flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-border/70 bg-background px-2 py-4 text-center shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:min-h-36"
+                  >
+                    <div className={cn('absolute inset-x-0 top-0 h-1.5', app.color)} />
+                    <div
+                      className={cn(
+                        'flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-md ring-1 ring-black/10 transition duration-200 group-hover:scale-105 group-hover:brightness-110 sm:h-16 sm:w-16',
+                        app.color,
+                        app.colorHover,
+                      )}
+                    >
+                      <Icon className="h-7 w-7 text-white sm:h-8 sm:w-8" strokeWidth={1.7} />
+                    </div>
+                    <span className="line-clamp-2 text-sm font-semibold leading-snug text-slate-800 transition-colors group-hover:text-foreground dark:text-slate-100">
+                      {t(`core.navigation.${app.key}`, app.key)}
+                    </span>
+                  </Link>
+                );
               })}
             </div>
           )}

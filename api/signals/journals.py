@@ -164,7 +164,9 @@ def handle_payment_journal(sender, instance, **kwargs):
         related = instance.content_object
         if related and not instance.is_advance:
             sync_order_paid_amount(related)
-        # Soft-deleted payments: leave historical drawer row; do not auto-void here.
+        # Deleted cash payment must reverse the Safe income/outcome it created.
+        from api.services.cash_register import void_drawer_for_source
+        void_drawer_for_source(instance)
         return
     sync_payment_journal(instance)
     from api.services.cash_register import sync_drawer_from_payment
@@ -174,9 +176,11 @@ def handle_payment_journal(sender, instance, **kwargs):
 @receiver(post_delete, sender='api.Payment')
 def delete_payment_journal(sender, instance, **kwargs):
     from api.services.accounting import delete_journal_for_source, sync_order_paid_amount
+    from api.services.cash_register import void_drawer_for_source
 
     related = instance.content_object
     delete_journal_for_source(instance)
+    void_drawer_for_source(instance)
     if related and not instance.is_advance:
         sync_order_paid_amount(related)
 
@@ -187,14 +191,20 @@ def handle_payroll_journal(sender, instance, **kwargs):
     from api.services.accounting import delete_journal_for_source, sync_payroll_journal
     if instance.deleted_at is not None:
         delete_journal_for_source(instance)
+        from api.services.cash_register import void_drawer_for_source
+        void_drawer_for_source(instance)
         return
     sync_payroll_journal(instance)
+    from api.services.cash_register import sync_drawer_from_payroll
+    sync_drawer_from_payroll(instance)
 
 
 @receiver(post_delete, sender='api.Payroll')
 def delete_payroll_journal(sender, instance, **kwargs):
     from api.services.accounting import delete_journal_for_source
+    from api.services.cash_register import void_drawer_for_source
     delete_journal_for_source(instance)
+    void_drawer_for_source(instance)
 
 
 # ── Loans ──────────────────────────────────────────────────────────────
@@ -203,30 +213,42 @@ def handle_loan_journal(sender, instance, **kwargs):
     from api.services.accounting import delete_journal_for_source, sync_loan_journal
     if getattr(instance, 'deleted_at', None) is not None:
         delete_journal_for_source(instance)
+        from api.services.cash_register import void_drawer_for_source
+        void_drawer_for_source(instance)
         return
     sync_loan_journal(instance)
+    from api.services.cash_register import sync_drawer_from_loan
+    sync_drawer_from_loan(instance)
 
 
 @receiver(post_delete, sender='api.Loan')
 def delete_loan_journal(sender, instance, **kwargs):
     from api.services.accounting import delete_journal_for_source
+    from api.services.cash_register import void_drawer_for_source
     delete_journal_for_source(instance)
+    void_drawer_for_source(instance)
 
 
 @receiver(post_save, sender='api.LoanPayment')
 def handle_loan_payment_journal(sender, instance, **kwargs):
     if instance.deleted_at is not None:
         from api.services.accounting import delete_journal_for_source
+        from api.services.cash_register import void_drawer_for_source
         delete_journal_for_source(instance)
+        void_drawer_for_source(instance)
         return
     from api.services.accounting import sync_loan_payment_journal
     sync_loan_payment_journal(instance)
+    from api.services.cash_register import sync_drawer_from_loan_payment
+    sync_drawer_from_loan_payment(instance)
 
 
 @receiver(post_delete, sender='api.LoanPayment')
 def delete_loan_payment_journal(sender, instance, **kwargs):
     from api.services.accounting import delete_journal_for_source
+    from api.services.cash_register import void_drawer_for_source
     delete_journal_for_source(instance)
+    void_drawer_for_source(instance)
 
 
 @receiver(post_save, sender='api.Expense')
@@ -234,6 +256,8 @@ def handle_expense_journal(sender, instance, **kwargs):
     from api.services.accounting import delete_journal_for_source, sync_expense_journal
     if instance.deleted_at is not None:
         delete_journal_for_source(instance)
+        from api.services.cash_register import void_drawer_for_source
+        void_drawer_for_source(instance)
         return
     sync_expense_journal(instance)
     from api.services.cash_register import sync_drawer_from_expense
@@ -243,7 +267,9 @@ def handle_expense_journal(sender, instance, **kwargs):
 @receiver(post_delete, sender='api.Expense')
 def delete_expense_journal(sender, instance, **kwargs):
     from api.services.accounting import delete_journal_for_source
+    from api.services.cash_register import void_drawer_for_source
     delete_journal_for_source(instance)
+    void_drawer_for_source(instance)
 
 
 @receiver(post_save, sender='api.Withdrawal')
@@ -251,6 +277,8 @@ def handle_withdrawal_journal(sender, instance, **kwargs):
     from api.services.accounting import delete_journal_for_source, sync_withdrawal_journal
     if getattr(instance, 'deleted_at', None) is not None:
         delete_journal_for_source(instance)
+        from api.services.cash_register import void_drawer_for_source
+        void_drawer_for_source(instance)
         return
     sync_withdrawal_journal(instance)
     from api.services.cash_register import sync_drawer_from_withdrawal
@@ -260,7 +288,9 @@ def handle_withdrawal_journal(sender, instance, **kwargs):
 @receiver(post_delete, sender='api.Withdrawal')
 def delete_withdrawal_journal(sender, instance, **kwargs):
     from api.services.accounting import delete_journal_for_source
+    from api.services.cash_register import void_drawer_for_source
     delete_journal_for_source(instance)
+    void_drawer_for_source(instance)
 
 
 @receiver(post_save, sender='api.CurrencyExchange')

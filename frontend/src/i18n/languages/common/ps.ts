@@ -45,6 +45,8 @@ export const commonPs = {
   createdAt: "د جوړېدو نېټه",
   updatedAt: "د تازه کولو نېټه",
   status: "حالت",
+  currency: "اسعار",
+  optional: "اختیاري",
   active: "فعال",
   inactive: "غیر فعال",
   roles: {
@@ -113,7 +115,7 @@ export const commonPs = {
     exchangeRates: "د اسعارو نرخ",
     profile: "پروفایل",
     activityLogs: "د فعالیتونو راپورونه",
-    cashRegister: "دخل",
+    cashRegister: "سیف",
     cashRegisterDashboard: "ډشبورډ",
     cashRegisterTransactions: "معاملې",
     cashRegisterReports: "راپورونه",

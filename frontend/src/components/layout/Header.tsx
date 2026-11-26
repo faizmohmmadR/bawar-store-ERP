@@ -239,17 +239,15 @@ export const Header: React.FC = () => {
     return (
       <span
         className={cn(
-          'flex shrink-0 items-center justify-center rounded-xl bg-black text-primary shadow-sm ring-1 ring-primary/30 transition-all',
-          'group-hover:ring-2 group-hover:ring-accent group-hover:bg-neutral-900',
+          'flex shrink-0 items-center justify-center rounded-xl text-white shadow-sm ring-1 ring-black/10 transition-all',
+          'group-hover:brightness-110 group-hover:ring-black/20',
           size === 'md' ? 'h-12 w-12' : 'h-10 w-10',
           app.color,
+          app.colorHover,
         )}
       >
         <Icon
-          className={cn(
-            'text-primary group-hover:text-accent transition-colors',
-            size === 'md' ? 'h-6 w-6' : 'h-5 w-5',
-          )}
+          className={cn('text-white', size === 'md' ? 'h-6 w-6' : 'h-5 w-5')}
           strokeWidth={1.75}
         />
       </span>
@@ -392,7 +390,7 @@ export const Header: React.FC = () => {
                     >
                       <span
                         className={cn(
-                          'flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-primary',
+                          'flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white',
                           activeApp.color,
                         )}
                       >
@@ -457,7 +455,7 @@ export const Header: React.FC = () => {
               <div className="hidden min-w-0 items-center gap-2 md:flex">
                 <span
                   className={cn(
-                    'flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-primary',
+                    'flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white',
                     activeApp.color,
                   )}
                 >

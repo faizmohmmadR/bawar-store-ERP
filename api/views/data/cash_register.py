@@ -18,7 +18,7 @@ from api.views.data.base import DataRootViewSet
 
 
 class CashRegisterViewSet(DataRootViewSet):
-    """Single cash drawer (دخل) — dashboard, sessions, transactions."""
+    """Single Safe (cash register) — dashboard, sessions, transactions."""
 
     permission_module = 'cash_register'
     queryset = CashRegister.objects.all().select_related('linked_cash_account')

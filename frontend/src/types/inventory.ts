@@ -11,11 +11,14 @@ export type InventoryBalance = {
   warehouse: number;
   warehouse_name?: string;
   lot?: number | null;
+  /** Present on aggregated stock-list rows (number of lot/balance lines combined). */
+  lot_count?: number;
   quantity_on_hand: number | string;
   quantity_reserved?: number | string;
   quantity_available?: number | string;
   average_cost?: number | string;
   packaging_breakdown?: PackagingBreakdownRow[];
+  lots?: InventoryBalance[];
   product_details?: {
     id: number;
     name: string;

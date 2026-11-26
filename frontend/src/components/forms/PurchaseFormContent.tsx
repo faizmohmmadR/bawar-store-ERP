@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Control, UseFormSetValue, useFieldArray, useFormState, useWatch } from 'react-hook-form';
-import { ArrowLeft, ArrowRight, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -50,6 +50,7 @@ import {
 } from '@/lib/purchaseFormSchemas';
 import { formatOrderNumeric, ORDER_NUMERIC_STEP } from '@/lib/orderNumeric';
 import { notifyError } from '@/lib/notify';
+import { cn } from '@/lib/utils';
 import useFetchObjects from '@/api/useFetchObjects';
 
 type PackagingOption = {
@@ -104,6 +105,36 @@ export function PurchaseFormContent({
   const { errors } = useFormState({ control });
 
   const currencySymbol = resolveCurrencySymbol(currency);
+  const currencyId = Number(currency) || 1;
+  const needsFx = currencyId > 1;
+
+  const lookupDate = useMemo(() => {
+    if (!purchaseDate) return undefined;
+    if (purchaseDate.length === 10) return `${purchaseDate}T12:00:00`;
+    return purchaseDate;
+  }, [purchaseDate]);
+
+  const { data: fxLookup, isError: fxError } = useFetchObjects<{ rate?: number | string; error?: string }>({
+    queryKey: ['exchange-rate-lookup-purchase', String(currencyId), lookupDate || 'now'],
+    endpoint: 'exchange-rates/lookup/',
+    params: {
+      currency: currencyId,
+      ...(lookupDate ? { date: lookupDate } : {}),
+    },
+    enabled: needsFx && currencyId > 0,
+  });
+  const fxRateToAfn = needsFx ? (Number(fxLookup?.rate) || 0) : 1;
+
+  useEffect(() => {
+    if (!needsFx) {
+      setValue('exchange_rate', 1);
+      return;
+    }
+    if (fxRateToAfn > 1) {
+      setValue('exchange_rate', fxRateToAfn);
+    }
+  }, [needsFx, fxRateToAfn, setValue]);
+
   const subtotal = useMemo(() => calculatePurchaseSubtotal(items), [items]);
 
   const applyResolvedBarcode = useCallback((resolved: ResolvedBarcode) => {
@@ -115,13 +146,11 @@ export function PurchaseFormContent({
     }
     const plan = planBarcodeLineApply(items, resolved, 1);
     const buyPrice = barcodeUnitPrice(resolved, 'purchase');
-    const retail = Number(resolved.retail_price ?? resolved.price ?? 0) || 0;
     const percent = Number(profitPercent) || 0;
-    const salePrice = retail > 0
-      ? retail
-      : buyPrice > 0 && percent > 0
-        ? salePriceFromProfitPercent(buyPrice, percent)
-        : 0;
+    // Do not pull old list retail into a new purchase — only derive from buy + profit %.
+    const salePrice = buyPrice > 0 && percent > 0
+      ? salePriceFromProfitPercent(buyPrice, percent)
+      : 0;
     const qtyInBase = Number(resolved.packaging.qty_in_base) || 1;
     const productId = String(resolved.product.id);
     const packagingId = String(resolved.packaging.id);
@@ -390,7 +419,12 @@ export function PurchaseFormContent({
         </div>
       </div>
 
-      <div className="flex flex-col gap-5 px-3 py-4 sm:gap-6 sm:px-5 sm:py-5 lg:flex-row lg:items-start">
+      <div
+        className={cn(
+          'flex flex-col gap-5 px-3 py-4 sm:gap-6 sm:px-5 sm:py-5 lg:flex-row lg:items-start',
+          !summaryOpen && 'pb-24 lg:pb-5',
+        )}
+      >
         <div className="flex min-w-0 flex-1 flex-col gap-5 sm:gap-6">
           <Card className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <div className="flex flex-col gap-2 border-b bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -466,9 +500,20 @@ export function PurchaseFormContent({
         </div>
 
         {summaryOpen ? (
-          <Card className="order-last flex w-full flex-shrink-0 flex-col overflow-hidden lg:order-none lg:w-72 xl:w-80">
-            <div className="border-b bg-muted/30 px-4 py-3">
+          <Card className="order-last flex w-full flex-shrink-0 flex-col overflow-hidden lg:order-none lg:sticky lg:top-4 lg:w-72 xl:w-80">
+            <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3">
               <h3 className="text-sm font-semibold">{t('purchases.summary', 'Summary')}</h3>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 shrink-0 p-0"
+                onClick={() => setSummaryOpen(false)}
+                title={t('common.close', 'Close')}
+                aria-label={t('common.close', 'Close')}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
             <CardContent className="flex-1 space-y-3 p-4">
               <div className="space-y-2 text-sm">
@@ -487,12 +532,21 @@ export function PurchaseFormContent({
                   </span>
                 </div>
                 <AfnReportingPreview amount={total} currencyId={currency} atDate={purchaseDate} />
-                <p className="text-[11px] text-muted-foreground">
-                  {t(
-                    'purchases.stockStoredInAfn',
-                    'Stock costs are always saved in AFN using the rate nearest to the purchase date.',
-                  )}
-                </p>
+                {needsFx && (fxError || fxRateToAfn <= 1) ? (
+                  <p className="text-[11px] text-destructive">
+                    {t(
+                      'purchases.exchangeRateRequired',
+                      'Add a USD→AFN exchange rate in Settings before saving — stock must be stored in AFN.',
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    {t(
+                      'purchases.stockStoredInAfn',
+                      'Stock costs and sale list prices are always saved in AFN using the rate nearest to the purchase date.',
+                    )}
+                  </p>
+                )}
               </div>
 
               <FormField
@@ -524,7 +578,50 @@ export function PurchaseFormContent({
               />
             </div>
           </Card>
-        ) : null}
+        ) : (
+          <div className="sticky top-4 order-last hidden w-12 flex-shrink-0 flex-col items-center gap-3 self-start lg:order-none lg:flex">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex h-auto flex-col gap-1.5 px-2 py-3"
+              onClick={() => setSummaryOpen(true)}
+              title={t('purchases.summary', 'Summary')}
+              aria-label={t('purchases.summary', 'Summary')}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="text-[10px] font-medium [writing-mode:vertical-rl] rotate-180">
+                {t('purchases.summary', 'Summary')}
+              </span>
+            </Button>
+          </div>
+        )}
+
+        {!summaryOpen && (
+          <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 px-4 py-3 shadow-lg backdrop-blur-sm">
+            <div className="mx-auto flex max-w-[1800px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm">
+                <span className="text-muted-foreground">{t('purchases.finalTotal', 'Final total')}: </span>
+                <span className="font-bold tabular-nums text-primary">
+                  {currencySymbol}
+                  {formatOrderNumeric(total)}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setSummaryOpen(true)}>
+                  {t('purchases.summary', 'Summary')}
+                </Button>
+                <FormActions
+                  className="pt-0"
+                  onCancel={onCancel}
+                  loading={loading}
+                  submitLabel={submitLabel}
+                  loadingLabel={loadingLabel}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -590,13 +687,15 @@ function PurchaseLineRow({
     setValue(`items.${index}.profit_percent`, effectivePercent);
     if (buy > 0 && effectivePercent > 0) {
       setValue(`items.${index}.sale_price`, salePriceFromProfitPercent(buy, effectivePercent));
+    } else if (buy <= 0) {
+      setValue(`items.${index}.sale_price`, 0);
     }
   };
 
   const applySalesPrice = (sales: number) => {
     const buy = Number(item?.price_per_unit) || 0;
     setValue(`items.${index}.sale_price`, sales);
-    if (buy > 0) {
+    if (buy > 0 && sales > 0) {
       setValue(`items.${index}.profit_percent`, profitPercentFromSalePrice(buy, sales));
     }
   };
@@ -616,14 +715,9 @@ function PurchaseLineRow({
     setValue(`items.${index}.is_variable_weight`, Boolean(pack.is_variable_weight));
     setValue(`items.${index}.measured_base_quantity`, '');
 
-    const retail = Number(pack.retail_price?.amount) || 0;
+    // Keep sales price empty unless buy + profit % can derive it (never copy old retail).
     const buy = Number(item?.price_per_unit) || 0;
-    if (retail > 0) {
-      setValue(`items.${index}.sale_price`, retail);
-      if (buy > 0) {
-        setValue(`items.${index}.profit_percent`, profitPercentFromSalePrice(buy, retail));
-      }
-    } else if (buy > 0 && effectivePercent > 0) {
+    if (buy > 0 && effectivePercent > 0) {
       setValue(`items.${index}.sale_price`, salePriceFromProfitPercent(buy, effectivePercent));
       setValue(`items.${index}.profit_percent`, effectivePercent);
     }
@@ -653,13 +747,14 @@ function PurchaseLineRow({
                   keepOpenAfterCodeSubmit
                   onChange={(value, option) => {
                     const selectedId = value?.toString() || '';
-                    const productChanged = productField.value?.toString() !== selectedId;
+                    const previousId = productField.value?.toString() || '';
+                    const productChanged = previousId !== selectedId;
                     productField.onChange(selectedId);
 
                     const nextPacks = purchasePackagings(option);
                     applyPackaging(pickDefaultPackaging(nextPacks));
 
-                    if (productChanged && productField.value) {
+                    if (productChanged) {
                       setValue(`items.${index}.quantity`, 0);
                       setValue(`items.${index}.price_per_unit`, 0);
                       setValue(`items.${index}.profit_percent`, profitPercent);
@@ -667,7 +762,7 @@ function PurchaseLineRow({
                     }
 
                     if (selectedId && productChanged) {
-                      if (!items[index]?.product && index === 0) {
+                      if (!previousId && index === 0) {
                         insert(0, {
                           ...defaultPurchaseItem(),
                           profit_percent: profitPercent,

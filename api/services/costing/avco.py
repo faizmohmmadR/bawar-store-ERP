@@ -27,5 +27,27 @@ def receive_average(old_qty, old_cost, incoming_qty, incoming_value) -> tuple[De
     return quantize(new_qty), quantize(new_cost)
 
 
+def remove_average(old_qty, old_cost, remove_qty, remove_value) -> tuple[Decimal, Decimal]:
+    """
+    Update moving average after reversing a receipt (supplier return / void).
+
+    Returns (new_qty, new_unit_cost).
+    """
+    qty = d(old_qty)
+    cost = d(old_cost)
+    rem_qty = d(remove_qty)
+    rem_value = d(remove_value)
+    if rem_qty <= 0:
+        return quantize(qty), quantize(cost)
+    new_qty = qty - rem_qty
+    if new_qty <= 0:
+        return Decimal('0'), Decimal('0')
+    old_value = qty * cost
+    new_cost = (old_value - rem_value) / new_qty
+    if new_cost < 0:
+        new_cost = Decimal('0')
+    return quantize(new_qty), quantize(new_cost)
+
+
 def cogs_for_delivery(base_qty, unit_cost) -> Decimal:
     return quantize(d(base_qty) * d(unit_cost), 6)

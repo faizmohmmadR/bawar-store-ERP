@@ -76,6 +76,29 @@ const navPerm = (key: NavPermissionKey): Pick<AppDefinition, 'permission' | 'per
   return { permission: value };
 };
 
+/** Section tile colors — solid bg + white icons (brand blue, no purple). */
+const TILE = {
+  main: { color: 'bg-[#0E4EC9]', colorHover: 'hover:bg-[#0A3FA8]' },
+  inventory: { color: 'bg-teal-600', colorHover: 'hover:bg-teal-700' },
+  products: { color: 'bg-teal-500', colorHover: 'hover:bg-teal-600' },
+  purchases: { color: 'bg-cyan-700', colorHover: 'hover:bg-cyan-800' },
+  equipment: { color: 'bg-slate-600', colorHover: 'hover:bg-slate-700' },
+  sales: { color: 'bg-emerald-600', colorHover: 'hover:bg-emerald-700' },
+  payments: { color: 'bg-emerald-700', colorHover: 'hover:bg-emerald-800' },
+  safe: { color: 'bg-amber-500', colorHover: 'hover:bg-amber-600' },
+  withdrawals: { color: 'bg-amber-700', colorHover: 'hover:bg-amber-800' },
+  expenses: { color: 'bg-rose-600', colorHover: 'hover:bg-rose-700' },
+  loans: { color: 'bg-orange-600', colorHover: 'hover:bg-orange-700' },
+  accounting: { color: 'bg-blue-800', colorHover: 'hover:bg-blue-900' },
+  contacts: { color: 'bg-sky-600', colorHover: 'hover:bg-sky-700' },
+  vendors: { color: 'bg-sky-700', colorHover: 'hover:bg-sky-800' },
+  salesmen: { color: 'bg-cyan-600', colorHover: 'hover:bg-cyan-700' },
+  users: { color: 'bg-slate-700', colorHover: 'hover:bg-slate-800' },
+  hr: { color: 'bg-cyan-700', colorHover: 'hover:bg-cyan-800' },
+  reports: { color: 'bg-slate-700', colorHover: 'hover:bg-slate-800' },
+  settings: { color: 'bg-neutral-700', colorHover: 'hover:bg-neutral-800' },
+} as const;
+
 /** Top-level ERP apps shown as an Odoo-style launcher grid */
 export const ERP_APPS: AppDefinition[] = [
   {
@@ -83,8 +106,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: LayoutDashboard,
     path: '/dashboard',
     section: 'main',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.main,
     ...navPerm('dashboard'),
   },
   {
@@ -92,8 +114,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: Warehouse,
     path: '/stock',
     section: 'inventory',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.inventory,
     ...navPerm('stock'),
     subItems: [
       { key: 'allStock', icon: Package, path: '/stock', ...navPerm('allStock') },
@@ -107,8 +128,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: Tag,
     path: '/products',
     section: 'inventory',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.products,
     ...navPerm('products'),
   },
   {
@@ -116,17 +136,19 @@ export const ERP_APPS: AppDefinition[] = [
     icon: ShoppingCart,
     path: '/purchases',
     section: 'inventory',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.purchases,
     ...navPerm('purchases'),
+    subItems: [
+      { key: 'purchases', icon: ShoppingCart, path: '/purchases', ...navPerm('purchases') },
+      { key: 'purchasesReport', icon: FileBarChart, path: '/purchases/report', ...navPerm('purchases') },
+    ],
   },
   {
     key: 'sales',
     icon: TrendingUp,
     path: '/sales',
     section: 'salesOps',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.sales,
     ...navPerm('sales'),
     subItems: [
       { key: 'sales', icon: TrendingUp, path: '/sales', ...navPerm('sales') },
@@ -139,8 +161,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: CreditCard,
     path: '/sale-payments',
     section: 'salesOps',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.payments,
     ...navPerm('payments'),
     subItems: [
       { key: 'salePayments', icon: ArrowUpRight, path: '/sale-payments', ...navPerm('salePayments') },
@@ -158,8 +179,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: Banknote,
     path: '/cash-register',
     section: 'finance',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.safe,
     ...navPerm('cashRegister'),
     subItems: [
       { key: 'cashRegisterDashboard', icon: Banknote, path: '/cash-register', ...navPerm('cashRegisterDashboard') },
@@ -172,8 +192,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: Banknote,
     path: '/withdrawals',
     section: 'finance',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.withdrawals,
     ...navPerm('withdrawals'),
     subItems: [
       { key: 'withdrawalsList', icon: Banknote, path: '/withdrawals', ...navPerm('withdrawalsList') },
@@ -185,8 +204,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: Monitor,
     path: '/equipment',
     section: 'inventory',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.equipment,
     ...navPerm('equipment'),
     subItems: [
       { key: 'equipmentList', icon: Monitor, path: '/equipment', ...navPerm('equipmentList') },
@@ -203,8 +221,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: Users,
     path: '/customers',
     section: 'contacts',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.contacts,
     ...navPerm('customers'),
   },
   {
@@ -212,8 +229,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: Truck,
     path: '/vendors',
     section: 'contacts',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.vendors,
     ...navPerm('vendors'),
   },
   {
@@ -221,8 +237,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: Briefcase,
     path: '/salesmen',
     section: 'contacts',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.salesmen,
     ...navPerm('salesmen'),
   },
   {
@@ -230,8 +245,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: UserCheck,
     path: '/users',
     section: 'contacts',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.users,
     ...navPerm('users'),
   },
   {
@@ -239,8 +253,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: UsersIcon,
     path: '/employees',
     section: 'hr',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.hr,
     ...navPerm('hr'),
     subItems: [
       { key: 'employees', icon: UserCheck, path: '/employees', ...navPerm('employees') },
@@ -254,8 +267,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: Receipt,
     path: '/expenses',
     section: 'finance',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.expenses,
     ...navPerm('expenses'),
     subItems: [
       { key: 'expensesList', icon: Receipt, path: '/expenses', ...navPerm('expensesList') },
@@ -273,8 +285,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: DollarSign,
     path: '/loans',
     section: 'finance',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.loans,
     ...navPerm('loans'),
     subItems: [
       { key: 'loans', icon: DollarSign, path: '/loans', ...navPerm('loans') },
@@ -287,8 +298,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: BookOpen,
     path: '/accounting',
     section: 'finance',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.accounting,
     ...navPerm('accounting'),
     subItems: [
       { key: 'accountingOverview', icon: BookOpen, path: '/accounting', ...navPerm('accountingOverview') },
@@ -308,20 +318,19 @@ export const ERP_APPS: AppDefinition[] = [
     icon: BarChart3,
     path: '/reports',
     section: 'analytics',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.reports,
     ...navPerm('reports'),
     subItems: [
-      { key: 'operationsReport', icon: BarChart3, path: '/reports', ...navPerm('reports') },
-      { key: 'byCurrencyReport', icon: TrendingUp, path: '/reports/by-currency', ...navPerm('reports') },
-      {
-        key: 'expenseReport',
-        icon: Receipt,
-        path: '/reports/expenses',
-        ...navPerm('expenseReport'),
-      },
-      { key: 'ledgerReports', icon: Scale, path: '/reports/v2', ...navPerm('reports') },
-      { key: 'reportHistory', icon: History, path: '/reports/history', ...navPerm('reports') },
+      { key: 'reportsHub', icon: BarChart3, path: '/reports', ...navPerm('reports') },
+      { key: 'salesReport', icon: TrendingUp, path: '/sales/report', ...navPerm('salesReport') },
+      { key: 'purchasesReport', icon: ShoppingCart, path: '/purchases/report', ...navPerm('purchases') },
+      { key: 'stockReport', icon: Package, path: '/stock/report', ...navPerm('stockReport') },
+      { key: 'cashRegisterReports', icon: Banknote, path: '/cash-register/reports', ...navPerm('cashRegisterReports') },
+      { key: 'expensesReport', icon: Receipt, path: '/expenses/report', ...navPerm('expensesReport') },
+      { key: 'hrReport', icon: UsersIcon, path: '/employees/report', ...navPerm('hrReport') },
+      { key: 'loansReport', icon: DollarSign, path: '/loans/report', ...navPerm('loansReport') },
+      { key: 'incomeStatement', icon: Scale, path: '/accounting/income-statement', ...navPerm('incomeStatement') },
+      { key: 'balanceSheet', icon: FileSpreadsheet, path: '/accounting/balance-sheet', ...navPerm('balanceSheet') },
     ],
   },
   {
@@ -329,8 +338,7 @@ export const ERP_APPS: AppDefinition[] = [
     icon: Settings,
     path: '/settings/exchange-rates',
     section: 'system',
-    color: 'bg-black',
-    colorHover: 'hover:bg-neutral-900',
+    ...TILE.settings,
     ...navPerm('settings'),
     subItems: [
       { key: 'exchangeRates', icon: TrendingUp, path: '/settings/exchange-rates', ...navPerm('exchangeRates') },

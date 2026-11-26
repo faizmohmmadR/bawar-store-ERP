@@ -307,14 +307,15 @@ class JournalLine(BaseModel):
 
 
 # Chart of accounts template.
-# All accounts are created once for the single workspace.
+# Kept aligned to live ERP sections (sales, purchases, stock, Safe, expenses,
+# payroll, loans, equipment, commissions, FX, withdrawals, advances, returns).
+# Retired placeholders (never posted): 1150 Clearing, 2010 Third Party Settlement.
 DEFAULT_GL_ACCOUNTS = [
     # Assets
     ('1000', 'Cash',                    'asset'),
     ('1050', 'Bank',                    'asset'),
     ('1060', 'Sarafi',                  'asset'),
     ('1100', 'Inventory',               'asset'),
-    ('1150', 'Clearing',   'asset'),
     ('1200', 'Accounts Receivable',     'asset'),
     ('1300', 'Employee Advances',       'asset'),
     ('1310', 'Loans Receivable',        'asset'),
@@ -323,7 +324,6 @@ DEFAULT_GL_ACCOUNTS = [
     ('1410', 'Accumulated Depreciation - Fixed Assets', 'asset'),
     # Liabilities
     ('2000', 'Accounts Payable',        'liability'),
-    ('2010', 'Third Party Settlement Payable', 'liability'),
     ('2100', 'Loans Payable',           'liability'),
     ('2200', 'Commission Payable',      'liability'),
     ('2300', 'Customer Advances',       'liability'),
@@ -348,3 +348,6 @@ DEFAULT_GL_ACCOUNTS = [
     ('5350', 'Realized FX Loss',        'expense'),
     ('5400', 'Unrealized FX Loss',      'expense'),
 ]
+
+# Codes removed from the template; deactivate if still present in a database.
+RETIRED_GL_CODES = frozenset({'1150', '2010'})

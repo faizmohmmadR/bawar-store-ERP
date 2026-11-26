@@ -121,6 +121,22 @@ def get_payment_asset_account(payment_method='cash', currency_id=None):
     )
 
 
+def retire_unused_gl_accounts():
+    """
+    Deactivate CoA placeholders that no ERP section posts to.
+
+    Soft-deactivate (is_active=False) so historical FKs stay valid; never hard-delete.
+    """
+    from api.models.data.journal import RETIRED_GL_CODES, GLAccount
+
+    if not RETIRED_GL_CODES:
+        return 0
+    return GLAccount.objects.filter(
+        code__in=RETIRED_GL_CODES,
+        is_active=True,
+    ).update(is_active=False)
+
+
 def ensure_default_gl_accounts(currency_id=None):
     """Ensure GL rows for one currency book in single-tenant mode."""
     from api.models.data.journal import DEFAULT_GL_ACCOUNTS, GLAccount
@@ -161,6 +177,8 @@ def ensure_default_gl_accounts(currency_id=None):
                 account.name = name
                 account.save(update_fields=['name', 'updated_at'])
             created[code] = account
+    if currency_id == home_id:
+        retire_unused_gl_accounts()
     return created
 
 
@@ -179,8 +197,12 @@ def ensure_all_gl_accounts():
 
 
 def ensure_accounting_ready(currency_id=None):
-    """Ensure CoA exists."""
+    """Ensure CoA exists and retire unused placeholder accounts."""
     cid = currency_id if currency_id is not None else posting_currency_id()
+    try:
+        retire_unused_gl_accounts()
+    except Exception:
+        logger.exception('Retire unused GL accounts failed')
     if is_accounting_ready(currency_id=cid):
         return True
     try:

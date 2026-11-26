@@ -43,6 +43,7 @@ const StockList = () => {
       page: currentPage,
       page_size: pageSize,
       search: searchTerm,
+      aggregate: true,
       ...(productFilter && { product: productFilter }),
       ...(warehouseFilter && { warehouse: warehouseFilter }),
     },
@@ -180,7 +181,7 @@ const StockList = () => {
         title={t('stock.title', 'Stock')}
         subtitle={t(
           'stock.manageInventoryBalances',
-          'On-hand balances by product and warehouse (base units)',
+          'One on-hand row per product and warehouse (lots are combined)',
         )}
         icon={<Package className="h-5 w-5" />}
         headerActions={

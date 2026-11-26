@@ -1,15 +1,23 @@
-"""Section report for Sales — paid KPIs + free goods section, by currency."""
+"""Section report for Sales — billed, collected, returns, and gross profit."""
 from decimal import Decimal
 
 from api.models.data.currency import CURRENCY_DEFINITIONS, get_currency
-from api.services.financial_reports import _float, _item_cogs_base
-from api.services.trade_reporting import get_trade_report
-from api.utils.date_filters import apply_date_range
-from api.utils.packaging import (
-    bottles_per_carton,
-    sales_item_pieces,
-    split_pieces,
+from api.services.financial_reports import (
+    _float,
+    _item_cogs_base,
+    _item_revenue_base,
+    _period_returns,
+    _period_sales,
+    get_top_products,
 )
+from api.services.trade_reporting import get_trade_report
+
+
+ZERO = Decimal('0')
+
+
+def _d(value):
+    return Decimal(str(value or 0))
 
 
 def _currency_meta(currency_id):
@@ -34,252 +42,138 @@ def _sales_bucket(row):
         'collected': collected,
         'uncollected': uncollected,
         'invoice_count': int(row.get('count') or 0),
-        'free_count': int(row.get('free_count') or 0),
         'paid_count': int(row.get('paid_count') or 0),
         'partial_count': int(row.get('partial_count') or 0),
         'unpaid_count': int(row.get('unpaid_count') or 0),
     }
 
 
-def _free_item_identity(item):
-    """Stable key + display name for aggregating free sale lines."""
-    stock = getattr(item, 'stock', None)
-    product = getattr(stock, 'product', None) if stock else None
-    if product is not None:
-        return (
-            f'product:{product.pk}',
-            product.name or '—',
-            'product',
-            product.pk,
-            product.barcode or '',
-        )
+def _return_cogs_afn(start_date=None, end_date=None, *, currency=None):
+    """COGS reversed by returns in the period (sale unit_cost × returned base qty)."""
+    from api.models.data.returns import ReturnItems
 
-    rm_stock = getattr(item, 'raw_material_stock', None)
-    material = getattr(rm_stock, 'raw_material', None) if rm_stock else None
-    if material is not None:
-        return (
-            f'raw_material:{material.pk}',
-            material.name or '—',
-            'raw_material',
-            material.pk,
-            '',
-        )
-
-    tank = getattr(item, 'storage_tank', None)
-    if tank is not None:
-        label = getattr(tank, 'name', None) or f'Tank #{tank.pk}'
-        return (f'tank:{tank.pk}', label, 'tank', tank.pk, '')
-
-    return (f'line:{item.pk}', '—', 'other', None, '')
-
-
-def _free_line_pack_amounts(item):
-    """Carton / bottle / plastic / liter / kg quantities for one free line."""
-    unit = (getattr(item, 'unit', None) or '').lower()
-    qty = Decimal(str(getattr(item, 'quantity', 0) or 0))
-    pieces = Decimal(sales_item_pieces(item) or 0)
-    product = getattr(getattr(item, 'stock', None), 'product', None)
-    packaging_type = (
-        getattr(product, 'packaging_type', None)
-        or getattr(product, 'stock_kind', None)
-        or ''
-    ).lower()
-
-    cartons = bottles = plastics = liters = kg = Decimal('0')
-
-    if getattr(item, 'sale_source', None) == 'tank' or unit == 'liter':
-        liters = Decimal(str(getattr(item, 'liter_amount', 0) or qty or 0))
-        return cartons, bottles, plastics, liters, kg, pieces
-
-    if unit == 'kg' and getattr(item, 'sale_source', None) != 'stock':
-        kg = qty
-        return cartons, bottles, plastics, liters, kg, pieces
-
-    # Packaging / piece-stock materials: attribute qty to that package type.
-    if packaging_type in ('carton', 'plastic', 'bottle') or getattr(product, 'is_piece_stock', False):
-        kind = packaging_type or 'bottle'
-        if unit == 'carton' or kind == 'carton':
-            cartons = qty if unit == 'carton' else pieces
-        elif unit == 'plastic' or kind == 'plastic':
-            plastics = qty if unit == 'plastic' else pieces
-        else:
-            bottles = qty if unit in ('bottle', 'dana', 'piece', 'pieces') else pieces
-        return cartons, bottles, plastics, liters, kg, pieces
-
-    # Finished goods: stock-style carton + loose bottle, or native plastic.
-    bpc = bottles_per_carton(product)
-    if unit == 'carton':
-        cartons = qty
-    elif unit == 'plastic':
-        plastics = qty
-    else:
-        cartons, bottles = split_pieces(pieces, bpc)
-
-    return cartons, bottles, plastics, liters, kg, pieces
-
-
-def _free_sales_queryset(start_date=None, end_date=None, *, currency=None):
-    from api.models.data.sales import Sales
-
-    sales = Sales.objects.exclude(status__in=['draft', 'cancelled']).filter(
-        transaction_type='free',
-    ).exclude(vendor_transaction='purchase_return')
-    sales = apply_date_range(sales, 'sale_date', start_date, end_date)
+    returns = _period_returns(start_date, end_date)
     if currency is not None:
-        sales = sales.filter(currency=currency)
-    return sales
+        returns = returns.filter(currency=currency)
+    items = ReturnItems.objects.filter(return_order__in=returns).select_related('sales_item')
+    total = ZERO
+    for item in items.iterator(chunk_size=500):
+        sale_item = item.sales_item
+        if sale_item is None:
+            continue
+        unit_cost = _d(getattr(sale_item, 'unit_cost', 0))
+        base_qty = _d(getattr(item, 'base_quantity', 0) or getattr(item, 'liter_amount', 0))
+        if unit_cost <= 0 or base_qty <= 0:
+            continue
+        total += (base_qty * unit_cost).quantize(Decimal('0.0001'))
+    return total
 
 
-def _free_sales_summary(start_date=None, end_date=None, *, currency=None, include_items=False):
-    """Free goods: invoice count, pieces, AFN cost, optional per-item breakdown."""
+def _line_profit_afn(start_date=None, end_date=None, *, currency=None):
+    """
+    Period sales gross profit from line items.
+
+    Revenue and COGS are both in AFN:
+      - revenue from sale-line totals converted with the invoice base ratio
+      - COGS from snapshotted AVCO unit_cost × base quantity
+      - returns reduce both revenue (via caller net_billed) and COGS here
+    """
     from api.models.data.sales import SalesItems
 
-    sales = _free_sales_queryset(start_date, end_date, currency=currency)
-    invoice_count = sales.count()
-    cost_afn = Decimal('0')
-    pieces_total = Decimal('0')
-    carton_total = Decimal('0')
-    bottle_total = Decimal('0')
-    plastic_total = Decimal('0')
-    buckets = {}
+    sales = _period_sales(start_date, end_date).exclude(transaction_type='free')
+    if currency is not None:
+        sales = sales.filter(currency=currency)
 
-    items = SalesItems.objects.filter(sales__in=sales).select_related(
-        'sales',
-        'stock__product',
-        'raw_material_stock__raw_material',
-        'storage_tank',
-    )
-    for item in items.iterator(chunk_size=500):
-        line_cost = _item_cogs_base(item)
-        cartons, bottles, plastics, liters, kg, pieces = _free_line_pack_amounts(item)
-        cost_afn += line_cost
-        pieces_total += pieces
-        carton_total += cartons
-        bottle_total += bottles
-        plastic_total += plastics
+    revenue = ZERO
+    cogs = ZERO
+    for item in SalesItems.objects.filter(sales__in=sales).select_related('sales').iterator(
+        chunk_size=500,
+    ):
+        revenue += _item_revenue_base(item)
+        cogs += _item_cogs_base(item)
 
-        if not include_items:
-            continue
+    return_cogs = _return_cogs_afn(start_date, end_date, currency=currency)
+    net_cogs = cogs - return_cogs
+    if net_cogs < 0:
+        net_cogs = ZERO
+    return revenue, net_cogs, cogs, return_cogs
 
-        key, name, kind, ref_id, barcode = _free_item_identity(item)
-        bucket = buckets.get(key)
-        if bucket is None:
-            bucket = {
-                'key': key,
-                'name': name,
-                'item_type': kind,
-                'ref_id': ref_id,
-                'barcode': barcode,
-                'invoice_count': set(),
-                'line_count': 0,
-                'carton_amount': Decimal('0'),
-                'bottle_amount': Decimal('0'),
-                'plastic_amount': Decimal('0'),
-                'liter_amount': Decimal('0'),
-                'kg_amount': Decimal('0'),
-                'pieces': Decimal('0'),
-                'cost_afn': Decimal('0'),
-            }
-            buckets[key] = bucket
-        bucket['invoice_count'].add(item.sales_id)
-        bucket['line_count'] += 1
-        bucket['carton_amount'] += cartons
-        bucket['bottle_amount'] += bottles
-        bucket['plastic_amount'] += plastics
-        bucket['liter_amount'] += liters
-        bucket['kg_amount'] += kg
-        bucket['pieces'] += pieces
-        bucket['cost_afn'] += line_cost
 
-    result = {
-        'invoice_count': invoice_count,
-        'pieces': float(pieces_total),
-        'carton_amount': float(carton_total),
-        'bottle_amount': float(bottle_total),
-        'plastic_amount': float(plastic_total),
-        'cost_afn': float(cost_afn),
+def _profit_block(revenue_afn, cogs_afn, *, cogs_before_returns=None, return_cogs=None):
+    revenue = max(_d(revenue_afn), ZERO)
+    cogs = max(_d(cogs_afn), ZERO)
+    gross = revenue - cogs
+    margin = (gross / revenue * Decimal('100')) if revenue > 0 else ZERO
+    return {
+        'revenue_afn': _float(revenue),
+        'cogs_afn': _float(cogs),
+        'cogs_before_returns_afn': _float(cogs_before_returns if cogs_before_returns is not None else cogs),
+        'return_cogs_afn': _float(return_cogs or 0),
+        'gross_profit_afn': _float(gross),
+        'margin_pct': _float(margin),
     }
-    if include_items:
-        rows = []
-        for bucket in buckets.values():
-            rows.append({
-                'key': bucket['key'],
-                'name': bucket['name'],
-                'item_type': bucket['item_type'],
-                'ref_id': bucket['ref_id'],
-                'barcode': bucket['barcode'],
-                'invoice_count': len(bucket['invoice_count']),
-                'line_count': bucket['line_count'],
-                'carton_amount': _float(bucket['carton_amount']),
-                'bottle_amount': _float(bucket['bottle_amount']),
-                'plastic_amount': _float(bucket['plastic_amount']),
-                'liter_amount': _float(bucket['liter_amount']),
-                'kg_amount': _float(bucket['kg_amount']),
-                'pieces': _float(bucket['pieces']),
-                'cost_afn': _float(bucket['cost_afn']),
-            })
-        rows.sort(key=lambda row: (-row['cost_afn'], -row['pieces'], row['name']))
-        result['items'] = rows
-    return result
 
 
 def get_sales_report(start_date=None, end_date=None):
     trade_afn = get_trade_report(start_date, end_date)
     sales_afn = _sales_bucket(trade_afn['sales'])
-    free_afn = _free_sales_summary(start_date, end_date, include_items=True)
+
+    # Gross profit is on goods sold (line revenue − AVCO COGS), not on cash collected.
+    # Settlement billed may include invoices without lines; those are excluded from profit.
+    line_revenue, net_cogs, cogs_raw, return_cogs = _line_profit_afn(start_date, end_date)
+    net_billed = _d(sales_afn['net_billed'])
+    revenue_for_profit = line_revenue if line_revenue > 0 else net_billed
+    profit_afn = _profit_block(
+        revenue_for_profit,
+        net_cogs,
+        cogs_before_returns=cogs_raw,
+        return_cogs=return_cogs,
+    )
+    top_products = sorted(
+        get_top_products(start_date=start_date, end_date=end_date, limit=25),
+        key=lambda row: (row.get('gross_profit_base') or 0, row.get('revenue_base') or 0),
+        reverse=True,
+    )[:15]
 
     by_currency = {}
-    free_by_currency = {}
-    for currency_id, meta in CURRENCY_DEFINITIONS.items():
+    for currency_id in CURRENCY_DEFINITIONS:
         trade = get_trade_report(start_date, end_date, currency=currency_id)
         bucket = _sales_bucket(trade['sales'])
-        free_bucket = _free_sales_summary(start_date, end_date, currency=currency_id)
-        info = _currency_meta(currency_id)
-
-        if any((
+        if not any((
             bucket['billed'],
             bucket['returns'],
             bucket['collected'],
             bucket['uncollected'],
             bucket['invoice_count'],
         )):
-            by_currency[info['code']] = {
-                **info,
-                'billed_native': bucket['billed'],
-                'returns_native': bucket['returns'],
-                'net_billed_native': bucket['net_billed'],
-                'collected_native': bucket['collected'],
-                'uncollected_native': bucket['uncollected'],
-                'invoice_count': bucket['invoice_count'],
-                'paid_count': bucket['paid_count'],
-                'partial_count': bucket['partial_count'],
-                'unpaid_count': bucket['unpaid_count'],
-            }
-
-        if free_bucket['invoice_count'] or free_bucket['pieces'] or free_bucket['cost_afn']:
-            free_by_currency[info['code']] = {
-                **info,
-                'invoice_count': free_bucket['invoice_count'],
-                'pieces': free_bucket['pieces'],
-                'carton_amount': free_bucket['carton_amount'],
-                'bottle_amount': free_bucket['bottle_amount'],
-                'plastic_amount': free_bucket['plastic_amount'],
-                'cost_afn': free_bucket['cost_afn'],
-            }
+            continue
+        rev, cogs, cogs_raw_c, ret_cogs = _line_profit_afn(
+            start_date, end_date, currency=currency_id,
+        )
+        # Currency table: native settlement + AFN profit for invoices in that currency.
+        profit = _profit_block(rev, cogs, cogs_before_returns=cogs_raw_c, return_cogs=ret_cogs)
+        info = _currency_meta(currency_id)
+        by_currency[info['code']] = {
+            **info,
+            'billed_native': bucket['billed'],
+            'returns_native': bucket['returns'],
+            'net_billed_native': bucket['net_billed'],
+            'collected_native': bucket['collected'],
+            'uncollected_native': bucket['uncollected'],
+            'invoice_count': bucket['invoice_count'],
+            'paid_count': bucket['paid_count'],
+            'partial_count': bucket['partial_count'],
+            'unpaid_count': bucket['unpaid_count'],
+            'cogs_afn': profit['cogs_afn'],
+            'gross_profit_afn': profit['gross_profit_afn'],
+            'margin_pct': profit['margin_pct'],
+        }
 
     currency_codes = sorted(
         by_currency.keys(),
         key=lambda code: (
             0 if code == 'AFN' else 1,
             -by_currency[code]['net_billed_native'],
-            code,
-        ),
-    )
-    free_currency_codes = sorted(
-        free_by_currency.keys(),
-        key=lambda code: (
-            0 if code == 'AFN' else 1,
-            -free_by_currency[code]['cost_afn'],
             code,
         ),
     )
@@ -294,34 +188,30 @@ def get_sales_report(start_date=None, end_date=None):
             'net_billed_afn': _float(sales_afn['net_billed']),
             'collected_afn': _float(sales_afn['collected']),
             'uncollected_afn': _float(sales_afn['uncollected']),
+            'cogs_afn': profit_afn['cogs_afn'],
+            'gross_profit_afn': profit_afn['gross_profit_afn'],
+            'margin_pct': profit_afn['margin_pct'],
             'invoice_count': sales_afn['invoice_count'],
-            'free_invoice_count': free_afn['invoice_count'],
-            'free_pieces': free_afn['pieces'],
-            'free_carton_amount': free_afn['carton_amount'],
-            'free_bottle_amount': free_afn['bottle_amount'],
-            'free_plastic_amount': free_afn['plastic_amount'],
-            'free_cost_afn': _float(free_afn['cost_afn']),
+            'paid_count': sales_afn['paid_count'],
+            'partial_count': sales_afn['partial_count'],
+            'unpaid_count': sales_afn['unpaid_count'],
             'currency_count': len(currency_codes),
         },
+        'profit': {
+            **profit_afn,
+            'note': (
+                'Gross profit = sold-goods revenue − COGS. '
+                'COGS uses AVCO unit cost snapshotted on each sale line (AFN per base unit). '
+                'Invoices without line items are excluded from profit.'
+            ),
+        },
+        'top_products': top_products,
         'by_currency': by_currency,
         'currency_codes': currency_codes,
         'currency_count': len(currency_codes),
-        'free': {
-            'invoice_count': free_afn['invoice_count'],
-            'pieces': free_afn['pieces'],
-            'carton_amount': free_afn['carton_amount'],
-            'bottle_amount': free_afn['bottle_amount'],
-            'plastic_amount': free_afn['plastic_amount'],
-            'cost_afn': _float(free_afn['cost_afn']),
-            'items': free_afn.get('items') or [],
-            'by_currency': free_by_currency,
-            'currency_codes': free_currency_codes,
-        },
         'notes': [
-            'Paid sales exclude free goods invoices.',
-            'Free section uses distribution cost (COGS in AFN), not sell price.',
-            'Free items show carton / bottle / plastic amounts for packed goods.',
             'Collected and uncollected are settlement on period invoices as of period end.',
-            'Currencies are shown in native amounts and are never mixed.',
+            'Gross profit uses sale-line AVCO cost (AFN), not cash collected.',
+            'Currencies show native billed amounts; COGS and profit are always AFN.',
         ],
     }

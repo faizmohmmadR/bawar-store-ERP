@@ -18,8 +18,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
 import api from '@/api/client';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { formatAfn } from '@/lib/formatMoney';
-import { cashCategoryLabel } from './i18nHelpers';
+import { cn } from '@/lib/utils';
+import { cashCategoryBadgeClass, cashCategoryLabel } from './i18nHelpers';
 
 type DashboardPayload = {
   register: { id: number; name: string; code: string; linked_cash_account_code?: string };
@@ -226,7 +228,11 @@ export default function CashRegisterDashboard() {
     {
       key: 'category',
       title: t('cashRegister.category'),
-      render: (v) => cashCategoryLabel(t, v),
+      render: (v) => (
+        <Badge variant="outline" className={cn('font-medium', cashCategoryBadgeClass(v))}>
+          {cashCategoryLabel(t, v)}
+        </Badge>
+      ),
     },
     {
       key: 'description',

@@ -1,6 +1,6 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Control, UseFormSetValue, useFieldArray, useFormState, useWatch } from 'react-hook-form';
-import { ArrowLeft, ArrowRight, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -48,7 +48,10 @@ import {
 } from '@/lib/salePackagingFormSchemas';
 import { formatOrderNumeric, ORDER_NUMERIC_STEP } from '@/lib/orderNumeric';
 import { notifyError } from '@/lib/notify';
+import { cn } from '@/lib/utils';
 import useFetchObjects from '@/api/useFetchObjects';
+
+type RetailPrice = { amount?: number | string; currency?: number } | null | undefined;
 
 type PackagingOption = {
   id: number;
@@ -58,6 +61,17 @@ type PackagingOption = {
   is_default_sale?: boolean;
   is_base?: boolean;
   is_active?: boolean;
+  retail_price?: RetailPrice;
+  retail_prices?: RetailPrice[];
+};
+
+type ProductOption = {
+  id: number;
+  name?: string;
+  sku?: string | null;
+  stock_on_hand?: number | string | null;
+  base_uom_details?: { symbol?: string | null; name?: string | null } | null;
+  packagings?: PackagingOption[];
 };
 
 type Props = {
@@ -70,6 +84,8 @@ type Props = {
   loadingLabel: string;
 };
 
+const AFN = 1;
+
 const salePackagings = (option?: { packagings?: PackagingOption[] } | null) =>
   (option?.packagings || []).filter((p) => p.for_sale !== false && p.is_active !== false);
 
@@ -77,6 +93,18 @@ const pickDefaultPackaging = (packs: PackagingOption[]) =>
   packs.find((p) => p.is_default_sale)
   || packs.find((p) => p.is_base)
   || packs[0];
+
+/** Stock sale list price is always AFN — never a USD / native purchase copy. */
+function pickAfnRetailAmount(pack: PackagingOption | null | undefined): number {
+  const listed = (pack?.retail_prices || []).filter(Boolean) as Array<{ amount?: number | string; currency?: number }>;
+  const afn = listed.find((row) => Number(row.currency) === AFN);
+  if (afn && Number(afn.amount) > 0) return Number(afn.amount);
+  const single = pack?.retail_price;
+  if (single && Number(single.amount) > 0 && Number(single.currency || AFN) === AFN) {
+    return Number(single.amount);
+  }
+  return 0;
+}
 
 export function SaleFormContent({
   control,
@@ -89,14 +117,17 @@ export function SaleFormContent({
 }: Props) {
   const { t, direction } = useLanguage();
   const BackIcon = direction === 'rtl' ? ArrowRight : ArrowLeft;
+  const [summaryOpen, setSummaryOpen] = useState(true);
   const { fields, insert, move, remove } = useFieldArray({ control, name: 'items' });
   const items = useWatch({ control, name: 'items' }) ?? [];
   const currency = useWatch({ control, name: 'currency' }) ?? '';
   const saleDate = useWatch({ control, name: 'sale_date' }) ?? '';
   const discount = useWatch({ control, name: 'discount' }) ?? 0;
+  const warehouse = useWatch({ control, name: 'warehouse' }) ?? '';
   const { errors } = useFormState({ control });
 
-  const currencySymbol = resolveCurrencySymbol(currency);
+  const currencySymbol = resolveCurrencySymbol(currency || AFN);
+
   const subtotal = useMemo(() => calculateSaleSubtotal(items), [items]);
   const total = useMemo(
     () => calculateSaleTotal(items, Number(discount) || 0),
@@ -111,6 +142,7 @@ export function SaleFormContent({
       return false;
     }
     const plan = planBarcodeLineApply(items, resolved, 1);
+    // Barcode resolve returns AFN retail from stock — use as-is.
     const price = barcodeUnitPrice(resolved, 'sale');
     const qtyInBase = Number(resolved.packaging.qty_in_base) || 1;
     const productId = String(resolved.product.id);
@@ -245,12 +277,13 @@ export function SaleFormContent({
               name="currency"
               render={({ field }) => (
                 <FormItem className="flex min-w-0 flex-col gap-1.5">
-                  <FormLabel>{t('common.currency')} *</FormLabel>
+                  <FormLabel>{t('sales.currency', t('common.currency', 'Currency'))} *</FormLabel>
                   <FormControl>
                     <CurrencySelect
                       compact
                       value={field.value}
                       onChange={field.onChange}
+                      allowedCodes={['AFN']}
                       className="w-full"
                       triggerClassName="h-10 min-h-10"
                     />
@@ -327,7 +360,12 @@ export function SaleFormContent({
         </div>
       </div>
 
-      <div className="flex flex-col gap-5 px-3 py-4 sm:gap-6 sm:px-5 sm:py-5 lg:flex-row lg:items-start">
+      <div
+        className={cn(
+          'flex flex-col gap-5 px-3 py-4 sm:gap-6 sm:px-5 sm:py-5 lg:flex-row lg:items-start',
+          !summaryOpen && 'pb-24 lg:pb-5',
+        )}
+      >
         <div className="flex min-w-0 flex-1 flex-col">
           <Card className="overflow-hidden">
             <div className="flex flex-col gap-2 border-b bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -375,6 +413,7 @@ export function SaleFormContent({
                         items={items}
                         fieldsLength={fields.length}
                         currencySymbol={currencySymbol}
+                        warehouseId={warehouse}
                         insert={insert}
                         move={move}
                         remove={remove}
@@ -388,58 +427,113 @@ export function SaleFormContent({
           </Card>
         </div>
 
-        <Card className="flex w-full flex-shrink-0 flex-col overflow-hidden lg:w-72 xl:w-80">
-          <div className="border-b bg-muted/30 px-4 py-3">
-            <h3 className="text-sm font-semibold">{t('sales.summary', 'Summary')}</h3>
-          </div>
-          <CardContent className="flex-1 space-y-3 p-4">
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">{t('sales.subtotal', 'Subtotal')}</span>
-                <span className="font-semibold tabular-nums">
-                  {currencySymbol}{formatOrderNumeric(subtotal)}
-                </span>
-              </div>
-              {Number(discount) > 0 ? (
-                <div className="flex justify-between gap-3 text-muted-foreground">
-                  <span>{t('sales.discount', 'Discount')} ({discount}%)</span>
-                  <span className="tabular-nums">
-                    -{currencySymbol}{formatOrderNumeric(subtotal - total)}
+        {summaryOpen ? (
+          <Card className="order-last flex w-full flex-shrink-0 flex-col overflow-hidden lg:order-none lg:sticky lg:top-4 lg:w-72 xl:w-80">
+            <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3">
+              <h3 className="text-sm font-semibold">{t('sales.summary', 'Summary')}</h3>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 shrink-0 p-0"
+                onClick={() => setSummaryOpen(false)}
+                title={t('common.close', 'Close')}
+                aria-label={t('common.close', 'Close')}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <CardContent className="flex-1 space-y-3 p-4">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">{t('sales.subtotal', 'Subtotal')}</span>
+                  <span className="font-semibold tabular-nums">
+                    {currencySymbol}{formatOrderNumeric(subtotal)}
                   </span>
                 </div>
-              ) : null}
-              <div className="flex justify-between gap-3 border-t pt-2">
-                <span className="font-medium">{t('sales.finalTotal', 'Final total')}</span>
-                <span className="text-base font-bold tabular-nums text-primary">
+                {Number(discount) > 0 ? (
+                  <div className="flex justify-between gap-3 text-muted-foreground">
+                    <span>{t('sales.discount', 'Discount')} ({discount}%)</span>
+                    <span className="tabular-nums">
+                      -{currencySymbol}{formatOrderNumeric(subtotal - total)}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex justify-between gap-3 border-t pt-2">
+                  <span className="font-medium">{t('sales.finalTotal', 'Final total')}</span>
+                  <span className="text-base font-bold tabular-nums text-primary">
+                    {currencySymbol}{formatOrderNumeric(total)}
+                  </span>
+                </div>
+                <AfnReportingPreview amount={total} currencyId={currency} atDate={saleDate} />
+              </div>
+
+              <FormField
+                control={control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">{t('sales.notes', 'Notes')}</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} rows={2} className="resize-none text-xs" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+            <div className="mt-auto border-t p-4">
+              <FormActions
+                className="w-full flex-col pt-0 [&>button]:w-full"
+                onCancel={onCancel}
+                loading={loading}
+                submitLabel={submitLabel}
+                loadingLabel={loadingLabel}
+              />
+            </div>
+          </Card>
+        ) : (
+          <div className="sticky top-4 order-last hidden w-12 flex-shrink-0 flex-col items-center gap-3 self-start lg:order-none lg:flex">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex h-auto flex-col gap-1.5 px-2 py-3"
+              onClick={() => setSummaryOpen(true)}
+              title={t('sales.summary', 'Summary')}
+              aria-label={t('sales.summary', 'Summary')}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="text-[10px] font-medium [writing-mode:vertical-rl] rotate-180">
+                {t('sales.summary', 'Summary')}
+              </span>
+            </Button>
+          </div>
+        )}
+
+        {!summaryOpen && (
+          <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 px-4 py-3 shadow-lg backdrop-blur-sm">
+            <div className="mx-auto flex max-w-[1800px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm">
+                <span className="text-muted-foreground">{t('sales.finalTotal', 'Final total')}: </span>
+                <span className="font-bold tabular-nums text-primary">
                   {currencySymbol}{formatOrderNumeric(total)}
                 </span>
               </div>
-              <AfnReportingPreview amount={total} currencyId={currency} atDate={saleDate} />
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setSummaryOpen(true)}>
+                  {t('sales.summary', 'Summary')}
+                </Button>
+                <FormActions
+                  className="pt-0"
+                  onCancel={onCancel}
+                  loading={loading}
+                  submitLabel={submitLabel}
+                  loadingLabel={loadingLabel}
+                />
+              </div>
             </div>
-
-            <FormField
-              control={control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">{t('sales.notes', 'Notes')}</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={2} className="resize-none text-xs" />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </CardContent>
-          <div className="mt-auto border-t p-4">
-            <FormActions
-              className="w-full flex-col pt-0 [&>button]:w-full"
-              onCancel={onCancel}
-              loading={loading}
-              submitLabel={submitLabel}
-              loadingLabel={loadingLabel}
-            />
           </div>
-        </Card>
+        )}
       </div>
     </div>
   );
@@ -452,6 +546,7 @@ function SaleLineRow({
   items,
   fieldsLength,
   currencySymbol,
+  warehouseId,
   insert,
   move,
   remove,
@@ -463,6 +558,7 @@ function SaleLineRow({
   items: SalePackagingFormValues['items'];
   fieldsLength: number;
   currencySymbol: string;
+  warehouseId: string;
   insert: (index: number, value: ReturnType<typeof defaultSalePackagingItem>) => void;
   move: (from: number, to: number) => void;
   remove: (index: number) => void;
@@ -472,9 +568,10 @@ function SaleLineRow({
   const item = items[index];
   const lineTotal = (Number(item?.quantity) || 0) * (Number(item?.sell_price) || 0);
 
-  const { data: productDetail } = useFetchObjects<{ packagings?: PackagingOption[] }>({
-    queryKey: ['product-for-sale-line', item?.product || ''],
+  const { data: productDetail } = useFetchObjects<ProductOption>({
+    queryKey: ['product-for-sale-line', item?.product || '', warehouseId || ''],
     endpoint: item?.product ? `products/${item.product}/` : 'products/',
+    params: warehouseId ? { warehouse: warehouseId } : undefined,
     enabled: Boolean(item?.product),
   });
 
@@ -492,16 +589,40 @@ function SaleLineRow({
     return [];
   }, [productDetail, item?.packaging, item?.packaging_name, item?.qty_in_base, t]);
 
-  const applyPackaging = (pack?: PackagingOption | null) => {
+  const fillSellPrice = (pack?: PackagingOption | null) => {
+    const price = pickAfnRetailAmount(pack);
+    setValue(`items.${index}.sell_price`, price > 0 ? price : 0);
+  };
+
+  // Fill AFN stock retail when packs load and the line price is still empty.
+  useEffect(() => {
+    if (!item?.product || !item?.packaging) return;
+    if (Number(item.sell_price) > 0) return;
+    const pack = packs.find((p) => String(p.id) === String(item.packaging));
+    const price = pickAfnRetailAmount(pack);
+    if (price > 0) fillSellPrice(pack);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when packs/retail become available
+  }, [packs, item?.product, item?.packaging, item?.sell_price]);
+
+  const applyPackaging = (pack?: PackagingOption | null, { fillPrice = true } = {}) => {
     if (!pack) {
       setValue(`items.${index}.packaging`, '');
       setValue(`items.${index}.packaging_name`, '');
       setValue(`items.${index}.qty_in_base`, 1);
+      if (fillPrice) setValue(`items.${index}.sell_price`, 0);
       return;
     }
     setValue(`items.${index}.packaging`, String(pack.id));
     setValue(`items.${index}.packaging_name`, pack.name);
     setValue(`items.${index}.qty_in_base`, Number(pack.qty_in_base) || 1);
+    if (fillPrice) fillSellPrice(pack);
+  };
+
+  const stockLabel = (product?: ProductOption | null) => {
+    if (product?.stock_on_hand == null || product.stock_on_hand === '') return null;
+    const qty = formatOrderNumeric(Number(product.stock_on_hand) || 0);
+    const uom = product.base_uom_details?.symbol || product.base_uom_details?.name || '';
+    return uom ? `${qty} ${uom}` : qty;
   };
 
   return (
@@ -519,22 +640,28 @@ function SaleLineRow({
               <FormControl>
                 <Autocomplete
                   endpoint="products"
-                  queryParams={{ is_active: true }}
+                  queryParams={{
+                    is_active: true,
+                    ...(warehouseId ? { warehouse: warehouseId } : {}),
+                  }}
                   pageSize={30}
+                  dropdownMinWidth={400}
                   value={productField.value}
                   onCodeSubmit={onProductCodeSubmit}
                   keepOpenAfterCodeSubmit
                   onChange={(value, option) => {
                     const selectedId = value?.toString() || '';
-                    const changed = productField.value?.toString() !== selectedId;
+                    const previousId = productField.value?.toString() || '';
+                    const changed = previousId !== selectedId;
                     productField.onChange(selectedId);
-                    applyPackaging(pickDefaultPackaging(salePackagings(option)));
-                    if (changed && productField.value) {
-                      setValue(`items.${index}.quantity`, 0);
-                      setValue(`items.${index}.sell_price`, 0);
+                    const pack = pickDefaultPackaging(salePackagings(option as ProductOption));
+                    applyPackaging(pack, { fillPrice: true });
+                    if (changed) {
+                      setValue(`items.${index}.quantity`, selectedId ? 1 : 0);
+                      if (!selectedId) setValue(`items.${index}.sell_price`, 0);
                     }
                     if (selectedId && changed) {
-                      if (!items[index]?.product && index === 0) insert(0, defaultSalePackagingItem());
+                      if (!previousId && index === 0) insert(0, defaultSalePackagingItem());
                       else if (index > 1) move(index, 1);
                     }
                   }}
@@ -543,8 +670,33 @@ function SaleLineRow({
                     'products.scanOrSearchProduct',
                     'Scan barcode or search name / SKU',
                   )}
-                  getOptionLabel={(p) => [p.sku, p.name].filter(Boolean).join(' · ') || p.name}
-                  getOptionValue={(p) => p.id.toString()}
+                  getOptionLabel={(p: ProductOption) =>
+                    [p.sku, p.name].filter(Boolean).join(' · ') || p.name || ''
+                  }
+                  getOptionValue={(p: ProductOption) => p.id.toString()}
+                  renderOption={(p: ProductOption) => {
+                    const stock = stockLabel(p);
+                    return (
+                      <div className="flex min-w-0 flex-1 items-center justify-between gap-3 py-1">
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">{p.name}</div>
+                          {p.sku ? (
+                            <div className="truncate text-xs text-muted-foreground">SKU {p.sku}</div>
+                          ) : null}
+                        </div>
+                        <span
+                          className={cn(
+                            'shrink-0 rounded-md px-1.5 py-0.5 text-xs tabular-nums',
+                            Number(p.stock_on_hand) > 0
+                              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                              : 'bg-muted text-muted-foreground',
+                          )}
+                        >
+                          {stock ?? '—'}
+                        </span>
+                      </div>
+                    );
+                  }}
                   className="h-10 w-full"
                 />
               </FormControl>
@@ -565,7 +717,7 @@ function SaleLineRow({
                 onValueChange={(value) => {
                   const pack = packs.find((p) => String(p.id) === value);
                   packField.onChange(value);
-                  applyPackaging(pack);
+                  applyPackaging(pack, { fillPrice: true });
                 }}
                 disabled={!item?.product}
               >

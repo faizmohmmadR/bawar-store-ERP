@@ -23,13 +23,14 @@ const StockDetails = () => {
   const BackIcon = direction === 'rtl' ? ArrowRight : ArrowLeft;
 
   const { data: balance, isLoading, isError, refetch } = useFetchObjects<InventoryBalance>({
-    queryKey: ['inventory-balance', id],
-    endpoint: `inventory-balances/${id}/`,
+    queryKey: ['inventory-balance-position', id],
+    endpoint: `inventory-balances/${id}/position/`,
     enabled: !!id,
   });
 
   const productId = balance?.product ? String(balance.product) : '';
   const warehouseId = balance?.warehouse ? String(balance.warehouse) : '';
+  const lotRows = (balance?.lots || []).filter((row) => Number(row.quantity_on_hand) !== 0 || row.lot);
 
   const { data: movementsData, isLoading: movementsLoading } = useFetchObjects<{
     results?: StockMovement[];
@@ -142,6 +143,47 @@ const StockDetails = () => {
           </Card>
         ))}
       </div>
+
+      {lotRows.length > 1 ? (
+        <Card className="shadow-none">
+          <CardHeader className="border-b bg-muted/20 px-4 py-4 sm:px-5">
+            <CardTitle className="text-base">{t('stock.lots', 'Lots / batches')}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                'stock.lotsHint',
+                'Purchases with lot or expiry are tracked separately for FEFO; the totals above combine them.',
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>{t('stock.lot', 'Lot')}</TableHead>
+                  <TableHead className="text-end">{t('stock.baseOnHand', 'On hand (base)')}</TableHead>
+                  <TableHead className="text-end">{t('stock.avgCost', 'Avg cost (AFN)')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lotRows.map((lot) => (
+                  <TableRow key={lot.id}>
+                    <TableCell className="font-medium">
+                      {lot.lot ? `#${lot.lot}` : t('stock.unlotted', 'Unlotted pool')}
+                    </TableCell>
+                    <TableCell className="text-end tabular-nums">
+                      {formatOrderNumeric(Number(lot.quantity_on_hand) || 0)}
+                      {uom ? <span className="ms-1 text-muted-foreground">{uom}</span> : null}
+                    </TableCell>
+                    <TableCell className="text-end tabular-nums">
+                      {formatOrderNumeric(Number(lot.average_cost) || 0)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card className="shadow-none">
         <CardHeader className="border-b bg-muted/20 px-4 py-4 sm:px-5">

@@ -82,6 +82,15 @@ class Loan(BaseModel):
         self.is_paid = total > 0 and paid >= total
         super().save(*args, **kwargs)
 
+    def soft_delete(self, user=None):
+        """Trash the loan and reverse cash loan payments (Safe + journals)."""
+        from django.db import transaction
+
+        with transaction.atomic():
+            for payment in self.payments.all():
+                payment.soft_delete(user=user)
+            super().soft_delete(user=user)
+
     def __str__(self):
         name = self.get_loaner_name()
         return f"{name} - {self.get_loan_type_display()} - {self.amount}"

@@ -104,5 +104,14 @@ class GeneralPayment(BaseModel):
         applied = self.allocations.filter(is_credit_application=True).aggregate(total=Sum('amount'))['total'] or Decimal('0')
         return max(Decimal('0'), advance - applied)
 
+    def soft_delete(self, user=None):
+        """Trash the receipt and reverse every allocation (including Safe cash rows)."""
+        from django.db import transaction
+
+        with transaction.atomic():
+            for payment in self.allocations.all():
+                payment.soft_delete(user=user)
+            super().soft_delete(user=user)
+
     def __str__(self):
         return f'GPAY-{self.pk}'

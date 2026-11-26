@@ -1,13 +1,13 @@
 import {
   Banknote,
   CircleDollarSign,
-  Factory,
   HandCoins,
   Package,
   PieChart as PieChartIcon,
   ShoppingCart,
   TrendingDown,
   TrendingUp,
+  Users,
   Wallet,
 } from 'lucide-react';
 import {
@@ -53,8 +53,10 @@ export type OperationalReportResponse = {
     gross_profit_afn?: number;
     net_profit_afn?: number;
     expenses_paid_afn?: number;
-    production_liters?: number;
-    packing_bottles?: number;
+    payroll_paid_afn?: number;
+    purchases_received_afn?: number;
+    stock_value_afn?: number;
+    stock_on_hand?: number;
     cash_balance_afn?: number;
     accounts_receivable_afn?: number;
     accounts_payable_afn?: number;
@@ -104,26 +106,14 @@ export type OperationalReportResponse = {
     purchase_payments_afn: number;
     purchases_unpaid_afn: number;
     accounts_payable_outstanding_afn: number;
-    production: {
-      runs: number;
-      output_liters: number;
-      output_kg: number;
-      materials_kg?: number;
-      chemistry_kg?: number;
-      water_kg?: number;
-      total_input_kg?: number;
-      material_cost_afn: number;
-      extra_expense_afn: number;
-      total_cost_afn: number;
-    };
-    packing: {
-      runs: number;
-      quantity_liters: number;
-      quantity_kg: number;
-      bottle_count: number;
-      liquid_cost_afn: number;
-      packaging_cost_afn: number;
-      total_cost_afn: number;
+    payroll_paid_afn?: number;
+    advances_paid_afn?: number;
+    expenses_paid_afn?: number;
+    stock?: {
+      product_balance_count?: number;
+      total_on_hand?: number;
+      total_value_afn?: number;
+      low_stock_count?: number;
     };
   };
   profit: {
@@ -352,18 +342,18 @@ export function OperationalReportView({
       {!compact && (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard
-            title={t('reports.productionOutput', 'Produced')}
-            value={ops?.production?.output_kg ?? 0}
-            suffix="kg"
-            hint={`${formatNumber(ops?.production?.total_cost_afn || 0)} ${currency} · ${ops?.production?.runs || 0} runs`}
-            icon={<Factory className="h-4 w-4" />}
+            title={t('reports.purchases', 'Purchases')}
+            value={ops?.purchases_received_afn ?? kpis.purchases_received_afn ?? 0}
+            currency={currency}
+            hint={t('reports.purchasesReceivedHint', 'Stock received from vendors this period')}
+            icon={<ShoppingCart className="h-4 w-4" />}
             tone="neutral"
           />
           <KpiCard
-            title={t('reports.packingOutput', 'Packed')}
-            value={ops?.packing?.bottle_count ?? 0}
-            suffix={t('reports.bottles', 'bottles')}
-            hint={`${formatNumber(ops?.packing?.total_cost_afn || 0)} ${currency} · ${ops?.packing?.runs || 0} runs`}
+            title={t('reports.stockValue', 'Stock value')}
+            value={ops?.stock?.total_value_afn ?? kpis.stock_value_afn ?? 0}
+            currency={currency}
+            hint={`${formatNumber(ops?.stock?.total_on_hand ?? kpis.stock_on_hand ?? 0)} ${t('reports.onHand', 'on hand')}`}
             icon={<Package className="h-4 w-4" />}
             tone="neutral"
           />
@@ -533,61 +523,6 @@ export function OperationalReportView({
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Card className="shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">{t('reports.production', 'Production')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between gap-2"><span className="text-muted-foreground">{t('rawMaterialProcesses.chemistryWeight')}</span><bdi dir="ltr">{formatNumber(ops?.production?.chemistry_kg || 0)} kg</bdi></div>
-                <div className="flex justify-between gap-2"><span className="text-muted-foreground">{t('rawMaterialProcesses.materialsWeight')}</span><bdi dir="ltr">{formatNumber(ops?.production?.materials_kg || 0)} kg</bdi></div>
-                <div className="flex justify-between gap-2"><span className="text-muted-foreground">{t('rawMaterialProcesses.water')}</span><bdi dir="ltr">{formatNumber(ops?.production?.water_kg || 0)} kg</bdi></div>
-
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">{t('reports.runs', 'Runs')}</span>
-                  <span className="font-semibold tabular-nums">{ops?.production?.runs || 0}</span>
-                </div>
-
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">{t('reports.kg', 'Kg')}</span>
-                  <span className="font-semibold tabular-nums">
-                    {formatNumber(ops?.production?.output_kg || 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-2 border-t pt-2">
-                  <span className="text-muted-foreground">{t('reports.totalCost', 'Total cost')}</span>
-                  <Money value={ops?.production?.total_cost_afn || 0} currency={currency} />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">{t('reports.packing', 'Packing')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">{t('reports.runs', 'Runs')}</span>
-                  <span className="font-semibold tabular-nums">{ops?.packing?.runs || 0}</span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">{t('reports.bottles', 'Bottles')}</span>
-                  <span className="font-semibold tabular-nums">
-                    {formatNumber(ops?.packing?.bottle_count || 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">{t('reports.kg', 'Kg')}</span>
-                  <span className="font-semibold tabular-nums">
-                    {formatNumber(ops?.packing?.quantity_kg || 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-2 border-t pt-2">
-                  <span className="text-muted-foreground">{t('reports.totalCost', 'Total cost')}</span>
-                  <Money value={ops?.packing?.total_cost_afn || 0} currency={currency} />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2">
                 <CardTitle className="text-sm">{t('reports.purchases', 'Purchases')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
@@ -606,6 +541,59 @@ export function OperationalReportView({
                 <div className="flex justify-between gap-2 border-t pt-2">
                   <span className="text-muted-foreground">{t('reports.apOutstanding', 'AP outstanding')}</span>
                   <Money value={ops?.accounts_payable_outstanding_afn || 0} currency={currency} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">{t('reports.stock', 'Stock')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">{t('reports.onHand', 'On hand')}</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatNumber(ops?.stock?.total_on_hand || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">{t('stock.skuCount', 'Products with stock')}</span>
+                  <span className="font-semibold tabular-nums">
+                    {ops?.stock?.product_balance_count || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">{t('stock.lowStock', 'Low stock')}</span>
+                  <span className="font-semibold tabular-nums">
+                    {ops?.stock?.low_stock_count || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-2 border-t pt-2">
+                  <span className="text-muted-foreground">{t('reports.stockValue', 'Stock value')}</span>
+                  <Money value={ops?.stock?.total_value_afn || 0} currency={currency} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Users className="h-3.5 w-3.5" />
+                  {t('reports.hrPayroll', 'HR & Payroll')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">{t('reports.salaryPaid', 'Salary paid')}</span>
+                  <Money value={ops?.payroll_paid_afn || 0} currency={currency} />
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">{t('reports.advancesPaid', 'Advances paid')}</span>
+                  <Money value={ops?.advances_paid_afn || 0} currency={currency} />
+                </div>
+                <div className="flex justify-between gap-2 border-t pt-2">
+                  <span className="text-muted-foreground">{t('reports.expensesPaid', 'Expenses paid')}</span>
+                  <Money value={ops?.expenses_paid_afn || 0} currency={currency} />
                 </div>
               </CardContent>
             </Card>
