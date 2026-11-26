@@ -161,6 +161,7 @@ export function PurchaseFormContent({
       return true;
     }
 
+    const trackExpiry = Boolean(resolved.product.track_expiry);
     const line = {
       ...defaultPurchaseItem(),
       product: productId,
@@ -168,6 +169,7 @@ export function PurchaseFormContent({
       packaging_name: resolved.packaging.name,
       qty_in_base: qtyInBase,
       is_variable_weight: isVariable,
+      track_expiry: trackExpiry,
       quantity: 1,
       price_per_unit: buyPrice,
       profit_percent: percent,
@@ -184,6 +186,7 @@ export function PurchaseFormContent({
     setValue(`items.${plan.index}.packaging_name`, resolved.packaging.name);
     setValue(`items.${plan.index}.qty_in_base`, qtyInBase);
     setValue(`items.${plan.index}.is_variable_weight`, isVariable);
+    setValue(`items.${plan.index}.track_expiry`, trackExpiry);
     setValue(`items.${plan.index}.quantity`, 1);
     setValue(`items.${plan.index}.price_per_unit`, buyPrice);
     setValue(`items.${plan.index}.profit_percent`, percent);
@@ -657,11 +660,28 @@ function PurchaseLineRow({
   const lineTotal = (Number(item?.quantity) || 0) * (Number(item?.price_per_unit) || 0);
   const showMeasured = Boolean(item?.is_variable_weight);
 
-  const { data: productDetail } = useFetchObjects<{ packagings?: PackagingOption[] }>({
+  const { data: productDetail } = useFetchObjects<{
+    packagings?: PackagingOption[];
+    track_expiry?: boolean;
+  }>({
     queryKey: ['product-for-purchase-line', item?.product || ''],
     endpoint: item?.product ? `products/${item.product}/` : 'products/',
     enabled: Boolean(item?.product),
   });
+
+  const trackExpiry = Boolean(
+    item?.track_expiry || productDetail?.track_expiry,
+  );
+
+  useEffect(() => {
+    if (!item?.product) {
+      if (item?.track_expiry) setValue(`items.${index}.track_expiry`, false);
+      return;
+    }
+    if (productDetail && Boolean(productDetail.track_expiry) !== Boolean(item.track_expiry)) {
+      setValue(`items.${index}.track_expiry`, Boolean(productDetail.track_expiry));
+    }
+  }, [item?.product, item?.track_expiry, productDetail, index, setValue]);
 
   const packs = useMemo(() => {
     const rows = purchasePackagings(productDetail);
@@ -759,6 +779,12 @@ function PurchaseLineRow({
                       setValue(`items.${index}.price_per_unit`, 0);
                       setValue(`items.${index}.profit_percent`, profitPercent);
                       setValue(`items.${index}.sale_price`, 0);
+                      setValue(
+                        `items.${index}.track_expiry`,
+                        Boolean(option?.track_expiry),
+                      );
+                      setValue(`items.${index}.lot_number`, '');
+                      setValue(`items.${index}.expiry_date`, '');
                     }
 
                     if (selectedId && productChanged) {
@@ -795,6 +821,49 @@ function PurchaseLineRow({
                   className="h-10 w-full min-w-0"
                 />
               </FormControl>
+              {trackExpiry ? (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <FormField
+                    control={control}
+                    name={`items.${index}.expiry_date`}
+                    render={({ field: expiryField }) => (
+                      <FormItem className="space-y-0">
+                        <FormLabel className="text-[11px] text-muted-foreground">
+                          {t('purchases.expiryDate', 'Expiry')} *
+                        </FormLabel>
+                        <FormControl>
+                          <DatePickerInput
+                            value={expiryField.value || ''}
+                            onChange={expiryField.onChange}
+                            className="h-9"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={control}
+                    name={`items.${index}.lot_number`}
+                    render={({ field: lotField }) => (
+                      <FormItem className="space-y-0">
+                        <FormLabel className="text-[11px] text-muted-foreground">
+                          {t('purchases.lotNumber', 'Lot #')}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            value={lotField.value || ''}
+                            onChange={lotField.onChange}
+                            className="h-9"
+                            placeholder={t('purchases.lotOptional', 'Optional')}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              ) : null}
               <FormMessage className="text-xs" />
             </FormItem>
           )}

@@ -66,4 +66,8 @@ export const purchasesFa = {
   selectPackaging: 'واحد خرید را انتخاب کنید',
   qtyRequired: 'تعداد را وارد کنید',
   measuredRequired: 'مقدار پایه اندازه‌گیری‌شده را وارد کنید',
+  expiryRequired: 'تاریخ انقضا برای محصولات با پیگیری انقضا الزامی است',
+  expiryDate: 'انقضا',
+  lotNumber: 'شماره لات',
+  lotOptional: 'اختیاری',
 };

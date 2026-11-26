@@ -22,6 +22,7 @@ export type PurchaseItem = {
     sku?: string | null;
     barcode?: string | null;
     base_uom?: number;
+    track_expiry?: boolean;
     packagings?: Array<{
       id: number;
       name: string;

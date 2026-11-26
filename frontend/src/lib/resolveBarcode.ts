@@ -19,6 +19,7 @@ export type ResolvedBarcodeProduct = {
   name: string;
   sku?: string | null;
   barcode?: string | null;
+  track_expiry?: boolean;
   packagings?: ResolvedBarcodePackaging[];
 };
 

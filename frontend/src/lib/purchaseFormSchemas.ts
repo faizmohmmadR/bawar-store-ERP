@@ -13,6 +13,7 @@ export const defaultPurchaseItem = () => ({
   packaging_name: '',
   qty_in_base: 1,
   is_variable_weight: false,
+  track_expiry: false,
   quantity: 0,
   measured_base_quantity: '' as string | number,
   price_per_unit: 0,
@@ -56,6 +57,7 @@ export const createPurchaseFormSchema = (t: TranslateFn) => {
           packaging_name: z.string().optional(),
           qty_in_base: z.coerce.number().optional(),
           is_variable_weight: z.boolean().optional(),
+          track_expiry: z.boolean().optional(),
           quantity: z.coerce.number(),
           measured_base_quantity: z.union([z.string(), z.number()]).optional(),
           price_per_unit: z.coerce.number(),
@@ -120,6 +122,17 @@ export const createPurchaseFormSchema = (t: TranslateFn) => {
           }
         }
 
+        if (item.track_expiry && !(item.expiry_date || '').trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: t(
+              'purchases.expiryRequired',
+              'Expiry date is required for products that track expiry',
+            ),
+            path: ['items', index, 'expiry_date'],
+          });
+        }
+
         if (item.price_per_unit <= 0) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -162,6 +175,7 @@ export const purchaseToFormValues = (purchase: Purchase): PurchaseFormValues => 
     packaging_name: item.packaging_details?.name || '',
     qty_in_base: Number(item.conversion_factor ?? item.packaging_details?.qty_in_base) || 1,
     is_variable_weight: Boolean(item.packaging_details?.is_variable_weight),
+    track_expiry: Boolean(item.product_details?.track_expiry),
     quantity: Number(item.quantity) || 0,
     measured_base_quantity: item.measured_base_quantity ?? '',
     price_per_unit: Number(item.price_per_unit) || 0,

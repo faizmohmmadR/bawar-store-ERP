@@ -430,6 +430,19 @@ export const stockEn = {
   returnedToMainSuccess: "Stock returned to main branch successfully",
   fromBranch: "From",
   writeOff: "Write Off Stock",
+  writeOffExpired: "Write off expired",
+  expiredWriteOffSuccess: "Expired stock written off successfully",
+  expiredWriteOffReason: "Expired product write-off",
+  expiringListHint:
+    "Lots expired or expiring within the selected window. Write off only expired lots.",
+  searchExpiring: "Search expiring stock…",
+  noExpiring: "No expiring lots",
+  noExpiringHint:
+    "Enable Track expiry on products and receive purchases with expiry dates to see lots here.",
+  withinDays: "Within days",
+  qtyExceedsAvailable: "Quantity exceeds available stock",
+  purchase: "Purchase",
+  expired: "Expired",
   writeOffHint:
     "Removes quantity from warehouse inventory and posts a stock-adjustment expense. Use at main for expired or damaged goods (including items returned from branches).",
   writeOffNotesPlaceholder: "Optional reason for write-off…",

@@ -66,4 +66,8 @@ export const purchasesPs = {
   selectPackaging: 'د پیرود واحد وټاکئ',
   qtyRequired: 'مقدار ولیکئ',
   measuredRequired: 'اندازه شوی بنسټیز مقدار ولیکئ',
+  expiryRequired: 'د پای نیټې تعقیب لرونکو محصولاتو لپاره د پای نیټه اړینه ده',
+  expiryDate: 'پای نیټه',
+  lotNumber: 'لات #',
+  lotOptional: 'اختیاري',
 };

@@ -430,10 +430,11 @@ export const Header: React.FC = () => {
                           >
                             <span
                               className={cn(
-                                'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 transition-colors sm:h-12 sm:w-12',
+                                'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white ring-1 transition-colors sm:h-12 sm:w-12',
+                                activeApp.color,
                                 active
-                                  ? 'bg-primary/15 text-primary ring-primary/30'
-                                  : 'bg-muted text-foreground ring-border group-hover:bg-background',
+                                  ? 'ring-2 ring-white/50 shadow-sm'
+                                  : 'ring-black/10 opacity-90 group-hover:opacity-100',
                               )}
                             >
                               <SubIcon className="h-5 w-5" strokeWidth={1.75} />

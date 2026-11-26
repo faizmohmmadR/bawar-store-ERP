@@ -289,6 +289,9 @@ class StockAdjustmentViewSet(DataRootViewSet):
         if self.action == 'record_damage':
             from api.serializers.data.inventory_batch import RecordDamagedStockSerializer
             return RecordDamagedStockSerializer
+        if self.action == 'record_expiry':
+            from api.serializers.data.inventory_batch import RecordExpiredStockSerializer
+            return RecordExpiredStockSerializer
         return StockAdjustmentSerializer
 
     def perform_create(self, serializer):
@@ -344,6 +347,72 @@ class StockAdjustmentViewSet(DataRootViewSet):
             notes=(data.get('notes') or '').strip(),
             user=request.user,
             occurred_at=data.get('adjustment_date'),
+        )
+        return Response(
+            StockAdjustmentSerializer(
+                result['adjustment'], context={'request': request},
+            ).data,
+            status=201,
+        )
+
+    @action(detail=False, methods=['post'], url_path='record-expiry')
+    def record_expiry(self, request):
+        """
+        Write off expired finished goods from expired lots (FEFO-safe).
+
+        Body: product, warehouse (optional), packaging (optional), lot (optional),
+        quantity and/or base_quantity, reason, notes, adjustment_date, as_of.
+        """
+        from api.models.data.products import Product
+        from api.models.data.product_packaging import ProductPackaging
+        from api.models.data.warehouse import Warehouse
+        from api.models.data.inventory_ledger import InventoryLot
+        from api.serializers.data.inventory_batch import RecordExpiredStockSerializer
+        from api.services.inventory.expiry import record_expired_stock
+        from api.services.inventory.engine import get_default_warehouse
+
+        serializer = RecordExpiredStockSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        product = Product.objects.filter(pk=data['product']).first()
+        if not product:
+            return Response({'product': 'Product not found.'}, status=400)
+
+        warehouse = None
+        if data.get('warehouse'):
+            warehouse = Warehouse.objects.filter(pk=data['warehouse']).first()
+            if not warehouse:
+                return Response({'warehouse': 'Warehouse not found.'}, status=400)
+        else:
+            warehouse = get_default_warehouse()
+
+        packaging = None
+        if data.get('packaging'):
+            packaging = ProductPackaging.objects.filter(
+                pk=data['packaging'], product=product,
+            ).first()
+            if not packaging:
+                return Response({'packaging': 'Packaging not found for product.'}, status=400)
+
+        lot = None
+        if data.get('lot'):
+            lot = InventoryLot.objects.filter(pk=data['lot'], product=product).first()
+            if not lot:
+                return Response({'lot': 'Lot not found for product.'}, status=400)
+
+        result = record_expired_stock(
+            product=product,
+            warehouse=warehouse,
+            quantity=data.get('quantity'),
+            packaging=packaging,
+            base_quantity=data.get('base_quantity'),
+            lot=lot,
+            reason=(data.get('reason') or '').strip(),
+            notes=(data.get('notes') or '').strip(),
+            user=request.user,
+            occurred_at=data.get('adjustment_date'),
+            as_of=data.get('as_of'),
         )
         return Response(
             StockAdjustmentSerializer(

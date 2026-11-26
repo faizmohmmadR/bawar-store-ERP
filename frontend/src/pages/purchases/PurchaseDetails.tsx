@@ -204,6 +204,7 @@ const PurchaseDetails = () => {
                   <TableHead className="text-start">{t('purchases.buyPrice', 'Buy price')}</TableHead>
                   <TableHead className="text-start">{t('purchases.profitPercent', 'Profit %')}</TableHead>
                   <TableHead className="text-start">{t('purchases.salesPrice', 'Sales price')}</TableHead>
+                  <TableHead className="text-start">{t('purchases.expiryDate', 'Expiry')}</TableHead>
                   <TableHead className="text-start">{t('purchases.totalPrice', 'Total')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -217,6 +218,11 @@ const PurchaseDetails = () => {
                       </p>
                       {item.product_details?.sku ? (
                         <p className="mt-1 text-xs text-muted-foreground">{item.product_details.sku}</p>
+                      ) : null}
+                      {item.lot_number ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {t('purchases.lotNumber', 'Lot #')}: {item.lot_number}
+                        </p>
                       ) : null}
                     </TableCell>
                     <TableCell className="align-top">
@@ -243,6 +249,9 @@ const PurchaseDetails = () => {
                     </TableCell>
                     <TableCell className="whitespace-nowrap align-top tabular-nums">
                       <bdi>{money(item.sale_price)}</bdi>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap align-top">
+                      {item.expiry_date ? <ListDate value={item.expiry_date} /> : '—'}
                     </TableCell>
                     <TableCell className="whitespace-nowrap align-top tabular-nums">
                       <bdi className="font-semibold">{money(item.total_price)}</bdi>

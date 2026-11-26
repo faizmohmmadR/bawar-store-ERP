@@ -29,6 +29,7 @@ class InventoryBalanceViewSet(DataRootViewSet):
         'product__sku',
         'product__barcode',
         'product__packagings__barcode',
+        'lot__lot_number',
     ]
     filterset_fields = ['product', 'warehouse', 'lot']
 
@@ -66,10 +67,59 @@ class InventoryBalanceViewSet(DataRootViewSet):
         if not positions:
             return Response({'detail': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
         position = serialize_position(positions[0], request)
+        # FEFO order: nearest expiry first, then undated / unlotted.
+        from django.db.models import F
+        lot_qs = qs.order_by(
+            F('lot__expiry_date').asc(nulls_last=True),
+            'lot_id',
+            'id',
+        )
         position['lots'] = InventoryBalanceSerializer(
-            qs.order_by('lot_id', 'id'), many=True, context={'request': request},
+            lot_qs, many=True, context={'request': request},
         ).data
         return Response(position)
+
+    @action(detail=False, methods=['get'], url_path='expiring')
+    def expiring(self, request):
+        """
+        Lot balances that are expired or expiring within N days.
+
+        Query: days (default 30), warehouse (optional).
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+
+        try:
+            days = max(0, int(request.query_params.get('days') or 30))
+        except (TypeError, ValueError):
+            days = 30
+        today = timezone.localdate()
+        until = today + timedelta(days=days)
+
+        qs = (
+            self.filter_queryset(self.get_queryset())
+            .filter(
+                quantity_on_hand__gt=0,
+                lot__isnull=False,
+                lot__expiry_date__isnull=False,
+                lot__expiry_date__lte=until,
+            )
+            .select_related('product', 'warehouse', 'lot')
+            .order_by('lot__expiry_date', 'product__name')
+        )
+        warehouse = request.query_params.get('warehouse')
+        if warehouse:
+            qs = qs.filter(warehouse_id=warehouse)
+
+        page = self.paginate_queryset(qs)
+        ser = InventoryBalanceSerializer(
+            page if page is not None else qs,
+            many=True,
+            context={'request': request},
+        )
+        if page is not None:
+            return self.get_paginated_response(ser.data)
+        return Response(ser.data)
 
 
 class StockMovementViewSet(DataRootViewSet):

@@ -144,7 +144,7 @@ const StockDetails = () => {
         ))}
       </div>
 
-      {lotRows.length > 1 ? (
+      {lotRows.some((row) => row.lot) ? (
         <Card className="shadow-none">
           <CardHeader className="border-b bg-muted/20 px-4 py-4 sm:px-5">
             <CardTitle className="text-base">{t('stock.lots', 'Lots / batches')}</CardTitle>
@@ -160,25 +160,61 @@ const StockDetails = () => {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>{t('stock.lot', 'Lot')}</TableHead>
+                  <TableHead>{t('stock.expiryDate', 'Expiry')}</TableHead>
+                  <TableHead>{t('stock.purchase', 'Purchase')}</TableHead>
                   <TableHead className="text-end">{t('stock.baseOnHand', 'On hand (base)')}</TableHead>
                   <TableHead className="text-end">{t('stock.avgCost', 'Avg cost (AFN)')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lotRows.map((lot) => (
-                  <TableRow key={lot.id}>
-                    <TableCell className="font-medium">
-                      {lot.lot ? `#${lot.lot}` : t('stock.unlotted', 'Unlotted pool')}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      {formatOrderNumeric(Number(lot.quantity_on_hand) || 0)}
-                      {uom ? <span className="ms-1 text-muted-foreground">{uom}</span> : null}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      {formatOrderNumeric(Number(lot.average_cost) || 0)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {lotRows.map((lot) => {
+                  const days = lot.days_to_expiry;
+                  const expired = Boolean(lot.is_expired);
+                  const soon = !expired && days != null && days <= 30;
+                  return (
+                    <TableRow key={lot.id}>
+                      <TableCell className="font-medium">
+                        {lot.lot_number || (lot.lot ? `#${lot.lot}` : t('stock.unlotted', 'Unlotted pool'))}
+                      </TableCell>
+                      <TableCell>
+                        {lot.expiry_date ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <ListDate value={lot.expiry_date} />
+                            {expired ? (
+                              <Badge variant="destructive">{t('stock.expired', 'Expired')}</Badge>
+                            ) : soon ? (
+                              <Badge variant="secondary">
+                                {`${days}d`}
+                              </Badge>
+                            ) : null}
+                          </div>
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {lot.purchase_id ? (
+                          <Button
+                            variant="link"
+                            className="h-auto p-0"
+                            onClick={() => navigate(`/purchases/${lot.purchase_id}`)}
+                          >
+                            {lot.purchase_invoice || `#${lot.purchase_id}`}
+                          </Button>
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
+                      <TableCell className="text-end tabular-nums">
+                        {formatOrderNumeric(Number(lot.quantity_on_hand) || 0)}
+                        {uom ? <span className="ms-1 text-muted-foreground">{uom}</span> : null}
+                      </TableCell>
+                      <TableCell className="text-end tabular-nums">
+                        {formatOrderNumeric(Number(lot.average_cost) || 0)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>

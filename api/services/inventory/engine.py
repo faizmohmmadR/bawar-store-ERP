@@ -268,14 +268,27 @@ def receive_purchase_item(item, *, user=None):
     if base_qty > 0:
         unit_cost = quantize(d(item.total_price_base) / base_qty)
 
-    # Lots only when the operator enters lot/expiry (or batch tracking requires it).
-    # Otherwise receive into the warehouse pool so stock stays one row per product.
+    # Lot / FEFO: products that track expiry or batch always receive into a lot so
+    # later purchases with different expiry stay separate (standard supermarket FEFO).
     lot = None
     lot_number = (item.lot_number or '').strip() if item.lot_number else ''
-    has_lot_identity = bool(
+    track_expiry = bool(getattr(product, 'track_expiry', False))
+    track_batch = bool(getattr(product, 'track_batch', False))
+
+    if track_expiry and not item.expiry_date:
+        raise ValidationError(
+            {
+                'expiry_date': (
+                    f'Expiry date is required for {product.name} '
+                    '(product tracks expiry).'
+                )
+            }
+        )
+
+    needs_lot = track_expiry or track_batch or bool(
         lot_number or item.expiry_date or item.manufacturing_date
     )
-    if (product.track_batch or product.track_expiry) and has_lot_identity:
+    if needs_lot:
         lot_number = lot_number or f'P{purchase.invoice_number}-{item.pk}'
         lot, created = InventoryLot.objects.get_or_create(
             product=product,
@@ -291,10 +304,16 @@ def receive_purchase_item(item, *, user=None):
             },
         )
         if not created:
-            InventoryLot.objects.filter(pk=lot.pk).update(
-                quantity_remaining=d(lot.quantity_remaining) + base_qty,
-                quantity_received=d(lot.quantity_received) + base_qty,
-            )
+            updates = {
+                'quantity_remaining': d(lot.quantity_remaining) + base_qty,
+                'quantity_received': d(lot.quantity_received) + base_qty,
+            }
+            # Keep earliest expiry if reusing the same lot number.
+            if item.expiry_date and (
+                lot.expiry_date is None or item.expiry_date < lot.expiry_date
+            ):
+                updates['expiry_date'] = item.expiry_date
+            InventoryLot.objects.filter(pk=lot.pk).update(**updates)
             lot.refresh_from_db()
 
     return post_movement(

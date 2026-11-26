@@ -66,4 +66,8 @@ export const purchasesEn = {
   selectPackaging: 'Select a purchase unit',
   qtyRequired: 'Enter a quantity',
   measuredRequired: 'Enter measured base quantity',
+  expiryRequired: 'Expiry date is required for products that track expiry',
+  expiryDate: 'Expiry',
+  lotNumber: 'Lot #',
+  lotOptional: 'Optional',
 };

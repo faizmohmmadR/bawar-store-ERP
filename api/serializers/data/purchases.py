@@ -180,8 +180,26 @@ class PurchaseSerializer(DataRootSerializer):
             if packaging and not data.get('conversion_factor'):
                 data['conversion_factor'] = snapshot_factor(packaging)
             self._sync_profit_fields(data)
+            self._validate_lot_expiry(data)
             item = PurchaseItem.objects.create(purchase=purchase, **data)
             self._apply_afn_prices(item, purchase)
+
+    def _validate_lot_expiry(self, data):
+        """Require expiry when the product tracks expiry (FEFO / supermarket standard)."""
+        product = data.get('product')
+        if product is None:
+            return
+        track_expiry = bool(getattr(product, 'track_expiry', False))
+        if track_expiry and not data.get('expiry_date'):
+            name = getattr(product, 'name', None) or 'product'
+            raise serializers.ValidationError({
+                'items': {
+                    'expiry_date': (
+                        f'Expiry date is required for {name} '
+                        '(product tracks expiry).'
+                    ),
+                },
+            })
 
     def _sync_profit_fields(self, data):
         """Keep profit % and sale price consistent from cost when one side is missing."""

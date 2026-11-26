@@ -81,3 +81,27 @@ class RecordDamagedStockSerializer(serializers.Serializer):
                 {'quantity': 'Provide quantity or base_quantity.'}
             )
         return attrs
+
+
+class RecordExpiredStockSerializer(serializers.Serializer):
+    product = serializers.IntegerField()
+    warehouse = serializers.IntegerField(required=False, allow_null=True)
+    packaging = serializers.IntegerField(required=False, allow_null=True)
+    lot = serializers.IntegerField(required=False, allow_null=True)
+    quantity = serializers.DecimalField(
+        max_digits=18, decimal_places=6, required=False, allow_null=True,
+    )
+    base_quantity = serializers.DecimalField(
+        max_digits=18, decimal_places=6, required=False, allow_null=True,
+    )
+    reason = serializers.CharField(required=False, allow_blank=True, default='')
+    notes = serializers.CharField(required=False, allow_blank=True, default='')
+    adjustment_date = serializers.DateTimeField(required=False, allow_null=True)
+    as_of = serializers.DateField(required=False, allow_null=True)
+
+    def validate(self, attrs):
+        if attrs.get('base_quantity') is None and attrs.get('quantity') is None:
+            raise serializers.ValidationError(
+                {'quantity': 'Provide quantity or base_quantity.'}
+            )
+        return attrs
