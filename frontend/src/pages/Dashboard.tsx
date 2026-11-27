@@ -4,66 +4,86 @@ import { Link } from 'react-router-dom';
 import { BarChart3, LayoutDashboard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  OperationalReportView,
-  type OperationalReportResponse,
-} from '@/components/reports/OperationalReportView';
+import { DashboardActivitySection } from '@/components/dashboard/DashboardActivitySection';
 import { ReportFilters } from '@/components/reports/ReportFilters';
 import useFetchObjects from '@/api/useFetchObjects';
 import { buildFinancialReportParams } from '@/lib/reportPeriod';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 
+const DASHBOARD_PERIODS = ['daily', 'weekly', 'monthly', 'yearly', 'custom'];
+
+type DashboardReport = {
+  currency?: string;
+  period?: { label?: string };
+  activity?: {
+    currency?: string;
+    rows?: Array<{
+      key: string;
+      label: string;
+      amount_afn: number;
+      count?: number;
+      kind?: string;
+      group?: string;
+    }>;
+    totals?: Record<string, number>;
+    balances?: Record<string, number>;
+    notes?: string[];
+  };
+};
+
 export const Dashboard = () => {
   const { t } = useLanguage();
   const { calendar } = useCalendarPreference();
   const { user } = useAuth();
-  const [period, setPeriod] = useState('monthly');
+  const [period, setPeriod] = useState('daily');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
   const params = useMemo(
     () => ({
-      ...buildFinancialReportParams(period, startDate, endDate, 'monthly', calendar),
-      top_limit: 8,
+      ...buildFinancialReportParams(period, startDate, endDate, 'daily', calendar),
+      top_limit: 1,
     }),
     [calendar, period, startDate, endDate],
   );
 
-  const { data, isLoading, isError } = useFetchObjects<OperationalReportResponse>({
+  const { data, isLoading, isError } = useFetchObjects<DashboardReport>({
     queryKey: ['dashboard_operational', calendar, period, startDate, endDate],
     endpoint: 'reports/operational',
     params,
-    options: { staleTime: 0 },
+    options: { staleTime: 30_000 },
   });
 
-  const firstName = user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
+  const firstName = user?.name?.split(' ')[0] || user?.email?.split('@')[0] || '';
+  const periodLabel = data?.period?.label
+    || (period === 'daily'
+      ? t('reports.today', 'Today')
+      : period === 'weekly'
+        ? t('reports.thisWeek', 'This week')
+        : period === 'monthly'
+          ? t('reports.thisMonth', 'This month')
+          : period === 'yearly'
+            ? t('reports.thisYear', 'This year')
+            : t('reports.customRange', 'Custom range'));
 
   return (
-    <div className="w-full max-w-[1800px] mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6">
       <ReportFilters
         title={t('core.dashboard.title', 'Operations Dashboard')}
-        subtitle={`${t('core.dashboard.welcome', 'Company performance for the selected period')}${firstName ? ` — ${firstName}` : ''}`}
-        icon={<LayoutDashboard className="h-7 w-7 text-primary shrink-0" />}
+        subtitle={
+          firstName
+            ? `${t('core.dashboard.welcome', 'Company performance for the selected period')} — ${firstName}`
+            : t('core.dashboard.welcome', 'Company performance for the selected period')
+        }
+        icon={<LayoutDashboard className="h-6 w-6 shrink-0 text-primary" />}
         headerAction={
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" asChild>
-              <Link to="/reports">
-                <BarChart3 className="h-4 w-4" />
-                {t('reports.operationalReport', 'Operations Report')}
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link to="/reports/by-currency">
-                {t('reports.byCurrencyReport', 'Multi-Currency Report')}
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link to="/reports/v2">
-                {t('reports.ledgerReports', 'Ledger Reports')}
-              </Link>
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/reports">
+              <BarChart3 className="h-4 w-4" />
+              {t('core.dashboard.fullReports', 'Full reports')}
+            </Link>
+          </Button>
         }
         period={period}
         onPeriodChange={setPeriod}
@@ -71,6 +91,7 @@ export const Dashboard = () => {
         onStartDateChange={setStartDate}
         endDate={endDate}
         onEndDateChange={setEndDate}
+        periods={DASHBOARD_PERIODS}
       />
 
       {isLoading && (
@@ -80,14 +101,20 @@ export const Dashboard = () => {
       )}
 
       {isError && !isLoading && (
-        <Card>
-          <CardContent className="py-10 text-center text-muted-foreground text-sm">
+        <Card className="shadow-none">
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
             {t('reports.noFinancialData')}
           </CardContent>
         </Card>
       )}
 
-      {!isLoading && data?.income && <OperationalReportView data={data} compact />}
+      {!isLoading && data?.activity && (
+        <DashboardActivitySection
+          activity={data.activity}
+          periodLabel={periodLabel}
+          currency={data.currency || data.activity.currency || 'AFN'}
+        />
+      )}
     </div>
   );
 };

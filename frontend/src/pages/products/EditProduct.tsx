@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { FormActions } from '@/components/forms/FormActions';
 import { FormPage, FormPageFields, FormPageSection } from '@/components/forms/FormPage';
 import { FormSelect } from '@/components/forms/FormSelect';
-import { Package } from 'lucide-react';
+import { Package, ScanBarcode } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
 import useUpdate from '@/api/useUpdate';
@@ -139,12 +139,24 @@ const EditProduct = () => {
                   <FormItem>
                     <FormLabel>{t('products.barcode')}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder={t('products.barcodePlaceholder', 'Enter barcode')} />
+                      <div className="relative">
+                        <ScanBarcode className="pointer-events-none absolute start-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          {...field}
+                          autoComplete="off"
+                          spellCheck={false}
+                          className="ps-8 font-mono"
+                          placeholder={t(
+                            'products.barcodeScanPlaceholder',
+                            'Click here and scan with scanner — no typing',
+                          )}
+                        />
+                      </div>
                     </FormControl>
                     <p className="text-xs text-muted-foreground">
                       {t(
-                        'products.barcodeSyncHint',
-                        'Copied automatically to the base unit barcode below.',
+                        'products.barcodeScanHint',
+                        'Use your barcode scanner on this field. Do not type the number. It is saved and used later on purchase/sale scan.',
                       )}
                     </p>
                     <FormMessage />

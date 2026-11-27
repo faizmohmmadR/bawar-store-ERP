@@ -146,6 +146,19 @@ export type OperationalReportResponse = {
     note?: string;
   };
   top_products: TopProduct[];
+  activity?: {
+    currency?: string;
+    rows?: Array<{
+      key: string;
+      label: string;
+      amount_afn: number;
+      count?: number;
+      kind?: string;
+      group?: string;
+    }>;
+    totals?: Record<string, number>;
+    notes?: string[];
+  };
 };
 
 const CHART_COLORS = [

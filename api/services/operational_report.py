@@ -93,7 +93,11 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
       - Expenses / payroll / loans / purchases from their section documents
       - Stock snapshot = current on-hand value (not period-limited)
     """
-    from api.services.accounting.reports import REPORT_MODE_BASE, get_profit_and_loss
+    from api.services.accounting.reports import (
+        REPORT_MODE_BASE,
+        get_account_code_balance,
+        get_profit_and_loss,
+    )
     from api.services.loan_reporting import get_loan_summary
     from api.services.trade_reporting import get_trade_report
     from api.utils.date_filters import apply_date_range
@@ -338,6 +342,173 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
         ],
     }
 
+    def _activity(key, label, amount, *, count=0, kind='neutral', group='operations'):
+        return {
+            'key': key,
+            'label': label,
+            'amount_afn': _float(amount),
+            'count': int(count or 0),
+            'kind': kind,  # income | expense | profit | financing | neutral
+            'group': group,
+        }
+
+    loans_received = _d(loan_summary.get('loans_received', 0))
+    loans_given = _d(loan_summary.get('loans_given', 0))
+    loan_collections = _d(loan_summary.get('loan_collections', 0))
+    loan_repayments = _d(loan_summary.get('loan_repayments', 0))
+    cash_in = _d(base.get('total_cash_in', 0))
+    net_cash = cash_in - cash_out_total
+
+    sales_count = sales_qs.count()
+    returns_count = returns_qs.count()
+    purchases_count = purchases_qs.count()
+    purchase_pay_count = purchase_payments_qs.count()
+    expenses_count = expenses_qs.count()
+    payroll_count = payroll_qs.count()
+    advances_count = advances_qs.count()
+    withdrawals_count = withdrawals_qs.count()
+    settled_count = (
+        trade['sales'].get('paid_count', 0) + trade['sales'].get('partial_count', 0)
+    )
+    unpaid_count = trade['sales'].get('unpaid_count', 0)
+
+    # Period activity: reporting summary of amounts that occurred in the range.
+    # Reuses values/counts already loaded above (no extra heavy queries).
+    activity_rows = [
+        _activity(
+            'sales_billed', 'Sales billed', billed,
+            count=sales_count, kind='income', group='sales',
+        ),
+        _activity(
+            'sales_returns', 'Sales returns', returns_total,
+            count=returns_count, kind='expense', group='sales',
+        ),
+        _activity(
+            'sales_net', 'Net sales', net_billed,
+            count=sales_count, kind='income', group='sales',
+        ),
+        _activity(
+            'sales_collected', 'Collected on period invoices', collected,
+            count=settled_count, kind='income', group='sales',
+        ),
+        _activity(
+            'sales_uncollected', 'Uncollected (period invoices)', uncollected_period,
+            count=unpaid_count, kind='neutral', group='sales',
+        ),
+        _activity(
+            'purchases_received', 'Purchases received', purchases_received,
+            count=purchases_count, kind='expense', group='purchases',
+        ),
+        _activity(
+            'purchase_payments', 'Purchase payments', purchase_paid,
+            count=purchase_pay_count, kind='expense', group='purchases',
+        ),
+        _activity(
+            'expenses_paid', 'Operating expenses paid', expense_paid,
+            count=expenses_count, kind='expense', group='expenses',
+        ),
+        _activity(
+            'payroll_paid', 'Payroll paid', payroll_paid,
+            count=payroll_count, kind='expense', group='hr',
+        ),
+        _activity(
+            'advances_paid', 'Employee advances', advances_paid,
+            count=advances_count, kind='expense', group='hr',
+        ),
+        _activity(
+            'commission_paid', 'Salesman commissions', commission_paid,
+            count=commission_count, kind='expense', group='hr',
+        ),
+        _activity(
+            'loans_received', 'Loans received', loans_received,
+            kind='financing', group='loans',
+        ),
+        _activity(
+            'loans_given', 'Loans given', loans_given,
+            kind='financing', group='loans',
+        ),
+        _activity(
+            'loan_collections', 'Loan collections', loan_collections,
+            kind='financing', group='loans',
+        ),
+        _activity(
+            'loan_repayments', 'Loan repayments', loan_repayments,
+            kind='financing', group='loans',
+        ),
+        _activity(
+            'withdrawals', 'Owner withdrawals', withdrawals_paid,
+            count=withdrawals_count, kind='expense', group='finance',
+        ),
+        _activity(
+            'equipment', 'Equipment acquired', equipment_paid,
+            count=equipment_count, kind='expense', group='finance',
+        ),
+        _activity(
+            'gross_profit', 'Gross profit', gross_profit,
+            kind='profit', group='profit',
+        ),
+        _activity(
+            'net_profit', 'Net profit', net_profit,
+            kind='profit', group='profit',
+        ),
+        _activity(
+            'cash_in', 'Cash in', cash_in,
+            kind='income', group='cash',
+        ),
+        _activity(
+            'cash_out', 'Cash out', cash_out_total,
+            kind='expense', group='cash',
+        ),
+        _activity(
+            'net_cash_flow', 'Net cash flow', net_cash,
+            kind='profit' if net_cash >= 0 else 'expense', group='cash',
+        ),
+    ]
+
+    # Current position (not period activity) — keep separate so the UI does not confuse users.
+    cash_gl = get_account_code_balance(
+        '1000', start_date=None, end_date=end_date, mode=REPORT_MODE_BASE,
+    )
+    bank_gl = get_account_code_balance(
+        '1050', start_date=None, end_date=end_date, mode=REPORT_MODE_BASE,
+    )
+    sarafi_gl = get_account_code_balance(
+        '1060', start_date=None, end_date=end_date, mode=REPORT_MODE_BASE,
+    )
+    safe_drawer = Decimal('0')
+    try:
+        from api.services.cash_register import get_open_session, session_totals
+
+        open_session = get_open_session()
+        if open_session is not None:
+            safe_drawer = _d(session_totals(open_session).get('expected_closing_balance') or 0)
+    except Exception:
+        safe_drawer = Decimal('0')
+
+    activity = {
+        'currency': base_meta.get('code', 'AFN'),
+        'rows': activity_rows,
+        'totals': {
+            'sales_net_afn': _float(net_billed),
+            'purchases_afn': _float(purchases_received),
+            'expenses_afn': _float(expense_paid + payroll_paid + advances_paid + commission_paid),
+            'gross_profit_afn': _float(gross_profit),
+            'net_profit_afn': _float(net_profit),
+            'net_cash_flow_afn': _float(net_cash),
+        },
+        'balances': {
+            'safe_drawer_afn': _float(safe_drawer),
+            'cash_afn': _float(cash_gl),
+            'bank_afn': _float(bank_gl),
+            'sarafi_afn': _float(sarafi_gl),
+            'liquid_total_afn': _float(cash_gl + bank_gl + sarafi_gl),
+        },
+        'notes': [
+            'Period activity = amounts dated in the selected range only.',
+            'Balances (Safe / Cash / Bank) are current position, not period totals.',
+        ],
+    }
+
     return {
         'report_type': 'operational',
         'currency': base_meta.get('code', 'AFN'),
@@ -348,6 +519,7 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
             'symbol': base_meta.get('symbol', '؋'),
             'name': base_meta.get('name', 'Afghani'),
         },
+        'activity': activity,
         'kpis': {
             'net_billed_afn': _float(net_billed),
             'collected_afn': _float(collected),

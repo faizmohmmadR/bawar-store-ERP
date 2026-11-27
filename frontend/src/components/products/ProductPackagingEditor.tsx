@@ -175,8 +175,13 @@ export function ProductPackagingEditor({ control, setValue }: Props) {
                           <FormControl>
                             <Input
                               {...barcodeField}
+                              autoComplete="off"
+                              spellCheck={false}
                               className="h-9 font-mono text-xs"
-                              placeholder="—"
+                              placeholder={t(
+                                'products.barcodeScanShort',
+                                'Scan here',
+                              )}
                             />
                           </FormControl>
                         </FormItem>
