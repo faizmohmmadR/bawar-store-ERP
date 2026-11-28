@@ -12,6 +12,8 @@ export const salesEn = {
   reportCogsHint: "AVCO cost on sold lines in this period (AFN)",
   reportGrossProfit: "Gross profit",
   reportGrossProfitHint: "Sold goods revenue − cost of goods",
+  profit: "Profit",
+  profitHint: "Sale amount − product cost (AFN)",
   reportMargin: "Margin",
   reportMarginHint: "Gross profit ÷ sold goods revenue",
   reportTopProducts: "Top products by profit",
@@ -219,7 +221,7 @@ export const salesEn = {
 
   // List page
   manageSaleTransactions: "Manage sale transactions",
-  searchSales: "Search by customer, invoice, bill number...",
+  searchSales: "Search by customer or invoice...",
   filterByCompany: "Filter by company",
   filterByCustomer: "Filter by customer",
   filterByCurrency: "Filter by currency",

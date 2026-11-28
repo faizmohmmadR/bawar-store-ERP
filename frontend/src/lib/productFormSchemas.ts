@@ -4,6 +4,7 @@ import { formMessages, requiredString } from '@/lib/formSchemas';
 type TranslateFn = (key: string, fallback?: string) => string;
 
 export type PackagingFormRow = {
+  id?: number | null;
   name: string;
   qty_in_base: string;
   barcode: string;
@@ -17,6 +18,7 @@ export type PackagingFormRow = {
 };
 
 export const defaultPackagingRow = (overrides: Partial<PackagingFormRow> = {}): PackagingFormRow => ({
+  id: null,
   name: '',
   qty_in_base: '1',
   barcode: '',
@@ -59,6 +61,7 @@ export const createProductFormSchema = (t: TranslateFn) => {
       is_active: z.boolean().default(true),
       packagings: z.array(
         z.object({
+          id: z.number().nullable().optional(),
           name: z.string(),
           qty_in_base: z.string(),
           barcode: z.string().optional(),
@@ -155,6 +158,7 @@ export const defaultProductFormValues = (): ProductFormValues => ({
 export const productToFormValues = (product: any): ProductFormValues => {
   const packagings = (product.packagings || []).map((p: any) =>
     defaultPackagingRow({
+      id: p.id != null ? Number(p.id) : null,
       name: p.name || '',
       qty_in_base: String(p.qty_in_base ?? '1'),
       barcode: p.barcode || '',
@@ -191,6 +195,7 @@ export const productFormToPayload = (data: ProductFormValues) => {
   const packagings_data = data.packagings
     .filter((p) => p.name.trim())
     .map((p, index) => ({
+      ...(p.id ? { id: p.id } : {}),
       name: p.name.trim(),
       qty_in_base: Number(p.qty_in_base) || 1,
       barcode: p.barcode?.trim() || null,

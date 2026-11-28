@@ -23,7 +23,6 @@ export const createSalePackagingFormSchema = (t: TranslateFn) => {
     .object({
       customer: z.string().optional(),
       warehouse: requiredString(messages.required),
-      bill_no: z.string().optional(),
       sale_date: requiredString(messages.required),
       currency: requiredString(messages.required),
       status: z.enum(['draft', 'confirmed', 'shipped', 'delivered', 'invoiced', 'cancelled']),
@@ -84,7 +83,6 @@ export type SalePackagingFormValues = z.infer<ReturnType<typeof createSalePackag
 export const defaultSalePackagingFormValues = (): SalePackagingFormValues => ({
   customer: '',
   warehouse: '',
-  bill_no: '',
   sale_date: new Date().toISOString().slice(0, 10),
   currency: '1',
   status: 'confirmed',
@@ -99,7 +97,6 @@ export const saleToPackagingFormValues = (sale: Sale): SalePackagingFormValues =
   return {
     customer: sale.customer ? String(sale.customer) : '',
     warehouse: String((sale as { warehouse?: number }).warehouse || ''),
-    bill_no: sale.bill_no || '',
     sale_date: sale.sale_date ? String(sale.sale_date).slice(0, 10) : '',
     currency: resolveCurrencyId(sale),
     status: (sale.status as SalePackagingFormValues['status']) || 'confirmed',
@@ -162,7 +159,6 @@ export const salePackagingFormToPayload = (data: SalePackagingFormValues) => {
     vendor: null,
     employee: null,
     warehouse: Number(data.warehouse),
-    bill_no: data.bill_no || null,
     sale_date: toSaleDateTime(data.sale_date),
     currency: toCurrencyFkId(data.currency),
     status: data.status || 'confirmed',

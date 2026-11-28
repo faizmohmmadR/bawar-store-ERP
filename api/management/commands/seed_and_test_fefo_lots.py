@@ -334,13 +334,24 @@ class Command(BaseCommand):
         products = Product.objects.filter(sku__in=[SKU_BISCUIT, SKU_MILK])
         product_ids = list(products.values_list('id', flat=True))
 
-        SalesItems.objects.filter(sales__notes__contains=MARKER).delete()
-        Sales.objects.filter(notes__contains=MARKER).delete()
-        StockAdjustment.objects.filter(reason__contains=MARKER).delete()
-        PurchaseItem.objects.filter(purchase__notes__contains=MARKER).delete()
-        Purchase.objects.filter(notes__contains=MARKER).delete()
-
+        # Delete by product first so protected packaging FKs are cleared even if
+        # older rows were not tagged with MARKER notes.
         if product_ids:
+            sale_ids = list(
+                SalesItems.objects.filter(product_id__in=product_ids)
+                .values_list('sales_id', flat=True)
+                .distinct()
+            )
+            SalesItems.objects.filter(product_id__in=product_ids).delete()
+            Sales.objects.filter(id__in=sale_ids).delete()
+            purchase_ids = list(
+                PurchaseItem.objects.filter(product_id__in=product_ids)
+                .values_list('purchase_id', flat=True)
+                .distinct()
+            )
+            PurchaseItem.objects.filter(product_id__in=product_ids).delete()
+            Purchase.objects.filter(id__in=purchase_ids).delete()
+            StockAdjustment.objects.filter(product_id__in=product_ids).delete()
             StockMovement.objects.filter(product_id__in=product_ids).delete()
             InventoryBalance.objects.filter(product_id__in=product_ids).delete()
             InventoryLot.objects.filter(product_id__in=product_ids).delete()
@@ -348,6 +359,11 @@ class Command(BaseCommand):
             ProductPrice.objects.filter(product_id__in=product_ids).delete()
             products.delete()
 
+        SalesItems.objects.filter(sales__notes__contains=MARKER).delete()
+        Sales.objects.filter(notes__contains=MARKER).delete()
+        StockAdjustment.objects.filter(reason__contains=MARKER).delete()
+        PurchaseItem.objects.filter(purchase__notes__contains=MARKER).delete()
+        Purchase.objects.filter(notes__contains=MARKER).delete()
         Vendor.objects.filter(name__contains=MARKER).delete()
         Customer.objects.filter(name__contains=MARKER).delete()
 

@@ -38,6 +38,10 @@ export interface Sale extends BaseEntity {
   discount_percentage?: number | string;
   plate_number?: string;
   notes?: string;
+  /** Gross profit in AFN (revenue − AVCO cost). */
+  profit_afn?: number | string;
+  cogs_afn?: number | string;
+  margin_pct?: number | string;
   items?: SaleItem[];
   sales_items?: SaleItem[];
   documents?: import('@/lib/attachments').AttachedDocument[];
@@ -89,6 +93,11 @@ export interface SaleItem extends BaseEntity {
   kilogram_amount?: number;
   sell_price: number;
   unit_cost?: number;
+  line_cogs_afn?: number | string;
+  line_profit_afn?: number | string;
+  packaging_details?: { id?: number; name?: string; qty_in_base?: number | string };
+  conversion_factor?: number | string;
+  base_quantity?: number | string;
   /** Batch allocations for this sale item */
   batch_allocations?: InventoryBatch[];
 }

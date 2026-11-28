@@ -120,7 +120,7 @@ def serialize_product(product, request=None):
                 [retail_by_packaging[p.id]] if p.id in retail_by_packaging else []
             ),
         }
-        for p in product.packagings.filter(deleted_at__isnull=True)
+        for p in product.packagings.filter(deleted_at__isnull=True, is_active=True)
     ]
     return {
         'id': product.id,
@@ -327,28 +327,159 @@ class ProductSerializer(DataRootSerializer):
         packagings_data = validated_data.pop('packagings_data', None)
         product = super().update(instance, validated_data)
         if packagings_data is not None:
-            product.packagings.all().delete()
-            self._write_packagings(product, packagings_data)
+            # Never wipe packagings — sales/purchases PROTECT those FKs.
+            self._sync_packagings(product, packagings_data)
         self._ensure_base_packaging(product)
         return product
 
+    def _packaging_row_data(self, product, row):
+        raw = dict(row or {})
+        data = {k: v for k, v in raw.items() if k not in ('id', 'product', 'uom')}
+        # Frontend may send uom as a raw FK id; ORM needs uom_id / instance.
+        uom_value = raw.get('uom', None)
+        if uom_value in (None, '', 0, '0'):
+            data['uom_id'] = product.base_uom_id
+        elif hasattr(uom_value, 'pk'):
+            data['uom_id'] = uom_value.pk
+        else:
+            data['uom_id'] = int(uom_value)
+        if data.get('barcode') == '':
+            data['barcode'] = None
+        data['is_active'] = True
+        return data
+
+    def _packaging_in_use(self, packaging) -> bool:
+        """True when sales/purchases/stock still reference this packaging row."""
+        if packaging.purchase_items.exists() or packaging.sales_items.exists():
+            return True
+        if packaging.movements.exists() or packaging.package_balances.exists():
+            return True
+        product = packaging.product
+        if product.default_purchase_packaging_id == packaging.pk:
+            return True
+        if product.default_sales_packaging_id == packaging.pk:
+            return True
+        return False
+
+    def _sync_product_default_packaging_fks(self, product):
+        """Keep Product.default_*_packaging aligned with packaging default flags."""
+        purchase = (
+            product.packagings.filter(is_active=True, is_default_purchase=True)
+            .order_by('sort_order', 'id')
+            .first()
+        )
+        sale = (
+            product.packagings.filter(is_active=True, is_default_sale=True)
+            .order_by('sort_order', 'id')
+            .first()
+        )
+        update_fields = []
+        purchase_id = purchase.id if purchase else None
+        sale_id = sale.id if sale else None
+        if product.default_purchase_packaging_id != purchase_id:
+            product.default_purchase_packaging_id = purchase_id
+            update_fields.append('default_purchase_packaging')
+        if product.default_sales_packaging_id != sale_id:
+            product.default_sales_packaging_id = sale_id
+            update_fields.append('default_sales_packaging')
+        if update_fields:
+            update_fields.append('updated_at')
+            product.save(update_fields=update_fields)
+
     def _write_packagings(self, product, rows):
+        """Create packagings for a new product."""
         for row in rows or []:
-            data = {k: v for k, v in dict(row).items() if k not in ('id', 'product', 'uom')}
-            # Frontend may send uom as a raw FK id; ORM needs uom_id / instance.
-            uom_value = dict(row).get('uom', None)
-            if uom_value in (None, '', 0, '0'):
-                data['uom_id'] = product.base_uom_id
-            elif hasattr(uom_value, 'pk'):
-                data['uom_id'] = uom_value.pk
+            ProductPackaging.objects.create(
+                product=product,
+                **self._packaging_row_data(product, row),
+            )
+        self._sync_product_default_packaging_fks(product)
+
+    def _sync_packagings(self, product, rows):
+        """
+        Update packagings in place on product edit.
+
+        Match by id (preferred) or unique name so existing purchase/sale lines
+        keep a valid packaging FK. Unused rows are deleted; in-use rows that
+        were removed from the form are deactivated instead of deleted.
+        """
+        existing = list(product.packagings.all())
+        by_id = {p.id: p for p in existing}
+        by_name = {p.name: p for p in existing}
+        kept_ids: set[int] = set()
+
+        for row in rows or []:
+            raw = dict(row or {})
+            data = self._packaging_row_data(product, raw)
+            name = (data.get('name') or '').strip()
+            if not name:
+                continue
+            data['name'] = name
+
+            pack = None
+            raw_id = raw.get('id')
+            if raw_id not in (None, '', 0, '0'):
+                try:
+                    pack = by_id.get(int(raw_id))
+                except (TypeError, ValueError):
+                    pack = None
+            if pack is None:
+                pack = by_name.get(name)
+
+            if pack is not None:
+                # Name change: free old by_name key before rename.
+                if pack.name in by_name and by_name[pack.name].id == pack.id:
+                    del by_name[pack.name]
+                for key, value in data.items():
+                    setattr(pack, key, value)
+                pack.save()
+                kept_ids.add(pack.id)
+                by_name[pack.name] = pack
             else:
-                data['uom_id'] = int(uom_value)
-            if data.get('barcode') == '':
-                data['barcode'] = None
-            ProductPackaging.objects.create(product=product, **data)
+                pack = ProductPackaging.objects.create(product=product, **data)
+                kept_ids.add(pack.id)
+                by_id[pack.id] = pack
+                by_name[pack.name] = pack
+
+        for pack in existing:
+            if pack.id in kept_ids:
+                continue
+            if self._packaging_in_use(pack):
+                pack.is_active = False
+                pack.is_default_purchase = False
+                pack.is_default_sale = False
+                pack.for_purchase = False
+                pack.for_sale = False
+                pack.save(
+                    update_fields=[
+                        'is_active',
+                        'is_default_purchase',
+                        'is_default_sale',
+                        'for_purchase',
+                        'for_sale',
+                        'updated_at',
+                    ],
+                )
+            else:
+                pack.delete()
+
+        self._sync_product_default_packaging_fks(product)
 
     def _ensure_base_packaging(self, product):
-        if product.packagings.filter(is_base=True).exists():
+        if product.packagings.filter(is_base=True, is_active=True).exists():
+            return
+        # Prefer reactivating an existing inactive base row over creating a duplicate name.
+        inactive_base = product.packagings.filter(is_base=True).first()
+        if inactive_base:
+            inactive_base.is_active = True
+            inactive_base.for_purchase = True
+            inactive_base.for_sale = True
+            inactive_base.for_stock = True
+            inactive_base.save(
+                update_fields=[
+                    'is_active', 'for_purchase', 'for_sale', 'for_stock', 'updated_at',
+                ],
+            )
             return
         ProductPackaging.objects.create(
             product=product,

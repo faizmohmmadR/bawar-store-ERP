@@ -6,14 +6,35 @@ from rest_framework import serializers
 from api.models.data.sales import Sales, SalesItems
 from api.serializers.data.base import DataRootSerializer
 from api.serializers.data.products import serialize_product
+from api.services.financial_reports import _item_cogs_base, _item_revenue_base
 from api.services.inventory.engine import deliver_sale_item, get_default_warehouse
 from api.services.uom.conversion import d, snapshot_factor
+
+
+def _sale_profit_afn(sale) -> dict:
+    """Gross profit for one sale in AFN (line revenue − AVCO COGS)."""
+    revenue = Decimal('0')
+    cogs = Decimal('0')
+    items = sale.sales_items.all()
+    for item in items:
+        revenue += _item_revenue_base(item)
+        cogs += _item_cogs_base(item)
+    profit = revenue - cogs
+    margin = (profit / revenue * Decimal('100')) if revenue > 0 else Decimal('0')
+    return {
+        'revenue_afn': float(revenue),
+        'cogs_afn': float(cogs),
+        'profit_afn': float(profit),
+        'margin_pct': float(margin),
+    }
 
 
 class SalesItemsSerializer(DataRootSerializer):
     product_details = serializers.SerializerMethodField()
     packaging_details = serializers.SerializerMethodField()
     line_total = serializers.SerializerMethodField()
+    line_cogs_afn = serializers.SerializerMethodField()
+    line_profit_afn = serializers.SerializerMethodField()
 
     class Meta:
         model = SalesItems
@@ -35,12 +56,21 @@ class SalesItemsSerializer(DataRootSerializer):
     def get_line_total(self, obj):
         return obj.line_total
 
+    def get_line_cogs_afn(self, obj):
+        return float(_item_cogs_base(obj))
+
+    def get_line_profit_afn(self, obj):
+        return float(_item_revenue_base(obj) - _item_cogs_base(obj))
+
 
 class SalesSerializer(DataRootSerializer):
     sales_items = SalesItemsSerializer(many=True, required=False)
     items = SalesItemsSerializer(many=True, required=False, write_only=True)
     customer_name = serializers.CharField(source='customer.name', read_only=True, default=None)
     vendor_name = serializers.CharField(source='vendor.name', read_only=True, default=None)
+    profit_afn = serializers.SerializerMethodField()
+    cogs_afn = serializers.SerializerMethodField()
+    margin_pct = serializers.SerializerMethodField()
 
     class Meta:
         model = Sales
@@ -48,6 +78,22 @@ class SalesSerializer(DataRootSerializer):
         read_only_fields = [
             'id', 'invoice_number', 'created_at', 'updated_at', 'deleted_at', 'deleted_by',
         ]
+
+    def _profit(self, obj):
+        cache = getattr(obj, '_profit_cache', None)
+        if cache is None:
+            cache = _sale_profit_afn(obj)
+            obj._profit_cache = cache
+        return cache
+
+    def get_profit_afn(self, obj):
+        return self._profit(obj)['profit_afn']
+
+    def get_cogs_afn(self, obj):
+        return self._profit(obj)['cogs_afn']
+
+    def get_margin_pct(self, obj):
+        return self._profit(obj)['margin_pct']
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

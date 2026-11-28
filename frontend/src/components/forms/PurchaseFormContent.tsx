@@ -65,6 +65,13 @@ type PackagingOption = {
   retail_price?: { amount?: number | string; currency?: number } | null;
 };
 
+type ProductOption = {
+  id?: number;
+  packagings?: PackagingOption[];
+  track_expiry?: boolean;
+  default_purchase_packaging?: number | null;
+};
+
 type PurchaseFormContentProps = {
   control: Control<PurchaseFormValues>;
   setValue: UseFormSetValue<PurchaseFormValues>;
@@ -80,10 +87,23 @@ const purchasePackagings = (option?: { packagings?: PackagingOption[] } | null) 
     (p) => p.for_purchase !== false && p.is_active !== false,
   );
 
-const pickDefaultPackaging = (packs: PackagingOption[]) =>
-  packs.find((p) => p.is_default_purchase)
-  || packs.find((p) => !p.is_base)
-  || packs[0];
+/** Prefer product default buy unit, then flagged default, then first purchase unit. */
+const pickDefaultPackaging = (
+  packs: PackagingOption[],
+  product?: { default_purchase_packaging?: number | null } | null,
+) => {
+  if (!packs.length) return undefined;
+  const defaultId = product?.default_purchase_packaging;
+  if (defaultId != null) {
+    const byFk = packs.find((p) => Number(p.id) === Number(defaultId));
+    if (byFk) return byFk;
+  }
+  return (
+    packs.find((p) => p.is_default_purchase)
+    || packs.find((p) => !p.is_base)
+    || packs[0]
+  );
+};
 
 export function PurchaseFormContent({
   control,
@@ -690,10 +710,7 @@ function PurchaseLineRow({
   const lineTotal = (Number(item?.quantity) || 0) * (Number(item?.price_per_unit) || 0);
   const showMeasured = Boolean(item?.is_variable_weight);
 
-  const { data: productDetail } = useFetchObjects<{
-    packagings?: PackagingOption[];
-    track_expiry?: boolean;
-  }>({
+  const { data: productDetail } = useFetchObjects<ProductOption>({
     queryKey: ['product-for-purchase-line', item?.product || ''],
     endpoint: item?.product ? `products/${item.product}/` : 'products/',
     enabled: Boolean(item?.product),
@@ -773,6 +790,20 @@ function PurchaseLineRow({
     }
   };
 
+  // When product detail loads, auto-select the product's default buy unit.
+  useEffect(() => {
+    if (!item?.product || !productDetail?.packagings?.length) return;
+    const rows = purchasePackagings(productDetail);
+    if (!rows.length) return;
+    const selectedOk =
+      item.packaging
+      && rows.some((p) => String(p.id) === String(item.packaging));
+    if (selectedOk) return;
+    const pack = pickDefaultPackaging(rows, productDetail);
+    if (pack) applyPackaging(pack);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once packs arrive / product changes
+  }, [item?.product, item?.packaging, productDetail]);
+
   return (
     <TableRow className="hover:bg-muted/20">
       <TableCell className="px-1.5 py-2 text-center text-xs font-semibold tabular-nums text-muted-foreground">
@@ -801,8 +832,10 @@ function PurchaseLineRow({
                     const productChanged = previousId !== selectedId;
                     productField.onChange(selectedId);
 
-                    const nextPacks = purchasePackagings(option);
-                    applyPackaging(pickDefaultPackaging(nextPacks));
+                    const nextPacks = purchasePackagings(option as ProductOption);
+                    applyPackaging(
+                      pickDefaultPackaging(nextPacks, option as ProductOption),
+                    );
 
                     if (productChanged) {
                       setValue(`items.${index}.quantity`, 0);

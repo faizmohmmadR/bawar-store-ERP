@@ -12,6 +12,8 @@ export const salesPs = {
   reportCogsHint: "د دې دورې پلورل شویو کرښو AVCO لګښت (افغانۍ)",
   reportGrossProfit: "ناخالصه ګټه",
   reportGrossProfitHint: "د توکو عاید − د توکو لګښت",
+  profit: "ګټه",
+  profitHint: "د پلور مبلغ − د توکي لګښت (افغانۍ)",
   reportMargin: "حاشیه",
   reportMarginHint: "ناخالصه ګټه ÷ د توکو عاید",
   reportTopProducts: "تر ټولو ګټور محصولات",
@@ -199,7 +201,7 @@ export const salesPs = {
 
   // List page
   manageSaleTransactions: "د پلورنې معاملو مدیریت",
-  searchSales: "د پیرودونکي، فاکتور، بل شمیرې له مخې لٹون...",
+  searchSales: "د پیرودونکي یا فاکتور له مخې لټون...",
   filterByCompany: "د شرکت له مخې فلٹر",
   filterByCustomer: "د پیرودونکي له مخې فلٹر",
   filterByCurrency: "د اسعارو له مخې فلٹر",

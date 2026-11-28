@@ -146,13 +146,22 @@ const SaleDetails = () => {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">{t('sales.saleType')}</p>
-                  <p className="font-medium">
-                    {(sale.items || sale.sales_items || []).every(
-                      (item) => String(item.sale_source || '').toLowerCase() === 'tank',
-                    )
-                      ? t('sales.sourceTank')
-                      : t('sales.sourceStock')}
+                  <p className="text-xs text-gray-500">{t('sales.profit', 'Profit')}</p>
+                  <p
+                    className={`font-semibold ${
+                      Number(sale.profit_afn || 0) > 0
+                        ? 'text-emerald-700'
+                        : Number(sale.profit_afn || 0) < 0
+                          ? 'text-rose-700'
+                          : ''
+                    }`}
+                  >
+                    {formatCurrency(Number(sale.profit_afn || 0), { id: 1, code: 'AFN', symbol: '؋' } as Currency)}
+                    {Number(sale.margin_pct || 0) !== 0 ? (
+                      <span className="ms-1 text-xs font-normal text-muted-foreground">
+                        ({Number(sale.margin_pct).toFixed(0)}%)
+                      </span>
+                    ) : null}
                   </p>
                 </div>
                 {sale.plate_number && (
@@ -255,10 +264,18 @@ const SaleDetails = () => {
       {/* Payment Summary */}
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-4 gap-4 text-start">
+          <div className="grid grid-cols-2 gap-4 text-start sm:grid-cols-3 lg:grid-cols-5">
             <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <p className="text-xs text-gray-500 mb-1">{t('sales.grandTotal')}</p>
               <p className="text-lg font-bold">{formatCurrency(finalTotal, sale.currency_details)}</p>
+            </div>
+            <div className="rounded-lg bg-emerald-50 p-4 dark:bg-emerald-950/30">
+              <p className="mb-1 text-xs text-emerald-800 dark:text-emerald-300">
+                {t('sales.profit', 'Profit')}
+              </p>
+              <p className="text-lg font-bold text-emerald-800 dark:text-emerald-300">
+                {formatCurrency(Number(sale.profit_afn || 0), { id: 1, code: 'AFN', symbol: '؋' } as Currency)}
+              </p>
             </div>
             <div className="p-4 bg-primary/10 dark:bg-green-900/20 rounded-lg">
               <p className="text-xs text-primary mb-1">{t('sales.paidAmount')}</p>
@@ -293,6 +310,7 @@ const SaleDetails = () => {
                   <th className="text-start p-3 font-medium text-sm text-gray-600">{t('sales.quantity', 'Quantity')}</th>
                   <th className="text-start p-3 font-medium text-sm text-gray-600">{t('sales.price', 'Price')}</th>
                   <th className="text-start p-3 font-medium text-sm text-gray-600">{t('sales.total')}</th>
+                  <th className="text-start p-3 font-medium text-sm text-gray-600">{t('sales.profit', 'Profit')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -313,6 +331,7 @@ const SaleDetails = () => {
                   const lineTotal = packagingName
                     ? qty * sellPrice
                     : saleLineTotal(item as any);
+                  const lineProfit = toNum(item.line_profit_afn);
                   return (
                     <tr key={item.id || index} className="border-t border-gray-100 dark:border-gray-700">
                       <td className="p-3">
@@ -333,6 +352,9 @@ const SaleDetails = () => {
                       </td>
                       <td className="p-3 text-start font-semibold">
                         {formatCurrency(lineTotal, sale.currency_details)}
+                      </td>
+                      <td className={`p-3 text-start font-semibold ${lineProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {formatCurrency(lineProfit, { id: 1, code: 'AFN', symbol: '؋' } as Currency)}
                       </td>
                     </tr>
                   );

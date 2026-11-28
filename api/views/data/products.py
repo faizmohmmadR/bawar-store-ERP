@@ -1,4 +1,4 @@
-from django.db.models import DecimalField, OuterRef, Subquery, Sum, Value
+from django.db.models import DecimalField, OuterRef, Prefetch, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 
@@ -17,7 +17,16 @@ class ProductViewSet(DataRootViewSet):
     permission_module = 'products'
     queryset = (
         Product.objects.select_related('base_uom', 'category')
-        .prefetch_related('packagings', 'prices', 'barcodes')
+        .prefetch_related(
+            Prefetch(
+                'packagings',
+                queryset=ProductPackaging.objects.filter(is_active=True).order_by(
+                    'sort_order', 'id',
+                ),
+            ),
+            'prices',
+            'barcodes',
+        )
         .all()
         .order_by('-id')
     )

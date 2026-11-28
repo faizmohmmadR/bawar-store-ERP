@@ -15,7 +15,7 @@ class SalesViewSet(DataRootViewSet):
         .order_by('-sale_date', '-id')
     )
     serializer_class = SalesSerializer
-    search_fields = ['invoice_number', 'bill_no', 'customer__name', 'vendor__name', 'notes']
+    search_fields = ['invoice_number', 'customer__name', 'vendor__name', 'notes']
     filterset_fields = ['status', 'customer', 'vendor', 'employee', 'currency', 'transaction_type', 'warehouse']
 
     @action(detail=False, methods=['get'], url_path='report')

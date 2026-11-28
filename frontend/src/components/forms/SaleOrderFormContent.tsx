@@ -698,24 +698,6 @@ export function SaleOrderFormContent({
 
             <FormField
               control={control}
-              name="bill_no"
-              render={({ field }) => (
-                <FormItem className="min-w-0 flex flex-col w-44 shrink-0">
-                  <FormLabel className={orderFormHeaderLabel}>{t('sales.billNo', 'Bill No')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder={t('sales.billNoPlaceholder', 'Optional bill number')}
-                      className={orderFormHeaderControlClass(false)}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs min-h-4" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
               name="sale_date"
               render={({ field }) => (
                 <FormItem className="min-w-0 flex flex-col w-56 shrink-0">

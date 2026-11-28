@@ -92,13 +92,6 @@ export const SaleList = () => {
 
   const columns: TableColumn[] = [
     {
-      key: 'transaction_type',
-      title: t('common.transactionType', 'Type'),
-      width: '4.5rem',
-      className: 'whitespace-nowrap',
-      render: value => value === 'free' ? t('common.free', 'Free') : t('common.paid', 'Paid'),
-    },
-    {
       key: 'invoice_number',
       title: t('sales.invoiceNumber'),
       width: '8rem',
@@ -109,18 +102,6 @@ export const SaleList = () => {
           <span className="font-semibold">{value}</span>
         </div>
       )
-    },
-    {
-      key: 'bill_no',
-      title: t('sales.billNo', 'Bill No'),
-      width: '6rem',
-      className: 'whitespace-nowrap',
-      render: (value) =>
-        value ? (
-          <span className="text-sm font-medium">{value}</span>
-        ) : (
-          <span className="text-muted-foreground">-</span>
-        ),
     },
     {
       key: 'customer_details',
@@ -204,6 +185,25 @@ export const SaleList = () => {
           className="font-bold text-primary"
         />
       ),
+    },
+    {
+      key: 'profit_afn',
+      title: t('sales.profit', 'Profit'),
+      className: 'whitespace-nowrap',
+      render: (value) => {
+        const profit = Number(value ?? 0);
+        return (
+          <CurrencyAmount
+            amount={profit}
+            currency={{ id: 1, code: 'AFN', symbol: '؋' }}
+            showCode
+            className={cn(
+              'font-semibold',
+              profit > 0 ? 'text-emerald-700' : profit < 0 ? 'text-rose-700' : 'text-muted-foreground',
+            )}
+          />
+        );
+      },
     },
     {
       key: 'paid_amount',

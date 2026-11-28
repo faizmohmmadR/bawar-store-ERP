@@ -72,6 +72,7 @@ type ProductOption = {
   stock_on_hand?: number | string | null;
   base_uom_details?: { symbol?: string | null; name?: string | null } | null;
   packagings?: PackagingOption[];
+  default_sales_packaging?: number | null;
 };
 
 type Props = {
@@ -89,10 +90,23 @@ const AFN = 1;
 const salePackagings = (option?: { packagings?: PackagingOption[] } | null) =>
   (option?.packagings || []).filter((p) => p.for_sale !== false && p.is_active !== false);
 
-const pickDefaultPackaging = (packs: PackagingOption[]) =>
-  packs.find((p) => p.is_default_sale)
-  || packs.find((p) => p.is_base)
-  || packs[0];
+/** Prefer product default sale unit, then flagged default, then base unit. */
+const pickDefaultPackaging = (
+  packs: PackagingOption[],
+  product?: { default_sales_packaging?: number | null } | null,
+) => {
+  if (!packs.length) return undefined;
+  const defaultId = product?.default_sales_packaging;
+  if (defaultId != null) {
+    const byFk = packs.find((p) => Number(p.id) === Number(defaultId));
+    if (byFk) return byFk;
+  }
+  return (
+    packs.find((p) => p.is_default_sale)
+    || packs.find((p) => p.is_base)
+    || packs[0]
+  );
+};
 
 /** Stock sale list price is always AFN — never a USD / native purchase copy. */
 function pickAfnRetailAmount(pack: PackagingOption | null | undefined): number {
@@ -618,6 +632,20 @@ function SaleLineRow({
     if (fillPrice) fillSellPrice(pack);
   };
 
+  // When product detail loads, auto-select the product's default sale unit.
+  useEffect(() => {
+    if (!item?.product || !productDetail?.packagings?.length) return;
+    const rows = salePackagings(productDetail);
+    if (!rows.length) return;
+    const selectedOk =
+      item.packaging
+      && rows.some((p) => String(p.id) === String(item.packaging));
+    if (selectedOk) return;
+    const pack = pickDefaultPackaging(rows, productDetail);
+    if (pack) applyPackaging(pack, { fillPrice: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once packs arrive / product changes
+  }, [item?.product, item?.packaging, productDetail]);
+
   const stockLabel = (product?: ProductOption | null) => {
     if (product?.stock_on_hand == null || product.stock_on_hand === '') return null;
     const qty = formatOrderNumeric(Number(product.stock_on_hand) || 0);
@@ -654,7 +682,11 @@ function SaleLineRow({
                     const previousId = productField.value?.toString() || '';
                     const changed = previousId !== selectedId;
                     productField.onChange(selectedId);
-                    const pack = pickDefaultPackaging(salePackagings(option as ProductOption));
+                    const productOption = option as ProductOption;
+                    const pack = pickDefaultPackaging(
+                      salePackagings(productOption),
+                      productOption,
+                    );
                     applyPackaging(pack, { fillPrice: true });
                     if (changed) {
                       setValue(`items.${index}.quantity`, selectedId ? 1 : 0);

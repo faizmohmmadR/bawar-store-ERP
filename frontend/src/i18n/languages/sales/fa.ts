@@ -12,6 +12,8 @@ export const salesFa = {
   reportCogsHint: "هزینه میانگین کالاهای فروخته‌شده در این دوره (افغانی)",
   reportGrossProfit: "مفاد ناخالص",
   reportGrossProfitHint: "درآمد کالا − بهای تمام‌شده",
+  profit: "مفاد",
+  profitHint: "مبلغ فروش − هزینه کالا (افغانی)",
   reportMargin: "حاشیه سود",
   reportMarginHint: "مفاد ناخالص ÷ درآمد کالا",
   reportTopProducts: "برترین محصولات از نظر مفاد",
@@ -199,7 +201,7 @@ export const salesFa = {
 
   // List page
   manageSaleTransactions: "مدیریت تراکنش‌های فروش",
-  searchSales: "جستجو بر اساس مشتری، بل، شماره بل...",
+  searchSales: "جستجو بر اساس مشتری یا فاکتور...",
   filterByCompany: "فیلتر بر اساس شرکت",
   filterByCustomer: "فیلتر بر اساس مشتری",
   filterByCurrency: "فیلتر بر اساس ارز",
