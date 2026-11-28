@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { formatAfn } from '@/lib/formatMoney';
 import { cn } from '@/lib/utils';
+import { useFormatAppDate } from '@/hooks/useFormatAppDate';
 import { cashCategoryBadgeClass, cashCategoryLabel } from './i18nHelpers';
 
 type DashboardPayload = {
@@ -111,6 +112,7 @@ function Breakdown({
 
 export default function CashRegisterDashboard() {
   const { t } = useLanguage();
+  const { formatDateTime } = useFormatAppDate();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [openDialog, setOpenDialog] = useState(false);
@@ -228,7 +230,7 @@ export default function CashRegisterDashboard() {
     {
       key: 'transaction_date',
       title: t('cashRegister.date'),
-      render: (v) => (v ? new Date(v).toLocaleString() : '—'),
+      render: (v) => formatDateTime(v),
     },
     {
       key: 'category',
@@ -338,7 +340,7 @@ export default function CashRegisterDashboard() {
             <span className="font-medium text-foreground">{t('cashRegister.currentSession')}: </span>
             {data?.open_session?.session_number}
             {data?.open_session?.opened_at
-              ? ` · ${new Date(data.open_session.opened_at).toLocaleString()}`
+              ? ` · ${t('cashRegister.openedAt')} ${formatDateTime(data.open_session.opened_at)}`
               : ''}
           </div>
 

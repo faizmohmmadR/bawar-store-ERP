@@ -255,13 +255,15 @@ export function PurchaseFormContent({
             </div>
           )}
 
-          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.1fr)_minmax(0,0.75fr)_minmax(0,0.8fr)_minmax(0,0.75fr)_minmax(0,0.9fr)_minmax(0,0.85fr)]">
+          <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
             <FormField
               control={control}
               name="vendor"
               render={({ field }) => (
-                <FormItem className="flex min-w-0 flex-col gap-1.5">
-                  <FormLabel className="text-sm font-medium">{t('purchases.vendor', 'Vendor')} *</FormLabel>
+                <FormItem className="flex min-w-[220px] flex-[1.3] flex-col gap-1.5 basis-[220px]">
+                  <FormLabel className="line-clamp-2 text-sm font-medium leading-snug">
+                    {t('purchases.vendor', 'Vendor')} *
+                  </FormLabel>
                   <FormControl>
                     <Autocomplete
                       endpoint="vendors"
@@ -292,8 +294,10 @@ export function PurchaseFormContent({
               control={control}
               name="warehouse"
               render={({ field }) => (
-                <FormItem className="flex min-w-0 flex-col gap-1.5">
-                  <FormLabel className="text-sm font-medium">{t('purchases.warehouse', 'Warehouse')} *</FormLabel>
+                <FormItem className="flex min-w-[200px] flex-1 flex-col gap-1.5 basis-[200px]">
+                  <FormLabel className="line-clamp-2 text-sm font-medium leading-snug">
+                    {t('purchases.warehouse', 'Warehouse')} *
+                  </FormLabel>
                   <FormControl>
                     <Autocomplete
                       endpoint="warehouses"
@@ -316,8 +320,10 @@ export function PurchaseFormContent({
               control={control}
               name="currency"
               render={({ field }) => (
-                <FormItem className="flex min-w-0 flex-col gap-1.5">
-                  <FormLabel className="text-sm font-medium">{t('purchases.currency', 'Currency')} *</FormLabel>
+                <FormItem className="flex min-w-[180px] flex-1 flex-col gap-1.5 basis-[180px]">
+                  <FormLabel className="line-clamp-2 text-sm font-medium leading-snug">
+                    {t('purchases.currency', 'Currency')} *
+                  </FormLabel>
                   <FormControl>
                     <CurrencySelect
                       compact
@@ -337,8 +343,10 @@ export function PurchaseFormContent({
               control={control}
               name="bill_number"
               render={({ field }) => (
-                <FormItem className="flex min-w-0 flex-col gap-1.5">
-                  <FormLabel className="text-sm font-medium">{t('purchases.billNumber', 'Bill #')}</FormLabel>
+                <FormItem className="flex min-w-[160px] flex-1 flex-col gap-1.5 basis-[160px]">
+                  <FormLabel className="line-clamp-2 text-sm font-medium leading-snug">
+                    {t('purchases.billNumber', 'Bill #')}
+                  </FormLabel>
                   <FormControl>
                     <Input {...field} placeholder={t('purchases.billNumber', 'Bill #')} className="h-10 w-full" />
                   </FormControl>
@@ -351,8 +359,10 @@ export function PurchaseFormContent({
               control={control}
               name="status"
               render={({ field }) => (
-                <FormItem className="flex min-w-0 flex-col gap-1.5">
-                  <FormLabel className="text-sm font-medium">{t('common.status')}</FormLabel>
+                <FormItem className="flex min-w-[160px] flex-1 flex-col gap-1.5 basis-[160px]">
+                  <FormLabel className="line-clamp-2 text-sm font-medium leading-snug">
+                    {t('common.status')}
+                  </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="h-10 w-full">
@@ -376,8 +386,10 @@ export function PurchaseFormContent({
               control={control}
               name="purchase_date"
               render={({ field }) => (
-                <FormItem className="flex min-w-0 flex-col gap-1.5">
-                  <FormLabel className="text-sm font-medium">{t('purchases.purchaseDate', 'Purchase date')} *</FormLabel>
+                <FormItem className="flex min-w-[190px] flex-1 flex-col gap-1.5 basis-[190px]">
+                  <FormLabel className="line-clamp-2 text-sm font-medium leading-snug">
+                    {t('purchases.purchaseDate', 'Purchase date')} *
+                  </FormLabel>
                   <FormControl>
                     <DatePickerInput
                       value={field.value || ''}
@@ -395,8 +407,8 @@ export function PurchaseFormContent({
               control={control}
               name="profit_percent"
               render={({ field }) => (
-                <FormItem className="flex min-w-0 flex-col gap-1.5">
-                  <FormLabel className="text-sm font-medium">
+                <FormItem className="flex min-w-[140px] flex-1 flex-col gap-1.5 basis-[140px]">
+                  <FormLabel className="line-clamp-2 text-sm font-medium leading-snug">
                     {t('purchases.profitPercent', 'Profit %')}
                   </FormLabel>
                   <FormControl>
@@ -453,28 +465,46 @@ export function PurchaseFormContent({
             </div>
             <CardContent className="min-w-0 p-0">
               <div className="overflow-x-auto">
-                <Table className="min-w-[1100px] table-fixed">
+                <Table className="min-w-[1360px] table-fixed">
                   <colgroup>
-                    <col style={{ width: '2.25rem' }} />
-                    <col style={{ width: '28%' }} />
-                    <col style={{ width: '14%' }} />
-                    <col style={{ width: '9%' }} />
-                    <col style={{ width: '9%' }} />
-                    <col style={{ width: '12%' }} />
-                    <col style={{ width: '12%' }} />
-                    <col style={{ width: '11%' }} />
                     <col style={{ width: '2.5rem' }} />
+                    <col style={{ width: '22%' }} />
+                    <col style={{ width: '13%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '9%' }} />
+                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '10%' }} />
+                    <col style={{ width: '2.75rem' }} />
                   </colgroup>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="bg-muted/20 px-1.5 text-center text-xs">#</TableHead>
-                      <TableHead className="bg-muted/20 text-xs">{t('products.name', 'Product')}</TableHead>
-                      <TableHead className="bg-muted/20 text-xs">{t('purchases.unit', 'Purchase unit')}</TableHead>
-                      <TableHead className="bg-muted/20 text-xs">{t('purchases.quantity', 'Qty')}</TableHead>
-                      <TableHead className="bg-muted/20 text-xs">{t('purchases.baseQty', 'Base qty')}</TableHead>
-                      <TableHead className="bg-muted/20 text-xs">{t('purchases.buyPrice', 'Buy price')}</TableHead>
-                      <TableHead className="bg-muted/20 text-xs">{t('purchases.salesPrice', 'Sales price')}</TableHead>
-                      <TableHead className="bg-muted/20 text-right text-xs">{t('purchases.total', 'Total')}</TableHead>
+                      <TableHead className="bg-muted/20 h-auto px-2 py-2 text-xs font-semibold normal-case tracking-normal">
+                        <span className="line-clamp-2 leading-snug">{t('products.name', 'Product')}</span>
+                      </TableHead>
+                      <TableHead className="bg-muted/20 h-auto px-2 py-2 text-xs font-semibold normal-case tracking-normal">
+                        <span className="line-clamp-2 leading-snug">{t('purchases.expiryDate', 'Expiry')}</span>
+                      </TableHead>
+                      <TableHead className="bg-muted/20 h-auto px-2 py-2 text-xs font-semibold normal-case tracking-normal">
+                        <span className="line-clamp-2 leading-snug">{t('purchases.unitShort', 'Unit')}</span>
+                      </TableHead>
+                      <TableHead className="bg-muted/20 h-auto px-2 py-2 text-xs font-semibold normal-case tracking-normal">
+                        <span className="line-clamp-2 leading-snug">{t('purchases.quantity', 'Qty')}</span>
+                      </TableHead>
+                      <TableHead className="bg-muted/20 h-auto px-2 py-2 text-xs font-semibold normal-case tracking-normal">
+                        <span className="line-clamp-2 leading-snug">{t('purchases.baseQtyShort', 'Base qty')}</span>
+                      </TableHead>
+                      <TableHead className="bg-muted/20 h-auto px-2 py-2 text-xs font-semibold normal-case tracking-normal">
+                        <span className="line-clamp-2 leading-snug">{t('purchases.buyPriceShort', 'Buy')}</span>
+                      </TableHead>
+                      <TableHead className="bg-muted/20 h-auto px-2 py-2 text-xs font-semibold normal-case tracking-normal">
+                        <span className="line-clamp-2 leading-snug">{t('purchases.salesPriceShort', 'Sales')}</span>
+                      </TableHead>
+                      <TableHead className="bg-muted/20 h-auto px-2 py-2 text-right text-xs font-semibold normal-case tracking-normal">
+                        <span className="line-clamp-2 leading-snug">{t('purchases.total', 'Total')}</span>
+                      </TableHead>
                       <TableHead className="bg-muted/20 px-1" aria-label={t('common.actions')} />
                     </TableRow>
                   </TableHeader>
@@ -821,53 +851,36 @@ function PurchaseLineRow({
                   className="h-10 w-full min-w-0"
                 />
               </FormControl>
-              {trackExpiry ? (
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <FormField
-                    control={control}
-                    name={`items.${index}.expiry_date`}
-                    render={({ field: expiryField }) => (
-                      <FormItem className="space-y-0">
-                        <FormLabel className="text-[11px] text-muted-foreground">
-                          {t('purchases.expiryDate', 'Expiry')} *
-                        </FormLabel>
-                        <FormControl>
-                          <DatePickerInput
-                            value={expiryField.value || ''}
-                            onChange={expiryField.onChange}
-                            className="h-9"
-                          />
-                        </FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={control}
-                    name={`items.${index}.lot_number`}
-                    render={({ field: lotField }) => (
-                      <FormItem className="space-y-0">
-                        <FormLabel className="text-[11px] text-muted-foreground">
-                          {t('purchases.lotNumber', 'Lot #')}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            value={lotField.value || ''}
-                            onChange={lotField.onChange}
-                            className="h-9"
-                            placeholder={t('purchases.lotOptional', 'Optional')}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              ) : null}
               <FormMessage className="text-xs" />
             </FormItem>
           )}
         />
+      </TableCell>
+
+      <TableCell className="py-2">
+        {trackExpiry ? (
+          <FormField
+            control={control}
+            name={`items.${index}.expiry_date`}
+            render={({ field: expiryField }) => (
+              <FormItem className="space-y-0">
+                <FormLabel className="sr-only">
+                  {t('purchases.expiryDate', 'Expiry')} *
+                </FormLabel>
+                <FormControl>
+                  <DatePickerInput
+                    value={expiryField.value || ''}
+                    onChange={expiryField.onChange}
+                    className="h-10 w-full min-w-0"
+                  />
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+        ) : (
+          <div className="flex h-10 items-center px-1 text-sm text-muted-foreground">—</div>
+        )}
       </TableCell>
 
       <TableCell className="py-2">

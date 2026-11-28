@@ -219,11 +219,6 @@ const PurchaseDetails = () => {
                       {item.product_details?.sku ? (
                         <p className="mt-1 text-xs text-muted-foreground">{item.product_details.sku}</p>
                       ) : null}
-                      {item.lot_number ? (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {t('purchases.lotNumber', 'Lot #')}: {item.lot_number}
-                        </p>
-                      ) : null}
                     </TableCell>
                     <TableCell className="align-top">
                       {item.packaging_details?.name || `#${item.packaging}`}

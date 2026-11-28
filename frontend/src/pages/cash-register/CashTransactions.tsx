@@ -8,10 +8,12 @@ import useFetchObjects from '@/api/useFetchObjects';
 import { Badge } from '@/components/ui/badge';
 import { formatAfn } from '@/lib/formatMoney';
 import { cn } from '@/lib/utils';
+import { useFormatAppDate } from '@/hooks/useFormatAppDate';
 import { cashCategoryBadgeClass, cashCategoryLabel } from './i18nHelpers';
 
 export default function CashTransactions() {
   const { t } = useLanguage();
+  const { formatDateTime } = useFormatAppDate();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [direction, setDirection] = useState('all');
@@ -32,7 +34,7 @@ export default function CashTransactions() {
     {
       key: 'transaction_date',
       title: t('cashRegister.date'),
-      render: (v) => (v ? new Date(v).toLocaleString() : '—'),
+      render: (v) => formatDateTime(v),
     },
     {
       key: 'category',

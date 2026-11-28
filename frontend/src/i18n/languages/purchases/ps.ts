@@ -68,6 +68,11 @@ export const purchasesPs = {
   measuredRequired: 'اندازه شوی بنسټیز مقدار ولیکئ',
   expiryRequired: 'د پای نیټې تعقیب لرونکو محصولاتو لپاره د پای نیټه اړینه ده',
   expiryDate: 'پای نیټه',
-  lotNumber: 'لات #',
+  lotNumber: 'لات',
   lotOptional: 'اختیاري',
+  lotHint: 'د دې موجودي لات/بچ کوډ (اختیاري). له پای نیټې سره د FEFO لپاره کارېږي.',
+  unitShort: 'واحد',
+  baseQtyShort: 'بنسټ',
+  buyPriceShort: 'پیرود',
+  salesPriceShort: 'پلور',
 };

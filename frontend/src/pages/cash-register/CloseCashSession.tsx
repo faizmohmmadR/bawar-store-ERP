@@ -19,6 +19,7 @@ import api from '@/api/client';
 import { toast } from 'sonner';
 import { formatAfn } from '@/lib/formatMoney';
 import { cn } from '@/lib/utils';
+import { useFormatAppDate } from '@/hooks/useFormatAppDate';
 
 const REMOVAL_CATEGORIES = [
   { value: 'owner_withdrawal', labelKey: 'cashRegister.categories.owner_withdrawal' },
@@ -37,6 +38,7 @@ function RequiredMark() {
 
 export default function CloseCashSession() {
   const { t } = useLanguage();
+  const { formatDateTime } = useFormatAppDate();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [submitting, setSubmitting] = useState(false);
@@ -183,7 +185,12 @@ export default function CloseCashSession() {
         </Button>
         <div>
           <h1 className="text-xl font-semibold">{t('cashRegister.closeSession')}</h1>
-          <p className="text-sm text-muted-foreground">{data.open_session?.session_number}</p>
+          <p className="text-sm text-muted-foreground">
+            {data.open_session?.session_number}
+            {data.open_session?.opened_at
+              ? ` · ${t('cashRegister.openedAt')} ${formatDateTime(data.open_session.opened_at)}`
+              : ''}
+          </p>
         </div>
       </div>
 

@@ -70,4 +70,9 @@ export const purchasesEn = {
   expiryDate: 'Expiry',
   lotNumber: 'Lot #',
   lotOptional: 'Optional',
+  lotHint: 'Batch / lot code for this stock (optional). Used with expiry for FEFO tracking.',
+  unitShort: 'Unit',
+  baseQtyShort: 'Base qty',
+  buyPriceShort: 'Buy',
+  salesPriceShort: 'Sales',
 };

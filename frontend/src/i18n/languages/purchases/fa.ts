@@ -68,6 +68,11 @@ export const purchasesFa = {
   measuredRequired: 'مقدار پایه اندازه‌گیری‌شده را وارد کنید',
   expiryRequired: 'تاریخ انقضا برای محصولات با پیگیری انقضا الزامی است',
   expiryDate: 'انقضا',
-  lotNumber: 'شماره لات',
+  lotNumber: 'لات',
   lotOptional: 'اختیاری',
+  lotHint: 'کد لات/بچ این موجودی (اختیاری). با تاریخ انقضا برای مصرف زودتر از انقضا استفاده می‌شود.',
+  unitShort: 'واحد',
+  baseQtyShort: 'پایه',
+  buyPriceShort: 'خرید',
+  salesPriceShort: 'فروش',
 };

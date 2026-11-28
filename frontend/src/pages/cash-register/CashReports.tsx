@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import useFetchObjects from '@/api/useFetchObjects';
 import { formatAfn } from '@/lib/formatMoney';
 import { cn } from '@/lib/utils';
+import { useFormatAppDate } from '@/hooks/useFormatAppDate';
 import { cashSessionStatusLabel } from './i18nHelpers';
 
 function sessionStatusBadgeClass(status: string | null | undefined): string {
@@ -17,6 +18,7 @@ function sessionStatusBadgeClass(status: string | null | undefined): string {
 
 export default function CashReports() {
   const { t } = useLanguage();
+  const { formatDateTime } = useFormatAppDate();
   const navigate = useNavigate();
   const { data, isLoading } = useFetchObjects<{ results: any[]; count: number }>({
     queryKey: ['cash-register-reports'],
@@ -37,7 +39,12 @@ export default function CashReports() {
     {
       key: 'opened_at',
       title: t('cashRegister.openedAt'),
-      render: (v) => (v ? new Date(v).toLocaleString() : '—'),
+      render: (v) => formatDateTime(v),
+    },
+    {
+      key: 'closed_at',
+      title: t('cashRegister.closedAt'),
+      render: (v) => formatDateTime(v),
     },
     {
       key: 'opening_balance',
