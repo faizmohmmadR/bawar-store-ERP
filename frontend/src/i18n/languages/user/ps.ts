@@ -222,7 +222,7 @@ export const userPs = {
     hr_reports: "د بشري سرچینو راپورونه",
     warehouses: "ګودامونه",
     uom: "د اندازې واحدونه",
-    cash_register: "صندوق",
+    cash_register: "دخل",
     expense_categories: "د لګښت کټګورۍ",
     record_damaged_stock: "زیانمن ذخیره ثبت",
     record_expired_stock: "د پای نیټې ذخیره لیکل",

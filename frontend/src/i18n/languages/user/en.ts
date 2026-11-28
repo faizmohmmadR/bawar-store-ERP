@@ -225,7 +225,7 @@ export const userEn = {
     hr_reports: "HR Reports",
     warehouses: "Warehouses",
     uom: "Units of Measure",
-    cash_register: "Safe",
+    cash_register: "Cash Register",
     expense_categories: "Expense Categories",
     record_damaged_stock: "Record Damaged Stock",
     record_expired_stock: "Write Off Expired Stock",

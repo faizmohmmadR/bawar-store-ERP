@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Banknote, Landmark, Wallet } from 'lucide-react';
+import { Banknote, Landmark } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatReportMoney } from '@/lib/formatNumber';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -27,6 +27,7 @@ export type ActivitySummary = {
   };
   balances?: {
     safe_drawer_afn?: number;
+    cash_register_afn?: number;
     cash_afn?: number;
     bank_afn?: number;
     sarafi_afn?: number;
@@ -95,20 +96,17 @@ export function DashboardActivitySection({ activity, periodLabel, currency }: Pr
     },
   ];
 
+  // Cash Register (دخل) and AFN Cash are the same balance (GL 1000).
+  const cashRegisterAfn =
+    Number(balances.cash_register_afn ?? balances.cash_afn ?? balances.safe_drawer_afn) || 0;
+
   const nowCards = [
     {
-      key: 'safe',
-      label: t('core.dashboard.balanceSafe', 'Safe (drawer)'),
-      value: Number(balances.safe_drawer_afn) || 0,
+      key: 'cash_register',
+      label: t('core.dashboard.balanceCashRegister', 'Cash Register'),
+      value: cashRegisterAfn,
       icon: <Banknote className="h-4 w-4" />,
       href: '/cash-register',
-    },
-    {
-      key: 'cash',
-      label: t('core.dashboard.balanceCash', 'Cash account'),
-      value: Number(balances.cash_afn) || 0,
-      icon: <Wallet className="h-4 w-4" />,
-      href: '/gl-accounts',
     },
     {
       key: 'bank',
@@ -220,11 +218,11 @@ export function DashboardActivitySection({ activity, periodLabel, currency }: Pr
           <p className="text-sm text-muted-foreground">
             {t(
               'core.dashboard.balancesHint',
-              'Current position — not period activity. Safe = drawer; Cash/Bank = accounts.',
+              'Cash Register (دخل) is AFN cash. Bank is separate.',
             )}
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {nowCards.map((card) => (
             <Link key={card.key} to={card.href} className="block">
               <Card className="shadow-none transition-colors hover:bg-muted/30">

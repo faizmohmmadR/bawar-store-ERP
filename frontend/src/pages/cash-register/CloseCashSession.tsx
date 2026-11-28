@@ -18,6 +18,7 @@ import useFetchObjects from '@/api/useFetchObjects';
 import api from '@/api/client';
 import { toast } from 'sonner';
 import { formatAfn } from '@/lib/formatMoney';
+import { cn } from '@/lib/utils';
 
 const REMOVAL_CATEGORIES = [
   { value: 'owner_withdrawal', labelKey: 'cashRegister.categories.owner_withdrawal' },
@@ -27,6 +28,13 @@ const REMOVAL_CATEGORIES = [
 
 type CountLine = { denomination: string; quantity: string };
 
+/** Treat money as equal within 1 afghani (avoids float noise). */
+const moneyDiffers = (a: number, b: number) => Math.round(a - b) !== 0;
+
+function RequiredMark() {
+  return <span className="ms-0.5 text-rose-600">*</span>;
+}
+
 export default function CloseCashSession() {
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -35,7 +43,7 @@ export default function CloseCashSession() {
   const [differenceReason, setDifferenceReason] = useState('');
   const [notes, setNotes] = useState('');
   const [manualActual, setManualActual] = useState('');
-  const [useCount, setUseCount] = useState(true);
+  const [useCount, setUseCount] = useState(false);
   const [removalAmount, setRemovalAmount] = useState('');
   const [removalCategory, setRemovalCategory] = useState('owner_withdrawal');
   const [removalDesc, setRemovalDesc] = useState('');
@@ -46,6 +54,7 @@ export default function CloseCashSession() {
     open_session: any;
     totals: Record<string, string> | null;
     denominations: string[];
+    book_cash_afn?: string | null;
   }>({
     queryKey: ['cash-register-dashboard-close'],
     endpoint: 'cash-register/dashboard/',
@@ -67,10 +76,19 @@ export default function CloseCashSession() {
     }, 0);
   }, [countLines]);
 
-  const expected = Number(data?.totals?.expected_closing_balance || 0);
+  // Expected = AFN Cash book (GL 1000); same as Cash Register / دخل.
+  const expected = Number(
+    data?.totals?.expected_closing_balance ?? data?.book_cash_afn ?? 0,
+  );
   const actual = useCount ? countedTotal : Number(manualActual || 0);
-  const difference = actual - expected;
+  const hasCountedInput = useCount
+    ? countLines.some((r) => Number(r.quantity) > 0)
+    : manualActual.trim() !== '';
+  // Difference stays 0 until the user enters counted cash (fields use placeholders only).
+  const difference = hasCountedInput ? actual - expected : 0;
+  const hasDifference = hasCountedInput && moneyDiffers(actual, expected);
   const removal = Number(removalAmount || 0);
+  const hasRemoval = removal > 0;
   const carry = Math.max(0, actual - removal);
 
   const setQty = (idx: number, qty: string) => {
@@ -79,8 +97,16 @@ export default function CloseCashSession() {
 
   const handleClose = async () => {
     if (!data?.has_open_session) return;
-    if (difference !== 0 && !differenceReason.trim()) {
+    if (!hasCountedInput) {
+      toast.error(t('cashRegister.countedCashRequired'));
+      return;
+    }
+    if (hasDifference && !differenceReason.trim()) {
       toast.error(t('cashRegister.differenceReasonRequired'));
+      return;
+    }
+    if (hasRemoval && !removalCategory) {
+      toast.error(t('cashRegister.removalCategoryRequired'));
       return;
     }
     if (removal > actual) {
@@ -92,8 +118,8 @@ export default function CloseCashSession() {
       const payload: Record<string, unknown> = {
         actual_closing_balance: String(actual),
         carry_forward_amount: String(carry),
-        difference_reason: differenceReason,
-        notes,
+        difference_reason: hasDifference ? differenceReason.trim() : '',
+        notes: notes.trim(),
       };
       if (useCount) {
         payload.count_lines = countLines
@@ -103,12 +129,12 @@ export default function CloseCashSession() {
             quantity: Number(r.quantity),
           }));
       }
-      if (removal > 0) {
+      if (hasRemoval) {
         payload.removals = [
           {
             category: removalCategory,
             amount: String(removal),
-            description: removalDesc || undefined,
+            description: removalDesc.trim() || undefined,
           },
         ];
       }
@@ -121,7 +147,9 @@ export default function CloseCashSession() {
         err?.response?.data?.detail ||
         Object.values(err?.response?.data || {})?.[0] ||
         t('cashRegister.closeFailed');
-      toast.error(typeof msg === 'string' ? msg : Array.isArray(msg) ? msg[0] : t('cashRegister.closeFailed'));
+      toast.error(
+        typeof msg === 'string' ? msg : Array.isArray(msg) ? msg[0] : t('cashRegister.closeFailed'),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -162,110 +190,158 @@ export default function CloseCashSession() {
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
           <p className="text-sm text-muted-foreground">{t('cashRegister.balance')}</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-primary">{formatAfn(expected)}</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-primary">
+            {formatAfn(expected)}
+          </p>
           <p className="mt-1 text-xs text-muted-foreground">{t('cashRegister.balanceFormula')}</p>
         </div>
         <div className="rounded-xl border p-4">
           <p className="text-sm text-muted-foreground">{t('cashRegister.countedCash')}</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums">{formatAfn(actual)}</p>
         </div>
-        <div className="rounded-xl border p-4">
+        <div
+          className={cn(
+            'rounded-xl border p-4',
+            hasDifference && (difference < 0 ? 'border-rose-200 bg-rose-50/60' : 'border-amber-200 bg-amber-50/60'),
+          )}
+        >
           <p className="text-sm text-muted-foreground">
-            {difference === 0
+            {!hasDifference
               ? t('cashRegister.difference')
               : difference < 0
                 ? t('cashRegister.shortage')
                 : t('cashRegister.overage')}
           </p>
           <p
-            className={`mt-1 text-2xl font-semibold tabular-nums ${
-              difference === 0 ? '' : difference < 0 ? 'text-rose-700' : 'text-amber-700'
-            }`}
+            className={cn(
+              'mt-1 text-2xl font-semibold tabular-nums',
+              hasDifference && (difference < 0 ? 'text-rose-700' : 'text-amber-700'),
+            )}
           >
             {formatAfn(Math.abs(difference))}
           </p>
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <Button
-          variant={useCount ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setUseCount(true)}
-        >
-          {t('cashRegister.countByDenomination')}
-        </Button>
-        <Button
-          variant={!useCount ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setUseCount(false)}
-        >
-          {t('cashRegister.enterTotal')}
-        </Button>
-      </div>
-
-      {useCount ? (
-        <div className="space-y-2 rounded-lg border p-4">
-          {countLines.map((row, idx) => (
-            <div key={row.denomination} className="grid grid-cols-3 items-center gap-3">
-              <Label className="tabular-nums">{formatAfn(Number(row.denomination))}</Label>
-              <Input
-                type="number"
-                min="0"
-                value={row.quantity}
-                onChange={(e) => setQty(idx, e.target.value)}
-                placeholder="0"
-              />
-              <p className="text-sm tabular-nums text-muted-foreground">
-                {formatAfn(Number(row.denomination) * Number(row.quantity || 0))}
-              </p>
-            </div>
-          ))}
+      <section className="space-y-3 rounded-xl border p-4">
+        <div>
+          <h2 className="font-medium">{t('cashRegister.countSectionTitle')}</h2>
+          <p className="text-xs text-muted-foreground">{t('cashRegister.countSectionHint')}</p>
         </div>
-      ) : (
-        <div className="space-y-2">
-          <Label>{t('cashRegister.countedCash')}</Label>
-          <Input
-            type="number"
-            min="0"
-            step="0.01"
-            value={manualActual}
-            onChange={(e) => setManualActual(e.target.value)}
-          />
-        </div>
-      )}
 
-      {difference !== 0 && (
-        <div className="space-y-2">
-          <Label>{t('cashRegister.differenceReason')}</Label>
-          <Textarea
-            value={differenceReason}
-            onChange={(e) => setDifferenceReason(e.target.value)}
-            rows={2}
-            required
-          />
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant={useCount ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setUseCount(true)}
+          >
+            {t('cashRegister.countByDenomination')}
+          </Button>
+          <Button
+            type="button"
+            variant={!useCount ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setUseCount(false)}
+          >
+            {t('cashRegister.enterTotal')}
+          </Button>
         </div>
-      )}
 
-      <div className="space-y-3 rounded-lg border p-4">
-        <p className="font-medium">{t('cashRegister.removeAtClose')}</p>
-        <p className="text-xs text-muted-foreground">{t('cashRegister.removeAtCloseHint')}</p>
-        <div className="grid gap-3 sm:grid-cols-2">
+        {useCount ? (
           <div className="space-y-2">
-            <Label>{t('cashRegister.amount')}</Label>
+            <Label>
+              {t('cashRegister.countedCash')}
+              <RequiredMark />
+            </Label>
+            <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
+              {countLines.map((row, idx) => (
+                <div key={row.denomination} className="grid grid-cols-3 items-center gap-3">
+                  <Label className="tabular-nums">{formatAfn(Number(row.denomination))}</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={row.quantity}
+                    onChange={(e) => setQty(idx, e.target.value)}
+                    placeholder={t('cashRegister.qtyPlaceholder')}
+                  />
+                  <p className="text-sm tabular-nums text-muted-foreground">
+                    {formatAfn(Number(row.denomination) * Number(row.quantity || 0))}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label htmlFor="counted-total">
+              {t('cashRegister.countedCash')}
+              <RequiredMark />
+            </Label>
             <Input
+              id="counted-total"
               type="number"
               min="0"
-              step="0.01"
+              step="1"
+              value={manualActual}
+              onChange={(e) => setManualActual(e.target.value)}
+              placeholder={t('cashRegister.countedCashPlaceholder')}
+            />
+            <p className="text-xs text-muted-foreground">{t('cashRegister.countedCashHelp')}</p>
+          </div>
+        )}
+
+        {hasDifference ? (
+          <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
+            <Label htmlFor="difference-reason">
+              {t('cashRegister.differenceReason')}
+              <RequiredMark />
+            </Label>
+            <Textarea
+              id="difference-reason"
+              value={differenceReason}
+              onChange={(e) => setDifferenceReason(e.target.value)}
+              rows={2}
+              placeholder={t('cashRegister.differenceReasonPlaceholder')}
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('cashRegister.differenceReasonHelp')}
+            </p>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="space-y-3 rounded-xl border p-4">
+        <div>
+          <h2 className="font-medium">{t('cashRegister.removeAtClose')}</h2>
+          <p className="text-xs text-muted-foreground">{t('cashRegister.removeAtCloseHint')}</p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="removal-amount">
+              {t('cashRegister.amount')}
+              {hasRemoval ? <RequiredMark /> : null}
+            </Label>
+            <Input
+              id="removal-amount"
+              type="number"
+              min="0"
+              step="1"
               value={removalAmount}
               onChange={(e) => setRemovalAmount(e.target.value)}
+              placeholder={t('cashRegister.removalAmountPlaceholder')}
             />
           </div>
           <div className="space-y-2">
-            <Label>{t('cashRegister.category')}</Label>
+            <Label>
+              {t('cashRegister.category')}
+              {hasRemoval ? <RequiredMark /> : null}
+            </Label>
             <Select value={removalCategory} onValueChange={setRemovalCategory}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder={t('cashRegister.removalCategoryPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {REMOVAL_CATEGORIES.map((c) => (
@@ -277,20 +353,33 @@ export default function CloseCashSession() {
             </Select>
           </div>
         </div>
+
         <div className="space-y-2">
-          <Label>{t('cashRegister.description')}</Label>
-          <Input value={removalDesc} onChange={(e) => setRemovalDesc(e.target.value)} />
+          <Label htmlFor="removal-note">{t('cashRegister.description')}</Label>
+          <Input
+            id="removal-note"
+            value={removalDesc}
+            onChange={(e) => setRemovalDesc(e.target.value)}
+            placeholder={t('cashRegister.removalNotePlaceholder')}
+          />
         </div>
-        <p className="text-sm">
+
+        <p className="rounded-lg bg-muted/40 px-3 py-2 text-sm">
           {t('cashRegister.carryForward')}:{' '}
           <strong className="tabular-nums">{formatAfn(carry)}</strong>
         </p>
-      </div>
+      </section>
 
-      <div className="space-y-2">
-        <Label>{t('cashRegister.notes')}</Label>
-        <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
-      </div>
+      <section className="space-y-2">
+        <Label htmlFor="close-notes">{t('cashRegister.notes')}</Label>
+        <Textarea
+          id="close-notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={2}
+          placeholder={t('cashRegister.closeNotesPlaceholder')}
+        />
+      </section>
 
       <Button className="w-full sm:w-auto" onClick={handleClose} disabled={submitting}>
         <Lock className="mr-2 h-4 w-4" />

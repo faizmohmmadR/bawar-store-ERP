@@ -454,15 +454,8 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
     sarafi_gl = get_account_code_balance(
         '1060', start_date=None, end_date=end_date, mode=REPORT_MODE_BASE,
     )
-    safe_drawer = Decimal('0')
-    try:
-        from api.services.cash_register import get_open_session, session_totals
-
-        open_session = get_open_session()
-        if open_session is not None:
-            safe_drawer = _d(session_totals(open_session).get('expected_closing_balance') or 0)
-    except Exception:
-        safe_drawer = Decimal('0')
+    # Cash Register (دخل) and AFN Cash GL 1000 are the same money position.
+    cash_register_afn = cash_gl
 
     activity = {
         'currency': base_meta.get('code', 'AFN'),
@@ -476,7 +469,9 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
             'net_cash_flow_afn': _float(net_cash),
         },
         'balances': {
-            'safe_drawer_afn': _float(safe_drawer),
+            # Alias kept for older clients; always equals cash_afn.
+            'safe_drawer_afn': _float(cash_register_afn),
+            'cash_register_afn': _float(cash_register_afn),
             'cash_afn': _float(cash_gl),
             'bank_afn': _float(bank_gl),
             'sarafi_afn': _float(sarafi_gl),
@@ -484,7 +479,7 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
         },
         'notes': [
             'Period activity = amounts dated in the selected range only.',
-            'Balances (Safe / Cash / Bank) are current position, not period totals.',
+            'Cash Register (دخل) balance is AFN Cash (GL 1000). Bank is separate.',
         ],
     }
 

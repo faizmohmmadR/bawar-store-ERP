@@ -665,6 +665,17 @@ def sync_drawer_from_loan_payment(payment, user=None):
     )
 
 
+def book_cash_afn_balance():
+    """Authoritative AFN cash (GL 1000) — same as Cash Register / دخل balance."""
+    from api.services.accounting.reports import REPORT_MODE_BASE, get_account_code_balance
+
+    return _q(
+        get_account_code_balance(
+            '1000', start_date=None, end_date=None, mode=REPORT_MODE_BASE,
+        ),
+    )
+
+
 @transaction.atomic
 def close_session(
     *,
@@ -681,18 +692,14 @@ def close_session(
     if not session.is_open:
         raise ValidationError('Session is already closed.')
 
-    totals = session_totals(session)
-    expected = _q(totals['expected_closing_balance'])
+    # Expected must match the Balance shown in the UI (AFN Cash / دخل).
+    expected = book_cash_afn_balance()
     actual = _q(actual_closing_balance)
     carry = _q(carry_forward_amount)
     if carry < 0:
         raise ValidationError('Carry-forward cannot be negative.')
     if carry > actual:
         raise ValidationError('Carry-forward cannot exceed the physically counted cash.')
-
-    difference = _q(actual - expected)
-    if difference != 0 and not (difference_reason or '').strip():
-        raise ValidationError('A reason is required when counted cash differs from expected.')
 
     # Persist denomination lines
     if count_lines is not None:
@@ -711,9 +718,12 @@ def close_session(
             line.save()
             counted += line.subtotal
         if count_lines and _q(counted) != actual:
-            # Prefer explicit actual; warn by aligning if user only sent lines
+            # Prefer counted lines when the client sent a denomination breakdown.
             actual = _q(counted)
-            difference = _q(actual - expected)
+
+    difference = _q(actual - expected)
+    if difference != 0 and not (difference_reason or '').strip():
+        raise ValidationError('A reason is required when counted cash differs from expected.')
 
     # Record over/short if needed (own journal)
     if difference > 0:
@@ -755,12 +765,15 @@ def close_session(
             raise ValidationError(
                 'Cash removed at close must be classified as owner_withdrawal, bank_deposit, or other_payment.',
             )
+        # Use the user's note when present; otherwise leave empty — Type already
+        # shows Owner withdrawal / Bank deposit / Other (no English fallback spam).
+        note = (row.get('description') or '').strip()
         record_transaction(
             session=session,
             direction=CashTransaction.DIRECTION_OUT,
             category=cat,
             amount=amt,
-            description=row.get('description') or 'Cash removed at session close',
+            description=note,
             user=user,
             posts_own_journal=True,
             skip_session_check=True,

@@ -116,7 +116,7 @@ export const commonFa = {
     exchangeRates: "نرخ ارز",
     profile: "پروفایل",
     activityLogs: "گزارش فعالیتها",
-    cashRegister: "سیف",
+    cashRegister: "دخل",
     cashRegisterDashboard: "داشبورد",
     cashRegisterTransactions: "تراکنش‌ها",
     cashRegisterReports: "گزارشات",

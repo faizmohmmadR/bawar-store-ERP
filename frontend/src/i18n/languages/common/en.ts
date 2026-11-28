@@ -119,7 +119,7 @@ export const commonEn = {
     exchangeRates: "Exchange Rates",
     profile: "Profile",
     activityLogs: "Activity Logs",
-    cashRegister: "Safe",
+    cashRegister: "Cash Register",
     cashRegisterDashboard: "Dashboard",
     cashRegisterTransactions: "Transactions",
     cashRegisterReports: "Reports",

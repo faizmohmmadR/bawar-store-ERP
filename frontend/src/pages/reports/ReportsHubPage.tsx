@@ -70,9 +70,9 @@ const CORE_REPORTS: ReportLink[] = [
   {
     key: 'safe',
     titleKey: 'core.navigation.cashRegisterReports',
-    titleFallback: 'Safe Report',
+    titleFallback: 'Cash Register Report',
     hintKey: 'reports.hub.safeHint',
-    hintFallback: 'Cash sessions, income, and outcome',
+    hintFallback: 'Cash Register sessions, income, and outcome',
     path: '/cash-register/reports',
     icon: Banknote,
     color: 'bg-amber-500',
@@ -245,7 +245,7 @@ export default function ReportsHubPage() {
               <p className="text-sm text-muted-foreground">
                 {t(
                   'reports.hubSubtitle',
-                  'Simple reports for sales, stock, Safe, expenses, payroll, loans, and accounts.',
+                  'Simple reports for sales, stock, Cash Register, expenses, payroll, loans, and accounts.',
                 )}
               </p>
             </div>

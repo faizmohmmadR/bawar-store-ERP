@@ -219,7 +219,7 @@ export const userFa = {
     hr_reports: "گزارش‌های منابع انسانی",
     warehouses: "انبارها",
     uom: "واحدهای اندازه‌گیری",
-    cash_register: "صندوق",
+    cash_register: "دخل",
     expense_categories: "دسته‌بندی هزینه‌ها",
     record_damaged_stock: "ثبت محصول آسیب‌دیده",
     record_expired_stock: "ابطال موجودی منقضی",

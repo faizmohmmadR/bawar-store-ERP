@@ -115,7 +115,7 @@ export const commonPs = {
     exchangeRates: "د اسعارو نرخ",
     profile: "پروفایل",
     activityLogs: "د فعالیتونو راپورونه",
-    cashRegister: "سیف",
+    cashRegister: "دخل",
     cashRegisterDashboard: "ډشبورډ",
     cashRegisterTransactions: "معاملې",
     cashRegisterReports: "راپورونه",

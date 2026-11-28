@@ -29,6 +29,8 @@ type DashboardPayload = {
   has_open_session: boolean;
   previous_carry_forward?: string | null;
   has_previous_session?: boolean;
+  /** Authoritative AFN cash (GL 1000) — same as Cash Register / دخل. */
+  book_cash_afn?: string | null;
   totals: Record<string, string> | null;
 };
 
@@ -147,7 +149,10 @@ export default function CashRegisterDashboard() {
   const opening = num(totals?.opening_balance);
   const income = num(totals?.total_cash_in);
   const outcome = num(totals?.total_cash_out);
-  const balance = num(totals?.expected_closing_balance);
+  // Balance must always equal AFN Cash (GL 1000 / دخل).
+  const balance = num(
+    totals?.expected_closing_balance ?? data?.book_cash_afn ?? data?.previous_carry_forward,
+  );
 
   const carriedFromYesterday = num(data?.previous_carry_forward);
   const depositNow = num(openingDeposit);

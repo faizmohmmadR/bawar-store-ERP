@@ -1,7 +1,7 @@
 export const reportsEn = {
   hubTitle: "Reports",
   hubSubtitle:
-    "Simple reports for sales, stock, Safe, expenses, payroll, loans, and accounts.",
+    "Simple reports for sales, stock, Cash Register, expenses, payroll, loans, and accounts.",
   hubOperations: "Operations",
   hubAccounting: "Accounting",
   hubMore: "More",
@@ -9,7 +9,7 @@ export const reportsEn = {
     salesHint: "Billed, collected, returns, and unpaid",
     purchasesHint: "Open purchases and vendor activity",
     stockHint: "On-hand inventory and stock value",
-    safeHint: "Cash sessions, income, and outcome",
+    safeHint: "Cash Register sessions, income, and outcome",
     expensesHint: "Spending by category and payment method",
     hrHint: "Salaries, advances, and employee costs",
     loansHint: "Loans given, received, and collections",

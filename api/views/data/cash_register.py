@@ -18,7 +18,7 @@ from api.views.data.base import DataRootViewSet
 
 
 class CashRegisterViewSet(DataRootViewSet):
-    """Single Safe (cash register) — dashboard, sessions, transactions."""
+    """Cash Register (دخل) — dashboard, sessions, transactions."""
 
     permission_module = 'cash_register'
     queryset = CashRegister.objects.all().select_related('linked_cash_account')
@@ -58,14 +58,19 @@ class CashRegisterViewSet(DataRootViewSet):
     def dashboard(self, request):
         register = cash_svc.get_or_create_default_register()
         session = cash_svc.get_open_session(register)
+        # Authoritative AFN cash = GL 1000 (same as Cash Register / دخل).
+        book_cash_afn = cash_svc.book_cash_afn_balance()
         payload = {
             'register': CashRegisterSerializer(register).data,
             'open_session': CashSessionSerializer(session).data if session else None,
             'has_open_session': session is not None,
             'denominations': [str(d) for d in cash_svc.AFN_DENOMINATIONS],
+            'book_cash_afn': str(book_cash_afn),
         }
         if session:
             totals = cash_svc.session_totals(session)
+            # Balance shown to users must match AFN Cash account.
+            totals = {**totals, 'expected_closing_balance': book_cash_afn}
             payload['totals'] = {
                 k: (str(v) if hasattr(v, 'quantize') else v) for k, v in totals.items()
             }
@@ -77,9 +82,8 @@ class CashRegisterViewSet(DataRootViewSet):
                 .order_by('-closed_at', '-id')
                 .first()
             )
-            payload['previous_carry_forward'] = (
-                str(prev.carry_forward_amount) if prev else '0'
-            )
+            # Suggest opening from book cash so دخل starts aligned with Cash AFN.
+            payload['previous_carry_forward'] = str(book_cash_afn)
             payload['has_previous_session'] = prev is not None
             payload['totals'] = None
         return Response(payload)

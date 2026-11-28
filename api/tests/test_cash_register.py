@@ -70,6 +70,7 @@ class CashRegisterSessionTests(TestCase):
             session=s1,
             actual_closing_balance=Decimal('19000'),
             carry_forward_amount=Decimal('10000'),
+            difference_reason='Drawer count includes cash sale not yet in book cash test',
             removals=[{
                 'category': CashTransaction.CAT_OWNER_WITHDRAWAL,
                 'amount': '9000',
@@ -124,6 +125,7 @@ class CashRegisterSessionTests(TestCase):
             session=s1,
             actual_closing_balance=Decimal('19000'),
             carry_forward_amount=Decimal('10000'),
+            difference_reason='Drawer count includes cash sale not yet in book cash test',
             removals=[{
                 'category': CashTransaction.CAT_OWNER_WITHDRAWAL,
                 'amount': '9000',
