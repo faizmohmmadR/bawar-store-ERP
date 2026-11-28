@@ -11,7 +11,6 @@ import {
   CreditCard,
   RotateCcw,
   UserCheck,
-  Briefcase,
   Wallet,
   Banknote,
   Calendar,
@@ -92,7 +91,6 @@ const TILE = {
   accounting: { color: 'bg-blue-800', colorHover: 'hover:bg-blue-900' },
   contacts: { color: 'bg-sky-600', colorHover: 'hover:bg-sky-700' },
   vendors: { color: 'bg-sky-700', colorHover: 'hover:bg-sky-800' },
-  salesmen: { color: 'bg-cyan-600', colorHover: 'hover:bg-cyan-700' },
   users: { color: 'bg-slate-700', colorHover: 'hover:bg-slate-800' },
   hr: { color: 'bg-cyan-700', colorHover: 'hover:bg-cyan-800' },
   reports: { color: 'bg-slate-700', colorHover: 'hover:bg-slate-800' },
@@ -167,12 +165,6 @@ export const ERP_APPS: AppDefinition[] = [
     subItems: [
       { key: 'salePayments', icon: ArrowUpRight, path: '/sale-payments', ...navPerm('salePayments') },
       { key: 'purchasePayments', icon: ArrowDownLeft, path: '/purchase-payments', ...navPerm('purchasePayments') },
-      {
-        key: 'salesmanCommissionPayments',
-        icon: Wallet,
-        path: '/salesman-commission-payments',
-        ...navPerm('salesmanCommissionPayments'),
-      },
     ],
   },
   {
@@ -232,14 +224,6 @@ export const ERP_APPS: AppDefinition[] = [
     section: 'contacts',
     ...TILE.vendors,
     ...navPerm('vendors'),
-  },
-  {
-    key: 'salesmen',
-    icon: Briefcase,
-    path: '/salesmen',
-    section: 'contacts',
-    ...TILE.salesmen,
-    ...navPerm('salesmen'),
   },
   {
     key: 'users',
@@ -367,7 +351,6 @@ const CUSTOMER_HIDDEN_APPS = new Set([
   'returns',
   'sales',
   'vendors',
-  'salesmen',
   'users',
   'hr',
   'expenses',

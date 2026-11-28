@@ -83,7 +83,6 @@ export const coreEn = {
     sales: 'Sales',
     salesReport: 'Sales Report',
     salePayments: 'Sale Payments',
-    salesmanCommissionPayments: 'Commission Payments',
     returns: 'Returns',
     orders: 'Orders',
     accounting: 'Accounting',
@@ -101,7 +100,6 @@ export const coreEn = {
 
     customers: 'Customers',
     vendors: 'Vendors',
-    salesmen: 'Salesmen',
     users: 'Users',
     hr: 'HR',
     employees: 'Employees',

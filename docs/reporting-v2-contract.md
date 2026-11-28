@@ -22,7 +22,6 @@
 | معاش/مساعده | Payroll / Employee | payment_date و دوره استحقاق جدا | پرداخت از استحقاق جدا؛ اجناس خروج پول نیست |
 | اضافه‌کاری/غیرحاضری | EmployeeOvertimeEntry / EmployeeAbsenceEntry | work_date / absence_date | تغییر استحقاق همان دوره و ارز |
 | مصارف/برداشت | Expense / Withdrawal | expense_date / withdrawal_date | مصرف با برداشت مالک مخلوط نشود |
-| کمیسیون | Sales / SalesmanCommissionPayment | sale_date / payment_date | استحقاق و تسویه جدا |
 | قرض مالی | Loan / LoanPayment | loan_date / payment_date | اصل قرض و بازپرداخت؛ افتتاحیه/واسطه‌ای پول جدید نیست |
 | تجهیزات/استهلاک | Equipment / EquipmentDepreciation | acquired_date / تاریخ دوره سند | دارایی و استهلاک؛ خرید دارایی مصرف یک‌باره نیست |
 | تبادله/تسعیر | CurrencyExchange / FxRevaluation | تاریخ مؤثر سند | تبادله واقعی از تسعیر بدون تغییر مقدار پول جدا |

@@ -17,8 +17,6 @@ import OrderPaymentSection from '@/components/payments/OrderPaymentSection';
 import JournalEntriesSection from '@/components/accounting/JournalEntriesSection';
 import { printSaleBill } from '@/pages/sales/print';
 import { formatOrderNumeric } from '@/lib/orderNumeric';
-import { FALLBACK_BASE_SYMBOL } from '@/lib/currencies';
-import { resolveCurrencySymbol } from '@/lib/currencyChoices';
 import { cartonsFromPieces, DEFAULT_PIECES_PER_CARTON, remainderPieces } from '@/lib/packaging';
 import { saleLineTotal } from '@/lib/saleFormSchemas';
 
@@ -66,9 +64,6 @@ const SaleDetails = () => {
     const numAmount = Number(amount) || 0;
     return `${formatOrderNumeric(numAmount)} ${currency?.symbol || currency?.code || ''}`;
   };
-
-  const afnSymbol = resolveCurrencySymbol(1) || FALLBACK_BASE_SYMBOL;
-  const formatAfn = (amount: number) => `${formatOrderNumeric(amount)} ${afnSymbol}`;
 
   const items = sale.items || sale.sales_items || [];
   const finalTotal = parseFloat(sale.final_total?.toString() || sale.total_amount?.toString() || '0');
@@ -172,7 +167,7 @@ const SaleDetails = () => {
               </div>
             </div>
 
-            {/* Right: Customer / Salesman Info */}
+            {/* Right: Customer info */}
             <div className="space-y-5 border-l pl-8">
               {sale.employee_details && (
                 <div className="space-y-3">
@@ -241,29 +236,6 @@ const SaleDetails = () => {
                   </div>
                 </div>
               )}
-              {sale.salesman_details && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 font-semibold">
-                    <User className="h-4 w-4" />
-                    {t('sales.salesman', 'Salesman')}
-                  </div>
-                  <div className="pl-6 space-y-1">
-                    <p className="font-semibold">{sale.salesman_details.name}</p>
-                    {sale.salesman_details.phone && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <Phone className="h-3 w-3" />
-                        {sale.salesman_details.phone}
-                      </div>
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      {t('sales.totalCommissionAfn', 'Total commission (AFN)')}:{' '}
-                      <span className="font-semibold text-foreground">
-                        {formatAfn(Number(sale.total_commission) || 0)}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </CardContent>
@@ -320,9 +292,6 @@ const SaleDetails = () => {
                   <th className="text-start p-3 font-medium text-sm text-gray-600">{t('sales.product')}</th>
                   <th className="text-start p-3 font-medium text-sm text-gray-600">{t('sales.quantity', 'Quantity')}</th>
                   <th className="text-start p-3 font-medium text-sm text-gray-600">{t('sales.price', 'Price')}</th>
-                  <th className="text-start p-3 font-medium text-sm text-gray-600">
-                    {t('sales.commissionPerUnitAfn', 'Commission / Unit (AFN)')}
-                  </th>
                   <th className="text-start p-3 font-medium text-sm text-gray-600">{t('sales.total')}</th>
                 </tr>
               </thead>
@@ -330,9 +299,6 @@ const SaleDetails = () => {
                 {items.map((item, index) => {
                   const sellPrice = toNum(item.sell_price) || saleDisplayPrice(item);
                   const qty = toNum(item.quantity);
-                  const commissionPerUnit = toNum(item.commission_amount);
-                  const lineCommission =
-                    toNum(item.commission_total) || qty * commissionPerUnit;
                   const packagingName = item.packaging_details?.name;
                   const factor = toNum(item.conversion_factor ?? item.packaging_details?.qty_in_base) || 1;
                   const baseQty = toNum(item.base_quantity) || qty * factor;
@@ -364,14 +330,6 @@ const SaleDetails = () => {
                       </td>
                       <td className="p-3 text-start text-gray-600">
                         {formatCurrency(sellPrice, sale.currency_details)}
-                      </td>
-                      <td className="p-3 text-start text-gray-600">
-                        <div>{formatAfn(commissionPerUnit)}</div>
-                        {lineCommission > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            {t('sales.lineCommission', 'Line')}: {formatAfn(lineCommission)}
-                          </p>
-                        )}
                       </td>
                       <td className="p-3 text-start font-semibold">
                         {formatCurrency(lineTotal, sale.currency_details)}

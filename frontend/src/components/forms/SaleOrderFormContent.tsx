@@ -25,7 +25,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { resolveCurrencySymbol } from '@/lib/currencyChoices';
 import { FALLBACK_BASE_SYMBOL } from '@/lib/currencies';
 import {
-  calculateSaleCommissionTotal,
   calculateSaleSubtotal,
   calculateSaleTotal,
   defaultSaleItem,
@@ -273,7 +272,6 @@ export function SaleOrderFormContent({
   // Form prices stay in AFN internally, but are entered in the invoice currency.
   const afnSymbol = FALLBACK_BASE_SYMBOL;
   const invoiceSymbol = resolveCurrencySymbol(currency);
-  const commissionTotal = useMemo(() => calculateSaleCommissionTotal(items), [items]);
   const saleDate = useWatch({ control, name: 'sale_date' });
   const isTankSale = false;
   const isRawMaterialSale = false;
@@ -351,26 +349,6 @@ export function SaleOrderFormContent({
     [t],
   );
 
-  const getCommissionLabel = useCallback(
-    (unit: SaleUnit | string, source: 'stock' | 'tank' = 'stock') => {
-      if (unit === 'kg') {
-        return t('sales.commissionPerKgAfn', 'Commission / Kg (AFN)');
-      }
-      if (source === 'tank' || unit === 'liter') {
-        return t('sales.commissionPerKgAfn', 'Commission / kg (AFN)');
-      }
-      const normalized = normalizeStockSaleUnit(unit);
-      if (normalized === 'plastic') {
-        return t('sales.commissionPerPlasticAfn', 'Commission / Plastic (AFN)');
-      }
-      if (isPieceSaleUnit(normalized)) {
-        return t('sales.commissionPerBottleAfn', 'Commission / Bottle (AFN)');
-      }
-      return t('sales.commissionPerCartonAfn', 'Commission / Carton (AFN)');
-    },
-    [t],
-  );
-
   const getQtyLabel = useCallback(
     (unit: SaleUnit | string, source: 'stock' | 'tank' | 'raw_material' = 'stock') => {
       if (unit === 'kg') {
@@ -420,19 +398,7 @@ export function SaleOrderFormContent({
     return t('sales.price', 'Price');
   }, [items, getPriceLabel, t, isTankSale, isRawMaterialSale]);
 
-  const commissionColumnTitle = useMemo(() => {
-    const units = new Set(
-      (items.length ? items : [{ unit: isTankSale ? 'kg' : 'carton' }])
-        .map((i) => i?.unit || (isTankSale ? 'kg' : 'carton')),
-    );
-    if (units.size === 1) {
-      return getCommissionLabel([...units][0], isTankSale ? 'tank' : 'stock');
-    }
-    return t('sales.commissionPerUnitAfn', 'Commission / Unit (AFN)');
-  }, [items, getCommissionLabel, t, isTankSale]);
-
   const customerQueryParams = useMemo(() => ({}), []);
-  const salesmanQueryParams = useMemo(() => ({ status: 'active' }), []);
   const stockQueryParams = useMemo(() => {
     return { condition: 'good' };
   }, []);
@@ -643,7 +609,7 @@ export function SaleOrderFormContent({
                   if (vendorParty) setValue('vendor_transaction', 'sale');
                   if (employeeParty) setValue('party_type', 'customer');
                   setValue('discount', 0);
-                  items.forEach((_, index) => { setValue(`items.${index}.sell_price`, 0); setValue(`items.${index}.commission_amount`, 0); });
+                  items.forEach((_, index) => { setValue(`items.${index}.sell_price`, 0); });
                 }
               }} /></FormControl><FormMessage />
             </FormItem>} />
@@ -658,7 +624,6 @@ export function SaleOrderFormContent({
                 setValue('vendor_transaction', 'sale');
                 if (value === 'employee') {
                   setValue('transaction_type', 'paid');
-                  setValue('salesman', '');
                 }
               }}>
                 <FormControl><SelectTrigger className={orderFormHeaderControlClass(false)}><SelectValue /></SelectTrigger></FormControl>
@@ -707,33 +672,6 @@ export function SaleOrderFormContent({
                 </FormItem>
               )}
             />
-
-            {!isRawMaterialSale && !employeeParty && (
-              <FormField
-                control={control}
-                name="salesman"
-                render={({ field }) => (
-                  <FormItem className="min-w-0 flex flex-col flex-1 min-w-[10rem]">
-                    <FormLabel className={orderFormHeaderLabel}>
-                      {t('sales.salesman', 'Salesman')}
-                    </FormLabel>
-                    <FormControl>
-                      <Autocomplete
-                        endpoint="salesmen"
-                        queryParams={salesmanQueryParams}
-                        value={field.value || ''}
-                        onChange={(value) => field.onChange(value?.toString() || '')}
-                        placeholder={t('sales.selectSalesman', 'Select salesman')}
-                        getOptionLabel={(s) => s.name}
-                        getOptionValue={(s) => s.id.toString()}
-                        className={orderFormHeaderControlClass(!!errors.salesman)}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs min-h-4" />
-                  </FormItem>
-                )}
-              />
-            )}
 
             <FormField
               control={control}
@@ -841,11 +779,6 @@ export function SaleOrderFormContent({
                     <th className={cn('text-left px-2 py-2 font-semibold', orderFormTablePriceCol)}>
                       {priceColumnTitle} ({priceCurrencyLabel})
                     </th>
-                    {!isRawMaterialSale && (
-                      <th className={cn('text-left px-2 py-2 font-semibold', orderFormTableNumericCol)}>
-                        {commissionColumnTitle}
-                      </th>
-                    )}
                     <th
                       className={cn(
                         'text-right px-2 py-2 font-semibold last:pr-3',
@@ -1079,29 +1012,6 @@ export function SaleOrderFormContent({
                             )}
                           />
                         </td>
-                        {!isRawMaterialSale && (
-                        <td className={cn('px-2 py-1.5 align-middle', orderFormTableNumericCol)}>
-                          <FormField
-                            control={control}
-                            name={`items.${index}.commission_amount`}
-                            render={({ field: commissionField }) => (
-                              <FormItem className="space-y-0">
-                                <FormControl>
-                                  <SaleQtyInput
-                                    value={freeSale ? 0 : commissionField.value}
-                                    disabled={freeSale}
-                                    onChange={commissionField.onChange}
-                                    className={cn(orderFormRowControl, 'text-sm w-full min-w-0')}
-                                    placeholder={getCommissionLabel(unit, saleType)}
-                                    aria-label={getCommissionLabel(unit, saleType)}
-                                  />
-                                </FormControl>
-                                <FormMessage className="text-xs" />
-                              </FormItem>
-                            )}
-                          />
-                        </td>
-                        )}
                         <td
                           className={cn(
                             'px-2 py-1.5 text-right font-semibold text-sm tabular-nums last:pr-3 align-middle',
@@ -1371,31 +1281,6 @@ export function SaleOrderFormContent({
                         )}
                       />
 
-                      {!isRawMaterialSale && (
-                        <FormField
-                          control={control}
-                          name={`items.${index}.commission_amount`}
-                          render={({ field: commissionField }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">
-                                {getCommissionLabel(unit, saleType)}
-                              </FormLabel>
-                              <FormControl>
-                                <SaleQtyInput
-                                  value={freeSale ? 0 : commissionField.value}
-                                    disabled={freeSale}
-                                  onChange={commissionField.onChange}
-                                  className={cn(orderFormRowControl, 'text-sm w-full')}
-                                  placeholder={getCommissionLabel(unit, saleType)}
-                                  aria-label={getCommissionLabel(unit, saleType)}
-                                />
-                              </FormControl>
-                              <FormMessage className="text-xs" />
-                            </FormItem>
-                          )}
-                        />
-                      )}
-
                       <div className="text-right font-semibold text-base pt-2 border-t">
                         {t('sales.total')}: {lineTotal == null ? '—' : `${invoiceSymbol}${formatOrderNumeric(lineTotal)}`}
                       </div>
@@ -1461,18 +1346,6 @@ export function SaleOrderFormContent({
                     <span className="font-semibold tabular-nums">
                       {afnSymbol}
                       {formatOrderNumeric(totalAfn)}
-                    </span>
-                  </div>
-                )}
-
-                {commissionTotal > 0 && (
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-600">
-                      {t('sales.totalCommissionAfn', 'Total commission (AFN)')}
-                    </span>
-                    <span className="font-semibold tabular-nums">
-                      {afnSymbol}
-                      {formatOrderNumeric(commissionTotal)}
                     </span>
                   </div>
                 )}

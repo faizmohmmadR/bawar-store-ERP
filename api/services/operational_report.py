@@ -145,19 +145,6 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
     purchases_received = _sum_base(purchases_qs, 'total_amount_base')
     withdrawals_paid = _sum_base(withdrawals_qs, 'amount_base')
 
-    commission_paid = Decimal('0')
-    commission_count = 0
-    try:
-        from api.models.data.salesman_commission_payment import SalesmanCommissionPayment
-
-        commission_qs = apply_date_range(
-            SalesmanCommissionPayment.objects.all(), 'payment_date', start_date, end_date,
-        )
-        commission_paid = _sum_base(commission_qs, 'amount_base')
-        commission_count = commission_qs.count()
-    except Exception:
-        commission_qs = None
-
     def _as_date(value):
         if value is None:
             return None
@@ -196,12 +183,12 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
         start_date=start_date, end_date=end_date, limit=top_limit,
     )
 
-    paid_operating = expense_paid + commission_paid
+    paid_operating = expense_paid
     paid_operating_with_payroll = (
-        expense_paid + payroll_paid + advances_paid + refunds + withdrawals_paid + commission_paid
+        expense_paid + payroll_paid + advances_paid + refunds + withdrawals_paid
     )
     cash_out_total = (
-        _d(base.get('total_cash_out', 0)) + commission_paid + equipment_paid
+        _d(base.get('total_cash_out', 0)) + equipment_paid
     )
 
     base_meta = get_currency(BASE_CURRENCY_ID) or CURRENCY_DEFINITIONS[BASE_CURRENCY_ID]
@@ -266,7 +253,6 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
         'operating_expenses_gl_afn': _float(operating_exp_gl),
         'total_pnl_costs_afn': _float(cogs + operating_exp_gl),
         'expenses_paid_afn': _float(expense_paid),
-        'commission_paid_afn': _float(commission_paid),
         'payroll_paid_afn': _float(payroll_paid),
         'advances_paid_afn': _float(advances_paid),
         'refunds_paid_afn': _float(refunds),
@@ -276,7 +262,6 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
         'by_category': expense_by_category,
         'cash_breakdown': [
             _breakdown_entry('Operating expenses', expense_paid, expenses_qs.count()),
-            _breakdown_entry('Commissions', commission_paid, commission_count),
             _breakdown_entry('Payroll', payroll_paid, payroll_qs.count()),
             _breakdown_entry('Advances', advances_paid, advances_qs.count()),
             _breakdown_entry(
@@ -335,8 +320,6 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
         'in_breakdown': base.get('cash_in_breakdown', []),
         'out_breakdown': [
             *base.get('cash_out_breakdown', []),
-            *([_breakdown_entry('Commissions', commission_paid, commission_count)]
-              if commission_paid else []),
             *([_breakdown_entry('Equipment', equipment_paid, equipment_count)]
               if equipment_paid else []),
         ],
@@ -416,10 +399,6 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
             count=advances_count, kind='expense', group='hr',
         ),
         _activity(
-            'commission_paid', 'Salesman commissions', commission_paid,
-            count=commission_count, kind='expense', group='hr',
-        ),
-        _activity(
             'loans_received', 'Loans received', loans_received,
             kind='financing', group='loans',
         ),
@@ -491,7 +470,7 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
         'totals': {
             'sales_net_afn': _float(net_billed),
             'purchases_afn': _float(purchases_received),
-            'expenses_afn': _float(expense_paid + payroll_paid + advances_paid + commission_paid),
+            'expenses_afn': _float(expense_paid + payroll_paid + advances_paid),
             'gross_profit_afn': _float(gross_profit),
             'net_profit_afn': _float(net_profit),
             'net_cash_flow_afn': _float(net_cash),
@@ -593,6 +572,6 @@ def get_operational_report(*, start_date=None, end_date=None, top_limit=10, **kw
             'Uncollected (period) = unpaid balance on those same invoices; Collected + Uncollected = Net billed.',
             'Stock on-hand / value is a current warehouse snapshot (not period-limited).',
             'AR outstanding = full accounts receivable balance at period end (GL).',
-            'Expenses paid (KPI) includes expenses, payroll, advances, refunds, withdrawals, and commissions.',
+            'Expenses paid (KPI) includes expenses, payroll, advances, refunds, and withdrawals.',
         ],
     }

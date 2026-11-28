@@ -5,7 +5,6 @@ SOURCE_MODEL_TO_ENTRY_TYPE = {
     'purchase': 'Purchase',
     'rawmaterialpurchase': 'Raw Material Purchase',
     'packingrun': 'Packing Run',
-    'salesmancommissionpayment': 'Salesman Commission Payment',
     'payment': 'Payment',
     'expense': 'Expense',
     'payroll': 'Payroll',

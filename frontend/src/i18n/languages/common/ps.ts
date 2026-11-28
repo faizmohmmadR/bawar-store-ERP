@@ -93,7 +93,6 @@ export const commonPs = {
     damagedStock: "زیانمن شوي محصولات",
     customers: "پیرودونکي",
     vendors: "پلورونکي",
-    salesmen: "د پلور استازي",
     users: "کارونکي",
     returns: "بیرته راستنې",
     orders: "امرونه",

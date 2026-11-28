@@ -24,7 +24,6 @@ SOURCE_KINDS = {
     'loan': 'loan_principal',
     'loanpayment': 'loan_repayment',
     'currencyexchange': 'internal_currency_exchange',
-    'salesmancommissionpayment': 'commission_payment',
     'equipment': 'equipment_purchase',
 }
 INTERNAL_KINDS = {'internal_currency_exchange'}

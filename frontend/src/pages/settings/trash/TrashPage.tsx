@@ -46,7 +46,6 @@ const TRASH_MODEL_KEYS = [
   'expenses',
   'customers',
   'vendors',
-  'salesmen',
   'packing-runs',
   'products',
   'employees',

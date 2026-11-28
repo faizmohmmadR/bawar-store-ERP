@@ -40,8 +40,6 @@ export const trashPs = {
     expenses: 'لګښتونه',
     customers: 'پیرودونکي',
     vendors: 'پلورونکي',
-    salesmen: 'د پلور استازي',
-    salesman_commission_payments: 'د کمیشن تادیات',
     'packing-runs': 'بسته‌بندۍ',
     products: 'محصولات',
     employees: 'کارمندان',

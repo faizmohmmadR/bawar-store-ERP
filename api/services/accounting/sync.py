@@ -100,16 +100,6 @@ def _calculate_cogs_for_return(return_order):
     return total_cost
 
 
-def _calculate_commission_afn_for_sale(sale):
-    """Sum of line commissions in AFN (commission is never FX-converted)."""
-    from api.serializers.data.sales import sales_item_commission_total
-
-    total = Decimal('0')
-    for item in sale.sales_items.all():
-        total += sales_item_commission_total(item)
-    return total
-
-
 def sync_sales_journal(sale):
     if not _ready(sale):
         return
@@ -146,7 +136,6 @@ def sync_sales_journal(sale):
                 '0'), 'credit': cogs, 'description': 'Inventory reduction'},
         ])
 
-    # replace_all clears prior sale + commission accrual journals for this sale.
     replace_journal_for_source(
         sale,
         entry_date=sale.sale_date,
@@ -154,54 +143,6 @@ def sync_sales_journal(sale):
         description=sale.notes or f'Sales {sale.invoice_number}',
         lines=lines,
     )
-
-    # Accrue commission in AFN (always), independent of invoice currency.
-    commission_ref = f'{sale.invoice_number}-COMM'
-    commission_afn = _calculate_commission_afn_for_sale(sale)
-    if commission_afn > 0 and sale.salesman_id:
-        if not ensure_accounting_ready(currency_id=BASE_CURRENCY_ID):
-            # Keep the main sale journal; drop any stale commission accrual.
-            _drop_journal_ref(sale, commission_ref)
-            return
-
-        class _AfnCtx:
-            pass
-
-        afn_ctx = _AfnCtx()
-        afn_ctx.currency = BASE_CURRENCY_ID
-        salesman_name = getattr(
-            getattr(sale, 'salesman', None), 'name', '') or 'salesman'
-        replace_journal_for_source(
-            sale,
-            entry_date=sale.sale_date,
-            reference_number=commission_ref,
-            description=f'Commission accrual — {salesman_name} ({sale.invoice_number})',
-            replace_all=False,
-            lines=[
-                {
-                    'gl_account': gl_for_source('commission_expense', afn_ctx),
-                    'debit': commission_afn,
-                    'credit': Decimal('0'),
-                    'currency': BASE_CURRENCY_ID,
-                    'exchange_rate': Decimal('1'),
-                    'base_debit': commission_afn,
-                    'base_credit': Decimal('0'),
-                    'description': f'Commission expense — {salesman_name}',
-                },
-                {
-                    'gl_account': gl_for_source('commission_payable', afn_ctx),
-                    'debit': Decimal('0'),
-                    'credit': commission_afn,
-                    'currency': BASE_CURRENCY_ID,
-                    'exchange_rate': Decimal('1'),
-                    'base_debit': Decimal('0'),
-                    'base_credit': commission_afn,
-                    'description': f'Commission payable — {salesman_name}',
-                },
-            ],
-        )
-    else:
-        _drop_journal_ref(sale, commission_ref)
 
 
 def sync_return_journal(return_order):
@@ -1088,56 +1029,6 @@ def sync_batch_allocation_journal(allocation):
     Keeping this symbol so allocation signals do not crash.
     """
     return None
-
-
-def sync_salesman_commission_payment_journal(payment):
-    """
-    Settle accrued commission payable in AFN:
-      Dr Commission Payable (2200)
-      Cr Cash / Bank / Sarafi
-    """
-    if not ensure_accounting_ready(currency_id=BASE_CURRENCY_ID):
-        return
-
-    amount = amount_native(payment, 'amount')
-    if amount <= 0:
-        delete_journal_for_source(payment)
-        return
-
-    method = getattr(payment, 'payment_method', None) or 'cash'
-    asset_account = get_payment_asset_account(
-        method, currency_id=BASE_CURRENCY_ID)
-    method_label = {'cash': 'Cash', 'bank': 'Bank',
-                    'sarafi': 'Sarafi'}.get(method, 'Cash')
-    salesman_name = getattr(
-        getattr(payment, 'salesman', None), 'name', '') or 'salesman'
-
-    class _AfnCtx:
-        pass
-
-    ctx = _AfnCtx()
-    ctx.currency = BASE_CURRENCY_ID
-
-    replace_journal_for_source(
-        payment,
-        entry_date=payment.payment_date,
-        reference_number=payment.reference_number or f'SCP-{payment.id}',
-        description=payment.notes or f'Commission payment to {salesman_name} via {method_label}',
-        lines=[
-            {
-                'gl_account': gl_for_source('commission_payable', ctx),
-                'debit': amount,
-                'credit': Decimal('0'),
-                'description': f'Reduce commission payable — {salesman_name}',
-            },
-            {
-                'gl_account': asset_account,
-                'debit': Decimal('0'),
-                'credit': amount,
-                'description': f'Paid via {method_label}',
-            },
-        ],
-    )
 
 
 def sync_purchase_journal(purchase):

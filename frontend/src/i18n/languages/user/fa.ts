@@ -213,7 +213,6 @@ export const userFa = {
   permissionModules: {
     permissions: "مجوزها",
     notifications: "اعلان‌ها",
-    salesman_commission_payments: "پرداخت کمیشن",
     financial_reports: "گزارش‌های مالی",
     sales_reports: "گزارش‌های فروش",
     inventory_reports: "گزارش‌های موجودی",

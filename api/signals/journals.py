@@ -138,22 +138,6 @@ def resync_purchase_journal_on_item_delete(sender, instance, **kwargs):
         _resync_purchase_from_items(instance.purchase_id)
 
 
-# ── Salesman commission payments ───────────────────────────────────────
-@receiver(post_save, sender='api.SalesmanCommissionPayment')
-def handle_salesman_commission_payment_journal(sender, instance, **kwargs):
-    from api.services.accounting import delete_journal_for_source, sync_salesman_commission_payment_journal
-    if instance.deleted_at is not None:
-        delete_journal_for_source(instance)
-        return
-    sync_salesman_commission_payment_journal(instance)
-
-
-@receiver(post_delete, sender='api.SalesmanCommissionPayment')
-def delete_salesman_commission_payment_journal(sender, instance, **kwargs):
-    from api.services.accounting import delete_journal_for_source
-    delete_journal_for_source(instance)
-
-
 # ── Payments ───────────────────────────────────────────────────────────
 @receiver(post_save, sender='api.Payment')
 def handle_payment_journal(sender, instance, **kwargs):

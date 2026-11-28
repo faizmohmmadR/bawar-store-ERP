@@ -216,7 +216,6 @@ export const userPs = {
   permissionModules: {
     permissions: "اجازې",
     notifications: "خبرتیاوې",
-    salesman_commission_payments: "د کمیشن تادیات",
     financial_reports: "مالي راپورونه",
     sales_reports: "د پلور راپورونه",
     inventory_reports: "د ذخیرې راپورونه",

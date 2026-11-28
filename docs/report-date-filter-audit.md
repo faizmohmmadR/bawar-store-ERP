@@ -4,7 +4,7 @@
 
 The shared date parser interprets calendar dates in `REPORT_TIME_ZONE` (Asia/Kabul in this project). A date-only end filter includes the entire day. Explicit ISO timestamps retain their exact time. Both `date_from`/`date_to` and `start_date`/`end_date` are accepted. One-sided ranges stay open-ended; invalid dates, reversed ranges, invalid periods and invalid fiscal-year selections return validation errors instead of silently broadening the report.
 
-Transaction lists now apply their business event date: sales, raw-material purchases, expenses, salary/advance payroll, payments, loans and repayments, withdrawals, commissions, exchanges, production, packing, equipment, attendance, journal/account entries, stock movements and FX revaluations. Employee leave filters use overlap with the selected period. Customer/vendor/product master records are not filtered by their creation date; party financial summaries use their transaction dates.
+Transaction lists now apply their business event date: sales, raw-material purchases, expenses, salary/advance payroll, payments, loans and repayments, withdrawals, exchanges, production, packing, equipment, attendance, journal/account entries, stock movements and FX revaluations. Employee leave filters use overlap with the selected period. Customer/vendor/product master records are not filtered by their creation date; party financial summaries use their transaction dates.
 
 Operational/base/per-currency reports, report history, daily ledgers and GL reports share inclusive range handling. DateField values (equipment acquisition and attendance dates) retain their business calendar date instead of shifting to the previous UTC date. Customer/vendor transaction histories and GL account lines also use the shared parser.
 

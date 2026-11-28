@@ -7,7 +7,6 @@ import NotFound from '@/pages/NotFound';
 // Import all route modules
 import { customerRoutes } from './customerRoutes';
 import { vendorRoutes } from './vendorRoutes';
-import { salesmanRoutes } from './salesmanRoutes';
 import { salesRoutes } from './salesRoutes';
 import { stockRoutes } from './stockRoutes';
 import { returnRoutes } from './returnRoutes';
@@ -28,8 +27,6 @@ import { settingsRoutes } from './settingsRoutes';
 import { activityLogRoutes } from './activityLogRoutes';
 import { reportRoutes } from './reportRoutes';
 import { salePaymentRoutes, purchasePaymentRoutes, legacyPaymentRoutes } from './paymentRoutes';
-import { salesmanCommissionPaymentRoutes } from './salesmanCommissionPaymentRoutes';
-
 export const appRoutes = (
   <>
     {/* Odoo-style apps launcher (home after login) */}
@@ -44,10 +41,9 @@ export const appRoutes = (
     {salesRoutes}
     {returnRoutes}
 
-    {/* Customer, Vendor & Salesman Management */}
+    {/* Customer & Vendor Management */}
     {customerRoutes}
     {vendorRoutes}
-    {salesmanRoutes}
 
     {/* Financial Management */}
     {accountRoutes}
@@ -56,7 +52,6 @@ export const appRoutes = (
     {withdrawalRoutes}
     {salePaymentRoutes}
     {purchasePaymentRoutes}
-    {salesmanCommissionPaymentRoutes}
     {legacyPaymentRoutes}
 
     {/* Human Resources */}

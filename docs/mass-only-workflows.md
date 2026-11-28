@@ -7,9 +7,9 @@ volume-basis, ml/L and density inputs have been removed from these forms.
 Tank sales default to kg. The volume toggle, volume balances and volume-specific
 price/quantity labels are removed from sales forms. Historical tank sales are
 converted for editing and display using their saved kg quantity; the corresponding
-unit price and commission change proportionally, preserving their totals.
+unit price change proportionally, preserving their totals.
 
-Stock details, operational reports, salesman commission unit breakdowns and
+Stock details, operational reports and
 invoices use mass or count units. Newly generated packed-product names use kg.
 Unused volume-entry widgets and frontend volume helpers have been removed.
 

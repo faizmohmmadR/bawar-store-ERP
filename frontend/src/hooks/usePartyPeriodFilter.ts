@@ -13,7 +13,7 @@ type UsePartyPeriodFilterOptions = {
 
 /**
  * Shared daily / weekly / monthly / yearly / custom range state for
- * customer, vendor, and salesman list + details pages.
+ * customer and vendor list + details pages.
  */
 export function usePartyPeriodFilter(options: UsePartyPeriodFilterOptions = {}) {
   const { onFilterChange, initialPeriod = 'monthly' } = options;

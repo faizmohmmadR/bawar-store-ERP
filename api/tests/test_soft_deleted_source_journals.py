@@ -11,8 +11,6 @@ from api.models.data.payment import Payment
 from api.models.data.payroll import Payroll
 from api.models.data.purchases import Purchase as RawMaterialPurchase
 from api.models.data.sales import Sales
-from api.models.data.salesman_commission_payment import SalesmanCommissionPayment
-from api.models.data.salesmen import Salesman
 from api.models.data.vendors import Vendor
 
 WHEN = datetime(2026, 11, 1, 12, tzinfo=dt_timezone.utc)
@@ -38,20 +36,16 @@ class SoftDeletedSourceJournalTests(TestCase):
         purchase.soft_delete()
         self.assertFalse(JournalEntry.objects.filter(pk__in=[row.pk for row in journals]).exists())
 
-    def test_soft_deleted_payment_and_commission_remove_auto_journals(self):
+    def test_soft_deleted_payment_removes_auto_journals(self):
         customer = Customer.objects.create(name='Soft delete customer')
-        salesman = Salesman.objects.create(name='Soft delete salesman')
         sale = Sales.objects.bulk_create([Sales(customer=customer, invoice_number='SOFT-PAY-SALE',
             total_amount=10, currency=1, status='confirmed', sale_date=WHEN)])[0]
         payment = Payment.objects.bulk_create([Payment(content_type=ContentType.objects.get_for_model(sale),
             object_id=sale.pk, payment_type='sale', amount=5, currency=1,
             payment_date=WHEN)])[0]
-        commission = SalesmanCommissionPayment.objects.bulk_create([SalesmanCommissionPayment(
-            salesman=salesman, amount=2, currency=1, payment_date=WHEN)])[0]
-        journals = [self.linked_journal(payment), self.linked_journal(commission)]
+        journal = self.linked_journal(payment)
         payment.soft_delete()
-        commission.soft_delete()
-        self.assertFalse(JournalEntry.objects.filter(pk__in=[row.pk for row in journals]).exists())
+        self.assertFalse(JournalEntry.objects.filter(pk=journal.pk).exists())
 
     def test_soft_deleted_payroll_and_expense_remove_auto_journals(self):
         employee = Employee.objects.create(

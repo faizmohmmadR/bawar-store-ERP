@@ -10,7 +10,6 @@ export const DAILY_LEDGER_SECTION_OPTIONS = [
   { value: 'withdrawals', labelKey: 'accounts.dailyLedgerWithdrawals' },
   { value: 'payroll', labelKey: 'reports.payroll' },
   { value: 'advances', labelKey: 'reports.advances' },
-  { value: 'commission_payments', labelKey: 'accounts.dailyLedgerCommissionPayments' },
   { value: 'loans_given', labelKey: 'reports.loansGiven' },
   { value: 'loans_received', labelKey: 'reports.loansReceived' },
   { value: 'loan_collections', labelKey: 'accounts.dailyLedgerLoanCollections' },

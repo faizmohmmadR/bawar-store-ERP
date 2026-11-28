@@ -7,7 +7,6 @@ from django.utils import timezone
 from api.models.data.base import BaseModel
 from api.models.data.currency import CURRENCY_CHOICES
 from api.models.data.customers import Customer
-from api.models.data.salesmen import Salesman
 from api.models.data.stock import Stock
 
 
@@ -69,13 +68,6 @@ class Sales(BaseModel):
             ),
         ]
 
-    salesman = models.ForeignKey(
-        Salesman,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name='sales',
-    )
     invoice_number = models.CharField(max_length=50, unique=True, blank=True)
     sale_date = models.DateTimeField(default=timezone.now)
     status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='draft')
@@ -190,7 +182,6 @@ class SalesItems(BaseModel):
         help_text='AVCO cost per base UOM in AFN at sale time.',
     )
     cost_is_known = models.BooleanField(default=False)
-    commission_amount = models.DecimalField(max_digits=12, decimal_places=4, default=0)
 
     def save(self, *args, **kwargs):
         if self.sales_id and self.sales.is_free:

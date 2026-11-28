@@ -20,7 +20,6 @@ GL_ROLE_CODES = {
     'accumulated_depreciation': '1410',
     'accounts_payable': '2000',
     'loan_payable': '2100',
-    'commission_payable': '2200',
     'customer_advance': '2300',
     'opening_balance_equity': '3000',
     'owner_draw': '3100',
@@ -36,7 +35,6 @@ GL_ROLE_CODES = {
     'depreciation_expense': '5150',
     'cogs': '5200',
     'free_distribution': '5220',
-    'commission_expense': '5250',
     'realized_fx_loss': '5350',
     'unrealized_fx_loss': '5400',
     'sales_discount': '4000',  # contra revenue: netted into sales until separate CoA code exists
@@ -58,7 +56,6 @@ SETTINGS_FIELD_TO_ROLE = {
     'accumulated_depreciation_account': 'accumulated_depreciation',
     'accounts_payable_account': 'accounts_payable',
     'loan_payable_account': 'loan_payable',
-    'commission_payable_account': 'commission_payable',
     'opening_balance_equity_account': 'opening_balance_equity',
     'retained_earnings_account': 'retained_earnings',
     'equity_account': 'opening_balance_equity',
@@ -69,7 +66,6 @@ SETTINGS_FIELD_TO_ROLE = {
     'payroll_expense_account': 'payroll_expense',
     'depreciation_expense_account': 'depreciation_expense',
     'cogs_account': 'cogs',
-    'commission_expense_account': 'commission_expense',
     'stock_adjustment_account': 'stock_adjustment',
     'sales_discount_account': 'sales_discount',
     'purchase_discount_account': 'purchase_discount',
@@ -91,7 +87,6 @@ REQUIRED_ROLES = (
     'accumulated_depreciation',
     'accounts_payable',
     'loan_payable',
-    'commission_payable',
     'opening_balance_equity',
     'owner_draw',
     'retained_earnings',
@@ -101,7 +96,6 @@ REQUIRED_ROLES = (
     'stock_adjustment',
     'payroll_expense',
     'cogs',
-    'commission_expense',
     'free_distribution',
 )
 

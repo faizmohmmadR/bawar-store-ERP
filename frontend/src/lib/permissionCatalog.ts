@@ -111,11 +111,6 @@ export const PERMISSION_CATALOG: PermissionGroupDef[] = [
           delete: ['delete_payments'],
         },
       },
-      {
-        id: 'salesman_commission_payments',
-        labelKey: 'core.navigation.salesmanCommissionPayments',
-        actions: crud('salesman_commission_payments'),
-      },
     ],
   },
   {
@@ -124,7 +119,6 @@ export const PERMISSION_CATALOG: PermissionGroupDef[] = [
     rows: [
       { id: 'customers', labelKey: 'core.navigation.customers', actions: crud('customers') },
       { id: 'vendors', labelKey: 'core.navigation.vendors', actions: crud('vendors') },
-      { id: 'salesmen', labelKey: 'core.navigation.salesmen', actions: crud('salesmen') },
       { id: 'users', labelKey: 'core.navigation.users', actions: crud('users') },
       {
         id: 'permissions',

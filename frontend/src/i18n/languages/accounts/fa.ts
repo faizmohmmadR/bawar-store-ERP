@@ -352,7 +352,6 @@ export const accountsFa = {
   dailyLedgerLoanCollections: "وصول قرض",
   dailyLedgerLoanRepayments: "بازپرداخت قرض",
   dailyLedgerWithdrawals: "برداشت",
-  dailyLedgerCommissionPayments: "پرداخت کمیسیون",
   dailyLedgerEquipment: "تجهیزات",
   dailyLedgerCurrencyExchanges: "تبدیل ارز",
   dailyLedgerProduction: "تولید",

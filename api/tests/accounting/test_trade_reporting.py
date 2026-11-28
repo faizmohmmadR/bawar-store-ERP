@@ -105,23 +105,19 @@ class TradeReportTests(TestCase):
         self.assertEqual(row['payments_in_period'], 0)
         self.assertEqual(row['credit_settlements_in_period'], 40)
 
-    def test_expenses_commissions_equipment_and_loans_have_distinct_totals(self):
-        from api.models.data.salesmen import Salesman
-        from api.models.data.salesman_commission_payment import SalesmanCommissionPayment
+    def test_expenses_equipment_and_loans_have_distinct_totals(self):
         from api.models.data.equipment import Equipment
         create_expense(amount=Decimal('30'))
         create_withdrawal(amount=Decimal('15'))
-        SalesmanCommissionPayment.objects.create(salesman=Salesman.objects.create(name='Rep'), amount=Decimal('10'), payment_date=TXN_WHEN)
         Equipment.objects.create(name='Machine', quantity=1, unit_cost=Decimal('100'), currency=1, acquired_date=TXN_WHEN.date())
         create_loan(amount=Decimal('500'))
         report = get_operational_report(start_date=None, end_date=None)
         self.assertEqual(report['expenses']['expenses_paid_afn'], 30)
-        self.assertEqual(report['expenses']['commission_paid_afn'], 10)
-        self.assertEqual(report['expenses']['total_cash_out_operating_afn'], 40)
+        self.assertEqual(report['expenses']['total_cash_out_operating_afn'], 30)
         other = {row['type']: row['amount'] for row in report['expenses']['other_cash_breakdown']}
         self.assertEqual(other['Withdrawals'], 15)
         self.assertEqual(other['Equipment'], 100)
-        self.assertEqual(report['cash']['cash_out_afn'], 655)
+        self.assertEqual(report['cash']['cash_out_afn'], 645)
         self.assertEqual(report['trade']['purchases']['total'], 0)
 
     def test_received_inventory_purchase_is_not_an_immediate_profit_expense(self):

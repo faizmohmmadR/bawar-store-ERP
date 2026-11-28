@@ -14,9 +14,6 @@ import { customerFa } from "./languages/customer/fa";
 import { vendorsEn } from "./languages/vendors/en";
 import { vendorsPs } from "./languages/vendors/ps";
 import { vendorsFa } from "./languages/vendors/fa";
-import { salesmenEn } from "./languages/salesmen/en";
-import { salesmenPs } from "./languages/salesmen/ps";
-import { salesmenFa } from "./languages/salesmen/fa";
 import { employeeEn } from "./languages/employees/en";
 import { employeePs } from "./languages/employees/ps";
 import { employeeFa } from "./languages/employees/fa";
@@ -116,7 +113,6 @@ const en = {
   common: commonEn,
   customers: customersEn,
   vendors: vendorsEn,
-  salesmen: salesmenEn,
   sales: salesEn,
   stock: stockEn,
   settings: settingsEn,
@@ -147,7 +143,6 @@ const fa = {
   common: commonFa,
   customers: customerFa,
   vendors: vendorsFa,
-  salesmen: salesmenFa,
   sales: salesFa,
   stock: stockFa,
   settings: settingsFa,
@@ -178,7 +173,6 @@ const ps = {
   common: commonPs,
   customers: customerPs,
   vendors: vendorsPs,
-  salesmen: salesmenPs,
   sales: salesPs,
   stock: stockPs,
   settings: settingsPs,

@@ -39,7 +39,6 @@ export const reportsPs = {
   businessExpenses: "د شرکت لګښتونه",
   businessExpensesHint: "د لګښتونو اسناد تادیه شوي معاملات دي. پېرود، مساعده، ایستل او د پور تادیې جلا ښودل کېږي.",
   directExpenses: "مستقیم لګښتونه",
-  commissionsPaid: "ورکړل شوی کمېشن",
   totalOperatingPaid: "ټولې عملیاتي تادیې",
   viewExpenseRecords: "د لګښتونو اسناد وګورئ",
   otherCashOutflows: "نورې نغدي تادیې",

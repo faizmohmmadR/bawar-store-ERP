@@ -36,7 +36,6 @@ class DailyLedgerSectionsTests(TestCase):
             'withdrawals',
             'payroll',
             'advances',
-            'commission_payments',
             'equipment',
             'currency_exchanges',
             'production',

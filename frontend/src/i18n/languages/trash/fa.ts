@@ -40,8 +40,6 @@ export const trashFa = {
     expenses: 'مصارف',
     customers: 'مشتریان',
     vendors: 'فروشندگان',
-    salesmen: 'نمایندگان فروش',
-    salesman_commission_payments: 'پرداخت‌های کمیشن',
     'packing-runs': 'بسته‌بندی‌ها',
     products: 'محصولات',
     employees: 'کارمندان',

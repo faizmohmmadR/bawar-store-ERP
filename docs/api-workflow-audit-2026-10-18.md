@@ -15,7 +15,7 @@ Document uploads used a temporary media directory that was removed afterward.
 | Area | What was exercised |
 | --- | --- |
 | Authentication | Login through the real login endpoint, Knox token authentication, profile and users list; anonymous requests rejected across 48 registered list sections |
-| Customers, suppliers, salesmen | API creation, retrieval and updates using form-shaped payloads |
+| Customers, suppliers | API creation, retrieval and updates using form-shaped payloads |
 | Employees and payroll | Required contract start, employee creation/edit, monthly gross pay with overtime and monetary deductions, exact net salary; existing suite also covers daily/manual pay and balances |
 | Attendance and leave | Create attendance with check-in/out and fractional break, assert work/overtime hours, submit and approve leave |
 | Raw materials and purchases | Reusable categories, material definitions, purchases, foreign-currency costs and resulting stock layers |

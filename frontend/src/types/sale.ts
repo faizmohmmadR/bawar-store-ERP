@@ -23,12 +23,6 @@ export interface Sale extends BaseEntity {
     salary_type?: string;
   } | null;
   salary_settlement_id?: number | null;
-  salesman?: string | number | null;
-  salesman_details?: {
-    id: string | number;
-    name: string;
-    phone?: string;
-  } | null;
   invoice_number: string;
   bill_no?: string | null;
   sale_date: string;
@@ -42,8 +36,6 @@ export interface Sale extends BaseEntity {
   exchange_rate?: number | string;
   discount_amount: number | string;
   discount_percentage?: number | string;
-  /** Sum of line commissions; always AFN regardless of sale currency. */
-  total_commission?: number | string;
   plate_number?: string;
   notes?: string;
   items?: SaleItem[];
@@ -96,11 +88,6 @@ export interface SaleItem extends BaseEntity {
   liter_amount?: number;
   kilogram_amount?: number;
   sell_price: number;
-  /** Commission per selected unit (same basis as sell_price). */
-  /** Commission per selected unit, always AFN (not sale FX). */
-  commission_amount?: number | string;
-  /** quantity × commission_amount, always AFN */
-  commission_total?: number | string;
   unit_cost?: number;
   /** Batch allocations for this sale item */
   batch_allocations?: InventoryBatch[];

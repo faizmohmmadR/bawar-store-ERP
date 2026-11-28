@@ -91,7 +91,6 @@ export const commonEn = {
     damagedStock: "Damaged Products",
     customers: "Customers",
     vendors: "Vendors",
-    salesmen: "Salesmen",
     rawMaterials: "Raw Materials",
     rawMaterialsList: "Raw Materials",
     rawMaterialReport: "Raw Materials Report",

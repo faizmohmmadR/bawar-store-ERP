@@ -48,9 +48,6 @@ SOURCE_MODEL_ALIASES = {
     'storage-tank-leak': 'storagetankleak',
     'storage_tank_leak': 'storagetankleak',
     'tank-leak': 'storagetankleak',
-    'salesmancommissionpayment': 'salesmancommissionpayment',
-    'salesman-commission-payment': 'salesmancommissionpayment',
-    'salesman_commission_payment': 'salesmancommissionpayment',
 }
 
 

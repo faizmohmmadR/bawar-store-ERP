@@ -126,6 +126,6 @@ def expense_activity(scope):
                     'Recorded amounts include unmatched documents; matched amounts include only source documents with exact expense and cash-book legs.',
                     'Expense documents post recognition and payment together; unpaid accruals and manual GL expenses are outside this report.',
                     'Equipment linked to an Expense is shown by ID and must not be added again from the equipment table.',
-                    'Owner withdrawals, payroll, commission payments, production costs and depreciation have separate accounting treatment.',
+                    'Owner withdrawals, payroll, production costs and depreciation have separate accounting treatment.',
                     'Matched posting checks do not certify the business purpose or historical completeness of expenses.',
                 ])

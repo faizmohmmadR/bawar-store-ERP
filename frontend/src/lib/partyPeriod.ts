@@ -1,6 +1,6 @@
 import { getStoredCalendarSystem, type CalendarSystem } from '@/contexts/CalendarPreferenceContext';
 import { calendarPeriodRange } from '@/lib/calendarDate';
-/** Period presets for customer / vendor / salesman finance & commission filters. */
+/** Period presets for customer / vendor finance filters. */
 
 export type PartyPeriod = 'all' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 

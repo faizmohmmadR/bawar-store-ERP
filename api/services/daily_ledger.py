@@ -29,7 +29,6 @@ DAILY_LEDGER_SECTIONS = [
     'withdrawals',
     'payroll',
     'advances',
-    'commission_payments',
     'loans_given',
     'loans_received',
     'loan_collections',

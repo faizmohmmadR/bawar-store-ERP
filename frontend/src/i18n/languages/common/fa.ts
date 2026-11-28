@@ -93,7 +93,6 @@ export const commonFa = {
     damagedStock: "محصولات آسیب‌دیده",
     customers: "مشتریان",
     vendors: "فروشندگان",
-    salesmen: "نمایندگان فروش",
     users: "کاربران",
 
     returns: "برگشتها",

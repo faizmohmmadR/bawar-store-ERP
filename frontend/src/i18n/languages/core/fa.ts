@@ -83,7 +83,6 @@ export const coreFa = {
     sales: 'فروش',
     salesReport: 'گزارش فروش',
     salePayments: 'پرداختهای فروش',
-    salesmanCommissionPayments: 'پرداخت کمیشن',
     payments: 'پرداختها',
     returns: 'برگشتیها',
     orders: 'سفارشات',
@@ -95,7 +94,6 @@ export const coreFa = {
 
     customers: 'مشتریان',
     vendors: 'فروشندگان',
-    salesmen: 'نمایندگان فروش',
     users: 'کاربران',
     hr: 'منابع انسانی',
     employees: 'کارمندان',

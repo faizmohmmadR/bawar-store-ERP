@@ -689,7 +689,7 @@ DEBUG=False venv/bin/python manage.py test api.tests.test_reporting_v2_employee_
 - حسابداری: `api/models/data/journal.py`, `api/services/accounting/{sync,reports,posting,totals,coa,fx,journal_fx,revaluation}.py` و `api/signals/journals.py`.
 - جریان مواد: مدل‌ها و سرویس‌های `raw_materials`, `raw_material_stock`, `weighted_average`, `raw_material_process`, `production_storage`, `tank_inventory`, `packing`, `repacking`, `stock_valuation`, `fefo_allocation`, `raw_material_sales`.
 - ضایعات و برگشت: `stock_bottle_damage`, `storage_tank_leak`, `damaged_materials`, `stock_write_off`, `stock_condition_move`, `stock_return_to_main` و مدل‌های مربوط.
-- معاش و پول: `employee_payroll.py`, `employee_sale_salary.py`, مدل‌های `payroll`, `employee_pay_entries`, `employee` و سرویس‌های `general_payments`, `contact_ledger`, `salesman_commission`, `equipment_expense`, `equipment_depreciation`.
+- معاش و پول: `employee_payroll.py`, `employee_sale_salary.py`, مدل‌های `payroll`, `employee_pay_entries`, `employee` و سرویس‌های `general_payments`, `contact_ledger`, `equipment_expense`, `equipment_depreciation`.
 - رابط گزارش: `frontend/src/pages/reports`, `frontend/src/components/reports`, `frontend/src/pages/accounting`, اجزای accounting، صفحات کارمندان/معاش/استاک/تانک و route/typeهای مربوط.
 
 اجرای بررسی هدفمند در دیتابیس SQLite حافظه‌ای با تنظیم `backend.test_settings`:
@@ -698,7 +698,7 @@ DEBUG=False venv/bin/python manage.py test api.tests.test_reporting_v2_employee_
 DEBUG=False venv/bin/python manage.py test api.tests.accounting.test_trade_reporting api.tests.accounting.test_operational_report api.tests.test_employee_sale_salary api.tests.test_stock_bottle_damage api.tests.test_storage_tank_leak --settings=backend.test_settings --noinput
 ```
 
-نتیجه: ۲۱ تست؛ ۱۵ موفق، ۲ شکست assertion و ۴ خطای اجرا. تمام ۶ مورد ناموفق در `test_trade_reporting` بود: کلیدهای `trade` و `commission_paid_afn` در خروجی نیستند؛ جمع drill-down خرید با خلاصه برابر نیست؛ باقی خرید تا تاریخ قطع مقدار مورد انتظار ندارد. تست‌های انتخاب‌شده فروش کارمند، شکست بوتل، نشت تانک و گزارش عملیاتی موفق بودند. این نتیجه جای اجرای تمام تست‌های پروژه یا حسابرسی دیتابیس واقعی را نمی‌گیرد.
+نتیجه: ۲۱ تست؛ ۱۵ موفق، ۲ شکست assertion و ۴ خطای اجرا. تمام ۶ مورد ناموفق در `test_trade_reporting` بود: کلید `trade` در خروجی نیست؛ جمع drill-down خرید با خلاصه برابر نیست؛ باقی خرید تا تاریخ قطع مقدار مورد انتظار ندارد. تست‌های انتخاب‌شده فروش کارمند، شکست بوتل، نشت تانک و گزارش عملیاتی موفق بودند. این نتیجه جای اجرای تمام تست‌های پروژه یا حسابرسی دیتابیس واقعی را نمی‌گیرد.
 
 اجرای اول به علت مقدار محیطی `DEBUG=release` پیش از شروع تست متوقف شد؛ با override موقت `DEBUG=False` اجرا شد و هیچ فایل تنظیمات تغییر نکرد.
 

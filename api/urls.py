@@ -24,8 +24,6 @@ from api.views.data.purchases import PurchaseViewSet, PurchaseItemViewSet
 
 from api.views.data.customers import CustomerViewSet
 from api.views.data.vendors import VendorViewSet
-from api.views.data.salesmen import SalesmanViewSet
-from api.views.data.salesman_commission_payment import SalesmanCommissionPaymentViewSet
 
 from api.views.data.sales import SalesViewSet, SalesItemsViewSet
 from api.views.data.returns import ReturnViewSet, ReturnItemsViewSet
@@ -85,8 +83,6 @@ router.register(r'stock-adjustments', StockAdjustmentViewSet, basename='stock-ad
 router.register(r'customers', CustomerViewSet, basename='customer')
 router.register(r'customer-users', CustomerViewSet, basename='customer-user')
 router.register(r'vendors', VendorViewSet, basename='vendor')
-router.register(r'salesmen', SalesmanViewSet, basename='salesman')
-router.register(r'salesman-commission-payments', SalesmanCommissionPaymentViewSet, basename='salesman-commission-payment')
 
 router.register(r'sales', SalesViewSet, basename='sale')
 router.register(r'sales-items', SalesItemsViewSet, basename='sales-item')

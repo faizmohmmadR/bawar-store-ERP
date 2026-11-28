@@ -33,7 +33,6 @@ RULES = (
     SourceRule('payment', 'payment_date', 'amount', 'payment'),
     SourceRule('loan', 'loan_date', 'amount', 'loan'),
     SourceRule('loanpayment', 'payment_date', 'amount'),
-    SourceRule('salesmancommissionpayment', 'payment_date', 'amount'),
     SourceRule('currencyexchange', 'exchange_date', 'from_amount', 'posted'),
     SourceRule('fxrevaluation', 'as_of_date', None, 'revaluation'),
     SourceRule('storagetankleak', 'recorded_at', 'total_cost_afn'),
@@ -131,7 +130,7 @@ def source_coverage(scope):
                 issue('unexpected_journal', rule.model, source.pk, ids, reason)
             elif policy == 'review':
                 issue('source_requires_review', rule.model, source.pk, ids, reason)
-            # Main sale, commission and equipment depreciation can legitimately
+            # Main sale and equipment depreciation can legitimately
             # share a source. Repeated references (including multiple blanks)
             # need review; distinct references are not assumed duplicates.
             refs = defaultdict(list)

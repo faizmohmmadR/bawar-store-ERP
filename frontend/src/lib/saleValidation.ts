@@ -16,7 +16,6 @@ export function saleErrorLabel(path: string, t: Translate): string {
     sell_price: t('sales.price', 'Price'), quantity: t('sales.quantity', 'Quantity'),
     piece_amount: t('sales.quantity', 'Quantity'), kilogram_amount: t('sales.quantity', 'Quantity') + ' (kg)',
     carton_amount: t('sales.quantity', 'Quantity'), liter_amount: t('sales.quantity', 'Quantity'),
-    salesman: t('sales.salesman', 'Salesman'), commission_amount: t('sales.commissionPerUnitAfn', 'Commission / Unit (AFN)'),
     party_type: t('rawMaterialSales.partyType', 'Buyer'), transaction_type: t('common.transactionType', 'Type'),
     piece_count: t('rawMaterialPurchases.pieceCount', 'Piece count'), discount: t('sales.discount', 'Discount'),
   };
@@ -37,10 +36,10 @@ export function saleApiIssues(error: unknown, submittedItems: SaleFormValues['it
 }
 
 export function setSaleApiErrors(issues: ValidationIssue[], setError: UseFormSetError<SaleFormValues>) {
-  const headers = ['customer', 'vendor', 'employee', 'currency', 'sale_date', 'salesman', 'transaction_type', 'party_type', 'notes'];
+  const headers = ['customer', 'vendor', 'employee', 'currency', 'sale_date', 'transaction_type', 'party_type', 'notes'];
   const global: string[] = [];
   for (const issue of issues) {
-    if (headers.includes(issue.path) || /^items\.\d+\.(raw_material_stock|unit|sell_price|kilogram_amount|piece_amount|commission_amount)$/.test(issue.path)) {
+    if (headers.includes(issue.path) || /^items\.\d+\.(raw_material_stock|unit|sell_price|kilogram_amount|piece_amount)$/.test(issue.path)) {
       setError(issue.path as FieldPath<SaleFormValues>, { type: 'server', message: issue.message });
     } else global.push(defaultErrorLabel(issue.path) ? `${defaultErrorLabel(issue.path)}: ${issue.message}` : issue.message);
   }

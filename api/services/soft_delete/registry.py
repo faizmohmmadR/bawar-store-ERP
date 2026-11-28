@@ -33,18 +33,6 @@ TRASH_REGISTRY = {
         'display': lambda o: o.name,
         'module': 'vendors',
     },
-    'salesmen': {
-        'model': 'api.Salesman',
-        'label': 'Salesman',
-        'display': lambda o: o.name,
-        'module': 'salesmen',
-    },
-    'salesman_commission_payments': {
-        'model': 'api.SalesmanCommissionPayment',
-        'label': 'Salesman Commission Payment',
-        'display': lambda o: o.reference_number or f'Commission pay #{o.pk}',
-        'module': 'salesman_commission_payments',
-    },
     'products': {
         'model': 'api.Product',
         'label': 'Product',

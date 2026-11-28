@@ -1,6 +1,6 @@
 # Free sales and raw-material purchases
 
-Sales (finished stock, tank fills, or raw materials) and raw-material purchases have a Paid/Free transaction type. Existing invoices remain Paid. Free invoices still require a customer/vendor and valid item quantities; prices, discounts, commissions and invoice totals are zero. Free is separate from the stock/tank/raw-material source selector.
+Sales (finished stock, tank fills, or raw materials) and raw-material purchases have a Paid/Free transaction type. Existing invoices remain Paid. Free invoices still require a customer/vendor and valid item quantities; prices, discounts and invoice totals are zero. Free is separate from the stock/tank/raw-material source selector.
 
 Confirmed free sales deduct inventory using the same quantity validation and saved inventory costs as paid sales. The journal debits expense 5220 (Free Goods Distribution) and credits inventory 1100. It creates no revenue or customer receivable. Inventory costs, including known zero costs, remain fixed when journals are refreshed. Sales returns restore inventory and reverse distribution expense, with no cash refund. A return in a later reporting period can produce a credit in distribution expense.
 

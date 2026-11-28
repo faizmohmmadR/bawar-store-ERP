@@ -23,7 +23,6 @@ export const createSalePackagingFormSchema = (t: TranslateFn) => {
     .object({
       customer: z.string().optional(),
       warehouse: requiredString(messages.required),
-      salesman: z.string().optional(),
       bill_no: z.string().optional(),
       sale_date: requiredString(messages.required),
       currency: requiredString(messages.required),
@@ -85,7 +84,6 @@ export type SalePackagingFormValues = z.infer<ReturnType<typeof createSalePackag
 export const defaultSalePackagingFormValues = (): SalePackagingFormValues => ({
   customer: '',
   warehouse: '',
-  salesman: '',
   bill_no: '',
   sale_date: new Date().toISOString().slice(0, 10),
   currency: '1',
@@ -101,7 +99,6 @@ export const saleToPackagingFormValues = (sale: Sale): SalePackagingFormValues =
   return {
     customer: sale.customer ? String(sale.customer) : '',
     warehouse: String((sale as { warehouse?: number }).warehouse || ''),
-    salesman: sale.salesman ? String(sale.salesman) : '',
     bill_no: sale.bill_no || '',
     sale_date: sale.sale_date ? String(sale.sale_date).slice(0, 10) : '',
     currency: resolveCurrencyId(sale),
@@ -153,7 +150,6 @@ const mapItemPayload = (item: SalePackagingFormValues['items'][number]) => ({
   quantity: roundOrderNumeric(Number(item.quantity)),
   conversion_factor: Number(item.qty_in_base) || 1,
   sell_price: roundOrderNumeric(Number(item.sell_price) || 0),
-  commission_amount: 0,
 });
 
 export const salePackagingFormToPayload = (data: SalePackagingFormValues) => {
@@ -166,7 +162,6 @@ export const salePackagingFormToPayload = (data: SalePackagingFormValues) => {
     vendor: null,
     employee: null,
     warehouse: Number(data.warehouse),
-    salesman: data.salesman ? Number(data.salesman) : null,
     bill_no: data.bill_no || null,
     sale_date: toSaleDateTime(data.sale_date),
     currency: toCurrencyFkId(data.currency),

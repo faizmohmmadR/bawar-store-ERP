@@ -39,7 +39,6 @@ export const reportsFa = {
   businessExpenses: "مصارف شرکت",
   businessExpensesHint: "اسناد مصارف، پرداخت‌شده هستند. خرید، مساعده، برداشت و پرداخت قرضه جدا نمایش داده می‌شوند.",
   directExpenses: "مصارف مستقیم",
-  commissionsPaid: "کمیشن پرداخت‌شده",
   totalOperatingPaid: "مجموع پرداخت‌های عملیاتی",
   viewExpenseRecords: "مشاهده اسناد مصارف",
   otherCashOutflows: "سایر پرداخت‌های نقدی",

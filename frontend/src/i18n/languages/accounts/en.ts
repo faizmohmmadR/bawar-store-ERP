@@ -359,7 +359,6 @@ export const accountsEn = {
   dailyLedgerLoanCollections: "Loan collections",
   dailyLedgerLoanRepayments: "Loan repayments",
   dailyLedgerWithdrawals: "Withdrawals",
-  dailyLedgerCommissionPayments: "Commission payments",
   dailyLedgerEquipment: "Equipment",
   dailyLedgerCurrencyExchanges: "Currency exchanges",
   dailyLedgerProduction: "Production",

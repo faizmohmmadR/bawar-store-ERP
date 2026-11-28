@@ -9,7 +9,7 @@ from api.views.data.base import DataRootViewSet
 class SalesViewSet(DataRootViewSet):
     permission_module = 'sales'
     queryset = (
-        Sales.objects.select_related('customer', 'vendor', 'employee', 'salesman', 'warehouse')
+        Sales.objects.select_related('customer', 'vendor', 'employee', 'warehouse')
         .prefetch_related('sales_items__product', 'sales_items__packaging')
         .all()
         .order_by('-sale_date', '-id')

@@ -73,7 +73,7 @@ export const saleLineDana = (
 };
 
 /**
- * Billable quantity in the selected sale unit (same basis as sell price / commission).
+ * Billable quantity in the selected sale unit (same basis as sell price).
  * - carton: cartons (+ loose pieces as fraction)
  * - bottle/plastic/dana: pieces
  * - liter / tank: liters
@@ -135,22 +135,6 @@ export const saleLineTotal = (item: {
   return qty > 0 && price > 0 ? qty * price : 0;
 };
 
-/** Line commission in AFN = qty in selected unit × commission per unit (never FX-converted). */
-export const saleLineCommission = (item: {
-  carton_amount?: number;
-  piece_amount?: number;
-  liter_amount?: number;
-  kilogram_amount?: number;
-  commission_amount?: number;
-  unit?: SaleUnit | string;
-  sale_source?: SaleSource;
-  bottles_per_carton?: number;
-}) => {
-  const rate = Number(item.commission_amount) || 0;
-  const qty = saleLineUnitQty(item);
-  return qty > 0 && rate > 0 ? qty * rate : 0;
-};
-
 export const defaultSaleItem = (): {
   id: string;
   sale_source: SaleSource;
@@ -166,7 +150,6 @@ export const defaultSaleItem = (): {
   density_kg_per_liter: number;
   bottle_capacity_liters: number;
   sell_price: number;
-  commission_amount: number;
   bottles_per_carton: number;
   raw_material_unit: 'kg' | 'piece';
   raw_weight_per_piece_kg?: number;
@@ -186,7 +169,6 @@ export const defaultSaleItem = (): {
   density_kg_per_liter: 0,
   bottle_capacity_liters: 0,
   sell_price: 0,
-  commission_amount: 0,
   bottles_per_carton: DEFAULT_PIECES_PER_CARTON,
   raw_material_unit: 'piece',
   raw_weight_per_piece_kg: 0,
@@ -204,7 +186,6 @@ export const createSaleFormSchema = (t: TranslateFn) => {
       vendor_transaction: z.enum(['sale', 'purchase_return']).default('sale'),
       customer: z.string().trim().default(''),
       employee: z.string().trim().default(''),
-      salesman: z.string().optional(),
       bill_no: z.string().optional(),
       currency: requiredString(t('sales.selectCurrency', 'Select a currency')),
       sale_date: requiredString(t('rawMaterialSales.dateRequired', 'Select a sale date')),
@@ -227,7 +208,6 @@ export const createSaleFormSchema = (t: TranslateFn) => {
           density_kg_per_liter: z.coerce.number().default(0),
           bottle_capacity_liters: z.coerce.number().default(0),
           sell_price: z.coerce.number().default(0),
-          commission_amount: z.coerce.number().min(0).default(0),
           bottles_per_carton: z.coerce.number().min(0).default(DEFAULT_PIECES_PER_CARTON),
           raw_material_unit: z.enum(['kg', 'piece']).default('piece'),
           raw_weight_per_piece_kg: z.coerce.number().optional(),
@@ -272,19 +252,6 @@ export const createSaleFormSchema = (t: TranslateFn) => {
         return !hasIdentity && !hasQty && !(Number(item.sell_price) > 0);
       };
 
-      const hasCommission =
-        data.transaction_type !== 'free'
-        && saleType !== 'raw_material'
-        && data.items.some((item) =>
-          !isEmptyLine(item) && (Number(item.commission_amount) || 0) > 0,
-        );
-      if (hasCommission && !data.salesman) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: t('sales.salesmanRequiredForCommission', 'Select a salesman when items have commission'),
-          path: ['salesman'],
-        });
-      }
       data.items.forEach((item, index) => {
         // Keep the top empty "select" row from blocking save.
         if (isEmptyLine(item)) return;
@@ -430,7 +397,6 @@ export const defaultSaleFormValues = (): SaleFormValues => ({
   party_type: 'customer', vendor: '', vendor_transaction: 'sale',
   customer: '',
   employee: '',
-  salesman: '',
   bill_no: '',
   currency: '1',
   sale_date: localDateTimeString(),
@@ -467,7 +433,6 @@ export const saleToFormValues = (sale: Sale): SaleFormValues => {
     vendor_transaction: sale.vendor_transaction || 'sale',
     customer: sale.customer_details?.id?.toString() || sale.customer?.toString() || '',
     employee: sale.employee_details?.id?.toString() || sale.employee?.toString() || '',
-    salesman: sale.salesman_details?.id?.toString() || sale.salesman?.toString() || '',
     bill_no: sale.bill_no || '',
     currency: String(saleCurrencyId || ''),
     sale_date: sale.sale_date ? sale.sale_date.slice(0, 16) : '',
@@ -487,9 +452,6 @@ export const saleToFormValues = (sale: Sale): SaleFormValues => {
                 : rawSource === 'raw_material'
                   ? 'raw_material'
                   : 'stock';
-            // Commission is always stored/entered in AFN (never converted with sale FX).
-            const commission = Number(item.commission_amount) || 0;
-
             if (source === 'tank') {
               const unit = normalizeStockSaleUnit(item.unit || 'liter');
               const density = Number(item.storage_tank_details?.density_kg_per_liter) || 0;
@@ -516,7 +478,6 @@ export const saleToFormValues = (sale: Sale): SaleFormValues => {
                 density_kg_per_liter: density,
                 bottle_capacity_liters: 0,
                 sell_price: toAfnPrice(item.sell_price) / (unit === 'kg' ? 1 : (liters > 0 && kilograms > 0 ? kilograms / liters : density || 1)),
-                commission_amount: commission / (unit === 'kg' ? 1 : (liters > 0 && kilograms > 0 ? kilograms / liters : density || 1)),
                 bottles_per_carton: DEFAULT_PIECES_PER_CARTON,
                 raw_material_unit: 'piece' as const,
               };
@@ -544,7 +505,6 @@ export const saleToFormValues = (sale: Sale): SaleFormValues => {
                 density_kg_per_liter: 0,
                 bottle_capacity_liters: 0,
                 sell_price: toAfnPrice(item.sell_price),
-                commission_amount: commission,
                 bottles_per_carton: DEFAULT_PIECES_PER_CARTON,
                 raw_weight_per_piece_kg: isKg && rmUnit === 'piece' && Number(item.liter_amount) > 0
                   ? quantity / Number(item.liter_amount)
@@ -592,7 +552,6 @@ export const saleToFormValues = (sale: Sale): SaleFormValues => {
                 density_kg_per_liter: density,
                 bottle_capacity_liters: bottleCapacity,
                 sell_price: toAfnPrice(item.sell_price),
-                commission_amount: commission,
                 bottles_per_carton: rate,
                 stock_material_type: item.stock_details?.product_details?.material_type || item.product_details?.material_type || '',
                 raw_material_unit: 'piece' as const,
@@ -615,7 +574,6 @@ export const saleToFormValues = (sale: Sale): SaleFormValues => {
                 density_kg_per_liter: density,
                 bottle_capacity_liters: bottleCapacity,
                 sell_price: toAfnPrice(item.sell_price),
-                commission_amount: commission,
                 bottles_per_carton: rate,
                 stock_material_type: item.stock_details?.product_details?.material_type || item.product_details?.material_type || '',
                 raw_material_unit: 'piece' as const,
@@ -637,7 +595,6 @@ export const saleToFormValues = (sale: Sale): SaleFormValues => {
               density_kg_per_liter: density,
               bottle_capacity_liters: bottleCapacity,
               sell_price: toAfnPrice(item.sell_price),
-              commission_amount: commission,
               bottles_per_carton: rate,
               stock_material_type: item.stock_details?.product_details?.material_type || item.product_details?.material_type || '',
               raw_material_unit: 'piece' as const,
@@ -655,9 +612,6 @@ export const calculateSaleTotal = (items: SaleFormValues['items'], discount: num
   return roundOrderNumeric(subtotal - (subtotal * (discount || 0)) / 100);
 };
 
-export const calculateSaleCommissionTotal = (items: SaleFormValues['items']) =>
-  roundOrderNumeric(items.reduce((total, item) => total + saleLineCommission(item), 0));
-
 const mapSaleItemPayload = (
   item: SaleFormValues['items'][number],
   withId = false,
@@ -669,9 +623,6 @@ const mapSaleItemPayload = (
     afnPerUsd > 0 && afnPerUsd !== 1
       ? roundOrderNumeric(sellPriceAfn / afnPerUsd)
       : roundOrderNumeric(sellPriceAfn);
-
-  // Commission is always AFN, independent of invoice currency.
-  const commissionAmount = roundOrderNumeric(Number(item.commission_amount) || 0);
 
   if (item.sale_source === 'tank') {
     const unit = item.unit === 'kg' ? 'kg' : 'liter';
@@ -695,7 +646,6 @@ const mapSaleItemPayload = (
         ? kilograms
         : roundOrderNumeric(liters * density),
       sell_price: sellPrice,
-      commission_amount: commissionAmount,
     };
     if (withId && item.id) payload.id = parseInt(item.id);
     return payload;
@@ -716,7 +666,6 @@ const mapSaleItemPayload = (
       kilogram_amount: isKg ? kilograms : 0,
       piece_count: isKg && item.raw_material_unit === 'kg' ? Math.max(0, Math.trunc(Number(item.piece_count) || 0)) : 0,
       sell_price: sellPrice,
-      commission_amount: 0,
     };
     if (withId && item.id) payload.id = parseInt(item.id);
     return payload;
@@ -751,7 +700,6 @@ const mapSaleItemPayload = (
           * (Number(item.density_kg_per_liter) || 0),
         ),
     sell_price: sellPrice,
-    commission_amount: commissionAmount,
   };
   if (withId && item.id) payload.id = parseInt(item.id);
   return payload;
@@ -785,7 +733,7 @@ const buildSalePayload = (
   data: SaleFormValues,
   opts: SalePayloadFxOptions & { withItemIds?: boolean; status?: string } = {},
 ) => {
-  const items = normalizeItemsForSaleType(data).map(item => data.transaction_type === 'free' ? { ...item, sell_price: 0, commission_amount: 0 } : item);
+  const items = normalizeItemsForSaleType(data).map(item => data.transaction_type === 'free' ? { ...item, sell_price: 0 } : item);
   const validItems = items.filter((item) => {
     if (item.sale_source === 'tank') return Boolean(item.storage_tank);
     if (item.sale_source === 'raw_material') return Boolean(item.raw_material_stock);
@@ -810,11 +758,6 @@ const buildSalePayload = (
     vendor: data.party_type === 'vendor' ? Number(data.vendor) : null,
     employee: data.party_type === 'employee' ? Number(data.employee) : null,
     vendor_transaction: data.party_type === 'vendor' ? data.vendor_transaction : 'sale',
-    salesman: isRawMaterialSale || data.party_type === 'employee'
-      ? null
-      : data.salesman
-        ? parseInt(data.salesman, 10)
-        : null,
     bill_no: data.bill_no || null,
     currency: toCurrencyFkId(data.currency),
     sale_date: data.sale_date,

@@ -40,7 +40,6 @@ export const reportsEn = {
   businessExpenses: "Business expenses",
   businessExpensesHint: "Expense records are paid transactions. Purchases, advances, withdrawals and loan payments are shown separately.",
   directExpenses: "Direct expenses",
-  commissionsPaid: "Commissions paid",
   totalOperatingPaid: "Total operating payments",
   viewExpenseRecords: "View expense records",
   otherCashOutflows: "Other cash outflows",

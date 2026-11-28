@@ -10,10 +10,6 @@ from api.services.inventory.engine import deliver_sale_item, get_default_warehou
 from api.services.uom.conversion import d, snapshot_factor
 
 
-def sales_item_commission_total(item) -> Decimal:
-    return d(item.commission_amount) * d(item.quantity)
-
-
 class SalesItemsSerializer(DataRootSerializer):
     product_details = serializers.SerializerMethodField()
     packaging_details = serializers.SerializerMethodField()

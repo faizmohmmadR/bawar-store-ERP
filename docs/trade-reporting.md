@@ -16,8 +16,8 @@ Click total, paid, or unpaid to see matching invoices with their paid and remain
 
 ## Expenses and other information
 
-Direct expense documents, salary payments, and salesman commission payments are shown individually and as total operating payments. Expense categories remain visible. Advances, return refunds, owner withdrawals, and equipment acquisitions have their own cash-outflow breakdown. These cash movements and loan repayments are not treated as operating expenses merely because money left the business.
+Direct expense documents and salary payments are shown individually and as total operating payments. Expense categories remain visible. Advances, return refunds, owner withdrawals, and equipment acquisitions have their own cash-outflow breakdown. These cash movements and loan repayments are not treated as operating expenses merely because money left the business.
 
-Sales/purchase payments, expenses, commissions, equipment cash acquisitions, advances, refunds, withdrawals, and loan cash movements contribute to cash flow. Production/packing inventory costs remain available as operational information and are not added again to cash expenses. Profit and P&L costs come from posted accounting journals in both consolidated AFN and currency reports, rather than deducting inventory purchases directly from revenue. Loans remain in a separate collapsed financing section.
+Sales/purchase payments, expenses, equipment cash acquisitions, advances, refunds, withdrawals, and loan cash movements contribute to cash flow. Production/packing inventory costs remain available as operational information and are not added again to cash expenses. Profit and P&L costs come from posted accounting journals in both consolidated AFN and currency reports, rather than deducting inventory purchases directly from revenue. Loans remain in a separate collapsed financing section.
 
 No schema migration is required.

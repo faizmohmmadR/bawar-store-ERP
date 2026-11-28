@@ -219,7 +219,6 @@ export const userEn = {
   permissionModules: {
     permissions: "Permissions",
     notifications: "Notifications",
-    salesman_commission_payments: "Commission Payments",
     financial_reports: "Financial Reports",
     sales_reports: "Sales Reports",
     inventory_reports: "Inventory Reports",

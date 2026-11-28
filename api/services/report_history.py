@@ -55,7 +55,6 @@ SECTION_LABELS = {
     'loan_collections': 'Loan Collections',
     'loan_repayments': 'Loan Repayments',
     'equipment': 'Equipment',
-    'commission_payments': 'Commission Payments',
     'currency_exchanges': 'Currency Exchanges',
     'production': 'Production',
     'accounts_receivable': 'Accounts Receivable',
@@ -89,7 +88,6 @@ BREAKDOWN_TO_SECTION = {
     'Repayments (Loan In)': 'loan_repayments',
     'Withdrawals': 'withdrawals',
     'Equipment': 'equipment',
-    'Commission Payments': 'commission_payments',
     'Currency Exchanges': 'currency_exchanges',
     'Production': 'production',
 }
@@ -137,7 +135,6 @@ CASH_OUT_SECTIONS = {
     'advances',
     'purchase_payments',
     'return_refunds',
-    'commission_payments',
     # equipment cash-outs are flagged per-row via is_cash_out when acquisition spends cash
 }
 
@@ -636,38 +633,6 @@ def _query_equipment(start_date, end_date, currency_code=None):
     return rows
 
 
-def _query_commission_payments(start_date, end_date, currency_code=None):
-    from api.models.data.salesman_commission_payment import SalesmanCommissionPayment
-    from api.services.financial_reports import _filter_by_date_range
-
-    qs = _filter_by_date_range(
-        SalesmanCommissionPayment.objects.select_related('salesman'),
-        'payment_date',
-        start_date,
-        end_date,
-    )
-    qs = _filter_currency(qs, currency_code)
-    rows = []
-    for payment in qs:
-        rows.append(_row(
-            row_id=f'commission-payment-{payment.id}',
-            section='commission_payments',
-            record_type='commission_payment',
-            record_type_label='Commission Payment',
-            entry_date=payment.payment_date,
-            reference_number=payment.reference_number or f'SCP-{payment.id}',
-            description=payment.notes or 'Salesman commission payment',
-            amount=payment.amount,
-            amount_base=payment.amount_base or payment.amount,
-            currency_code=_ccode(payment.currency),
-            contact_name=getattr(payment.salesman, 'name', '') or '',
-            status=payment.payment_method or 'posted',
-            direction='out',
-            source_path=f'/salesman-commission-payments/{payment.id}',
-        ))
-    return rows
-
-
 def _query_currency_exchanges(start_date, end_date, currency_code=None):
     from django.db.models import Q
 
@@ -873,7 +838,6 @@ SECTION_QUERIES = {
     'loan_collections': lambda s, e, c: _query_loan_payments(s, e, c, loan_type='loan_out'),
     'loan_repayments': lambda s, e, c: _query_loan_payments(s, e, c, loan_type='loan_in'),
     'equipment': lambda s, e, c: _query_equipment(s, e, c),
-    'commission_payments': lambda s, e, c: _query_commission_payments(s, e, c),
     'currency_exchanges': lambda s, e, c: _query_currency_exchanges(s, e, c),
     'production': lambda s, e, c: _query_production(s, e, c),
     'accounts_receivable': lambda s, e, c: _query_accounts_receivable(s, e, c),

@@ -83,7 +83,6 @@ export const corePs = {
     sales: 'پلور',
     salesReport: 'د پلور راپور',
     salePayments: 'د پلور تادیات',
-    salesmanCommissionPayments: 'د کمیشن تادیات',
     payments: 'تادیات',
     returns: 'بیرته راستنیدنې',
     orders: 'امرونه',
@@ -94,7 +93,6 @@ export const corePs = {
 
     customers: 'پیرودونکي',
     vendors: 'پلورونکي',
-    salesmen: 'د پلور استازي',
     users: 'کاروونکي',
     hr: 'بشري سرچینې',
     employees: 'کارمندان',

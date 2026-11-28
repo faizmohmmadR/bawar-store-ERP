@@ -355,7 +355,6 @@ export const accountsPs = {
   dailyLedgerLoanCollections: "د پور راټولول",
   dailyLedgerLoanRepayments: "د پور بیرته ورکړه",
   dailyLedgerWithdrawals: "ایستل",
-  dailyLedgerCommissionPayments: "د کمېشن تادیه",
   dailyLedgerEquipment: "وسایل",
   dailyLedgerCurrencyExchanges: "د اسعارو تبادله",
   dailyLedgerProduction: "تولید",

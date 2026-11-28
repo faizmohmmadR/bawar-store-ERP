@@ -15,12 +15,11 @@ for (const source of ['stock', 'tank', 'raw_material'] as const) {
     const schema = createSaleFormSchema(t);
     assert.equal(schema.safeParse(data).success, true, JSON.stringify(schema.safeParse(data)));
     assert.equal(schema.safeParse({ ...data, transaction_type: 'paid' }).success, false);
-    data.items[0].sell_price = 50; data.items[0].commission_amount = 5;
+    data.items[0].sell_price = 50;
     const payload = saleFormToAddPayload(data);
     assert.equal(payload.transaction_type, 'free');
     assert.equal(payload.total_amount, 0);
     assert.equal(payload.sales_items[0].sell_price, 0);
-    assert.equal(payload.sales_items[0].commission_amount, 0);
     assert.equal(payload.sales_items[0].quantity, 3);
   });
 }

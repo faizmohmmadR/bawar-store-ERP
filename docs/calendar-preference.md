@@ -2,7 +2,7 @@
 
 Settings → Preferences selects Gregorian, Afghanistan Solar Hijri (Afghan month names), or Lunar Hijri. The shared date picker and date/time input use this preference for day, month, and year selection. The date/time input keeps time as a separate control and sends a Gregorian ISO value to the existing API.
 
-Shared table rendering now formats ISO values in date columns (`date`, `*_date`, `*_at`, and `date_*`) through the selected calendar. Custom date cells continue to use `ListDate` or `useFormatAppDate`. Remaining direct timestamps and raw date ranges were updated in raw-material details, salesman sales, fiscal-year screens, and leave management.
+Shared table rendering now formats ISO values in date columns (`date`, `*_date`, `*_at`, and `date_*`) through the selected calendar. Custom date cells continue to use `ListDate` or `useFormatAppDate`. Remaining direct timestamps and raw date ranges were updated in raw-material details, fiscal-year screens, and leave management.
 
 Monthly and yearly report presets resolve the selected calendar's start of month/year and send explicit Gregorian ISO ranges. This applies to dashboard, financial reports, accounting reports, party balances, and attendance month ranges. Explicit fiscal-year selection retains its stored fiscal-year boundaries. Fiscal-year identifiers and transaction references are not reinterpreted as date values.
 

@@ -41,8 +41,6 @@ export const trashEn = {
     expenses: 'Expenses',
     customers: 'Customers',
     vendors: 'Vendors',
-    salesmen: 'Salesmen',
-    salesman_commission_payments: 'Commission payments',
     'packing-runs': 'Packing runs',
     products: 'Products',
     employees: 'Employees',

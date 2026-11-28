@@ -28,8 +28,6 @@ from .data.sales import Sales, SalesItems  # noqa: F401
 from .data.returns import Return, ReturnItems  # noqa: F401
 from .data.customers import Customer  # noqa: F401
 from .data.vendors import Vendor  # noqa: F401
-from .data.salesmen import Salesman  # noqa: F401
-from .data.salesman_commission_payment import SalesmanCommissionPayment  # noqa: F401
 from .data.withdrawal import Withdrawal  # noqa: F401
 from .data.document_number_sequence import DocumentNumberSequence  # noqa: F401
 from .data.payment import Payment, GeneralPayment  # noqa: F401

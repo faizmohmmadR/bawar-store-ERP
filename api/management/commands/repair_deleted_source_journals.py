@@ -18,7 +18,6 @@ SOURCE_LABELS = (
     ('api.Withdrawal', 'withdrawal'),
     ('api.Loan', 'loan'),
     ('api.LoanPayment', 'loan_payment'),
-    ('api.SalesmanCommissionPayment', 'commission'),
     ('api.PackingRun', 'packing'),
     ('api.StockBottleDamage', 'bottle_damage'),
     ('api.StorageTankLeak', 'tank_leak'),

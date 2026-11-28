@@ -70,7 +70,6 @@ class SectionAPIAuditTests(TestCase):
         customer = self.post('customers', {'name': 'Audit customer', 'phone': '0700000100'})
         self.post('loans', {'loaner_type': 'customer', 'customer': customer['id'], 'amount': '5000', 'currency': 1, 'loan_type': 'loan_in', 'payment_method': 'cash', 'loan_date': now.isoformat()})
         vendor = self.post('vendors', {'name': 'Audit supplier', 'phone': '0700000101'})
-        salesman = self.post('salesmen', {'name': 'Audit salesman', 'is_active': True})
         employee = self.post('employees', {'full_name': 'Audit employee', 'phone': '0700000102', 'salary': '3000.50', 'salary_type': 'monthly', 'currency': 1, 'contract_start_date': date})
         with self.subTest(section='attendance'):
             attendance = self.post('attendances', {'employee': employee['id'], 'date': date, 'status': 'present', 'check_in_time': '08:00:00', 'check_out_time': '17:30:00', 'break_time': '0.50', 'verification_type': 'manual'})
@@ -103,7 +102,7 @@ class SectionAPIAuditTests(TestCase):
             self.post('withdrawals', {'gl_account': cash.pk, 'amount': '20.50', 'currency': 1, 'withdrawal_date': now.isoformat(), 'description': 'Audit owner withdrawal'})
         self.post('accounts', {'account_number': 'AUDIT-CASH-001', 'name': 'Audit cash book', 'currency': 1})
         product = self.post('products', {'name': 'Audit product', 'barcode': 'AUDIT-001', 'description': 'Audit entry'})
-        for section, record in [('customers', customer), ('vendors', vendor), ('salesmen', salesman), ('employees', employee), ('expenses', expense), ('products', product)]:
+        for section, record in [('customers', customer), ('vendors', vendor), ('employees', employee), ('expenses', expense), ('products', product)]:
             with self.subTest(section=section, operation='read-update-delete'):
                 path = f'/api/{section}/{record["id"]}/'
                 self.assertEqual(self.client.get(path).status_code, 200)

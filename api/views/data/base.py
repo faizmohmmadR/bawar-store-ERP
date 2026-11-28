@@ -21,7 +21,7 @@ class DataRootViewSet(SoftDeleteViewSetMixin, ModelViewSet):
         'expense': 'expense_date', 'payroll': 'payment_date',
         'generalpayment': 'payment_date', 'payment': 'payment_date', 'loan': 'loan_date', 'loanpayment': 'payment_date',
         'withdrawal': 'withdrawal_date', 'currencyexchange': 'exchange_date',
-        'salesmancommissionpayment': 'payment_date', 'rawmaterialprocess': 'process_date',
+        'rawmaterialprocess': 'process_date',
         'packingrun': 'created_at',
         'equipment': 'acquired_date', 'attendance': 'date',
         'journalentry': 'entry_date', 'accountentry': 'entry_date',

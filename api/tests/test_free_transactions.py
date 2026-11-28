@@ -77,11 +77,10 @@ class FreeTransactionTests(TestCase):
         response = self.raw_sale(transaction_type='paid')
         self.assertEqual(response.status_code, 400)
         response = self.raw_sale(sales_items=[{'sale_source': 'raw_material', 'raw_material_stock': self.stock.pk,
-            'unit': 'kg', 'quantity': 5, 'sell_price': 99, 'commission_amount': 8}])
+            'unit': 'kg', 'quantity': 5, 'sell_price': 99}])
         self.assertEqual(response.status_code, 201, response.data)
         item = Sales.objects.get(pk=response.data['id']).sales_items.get()
         self.assertEqual(item.sell_price, 0)
-        self.assertEqual(item.commission_amount, 0)
 
     def test_free_purchase_receives_zero_value_stock_and_no_vendor_debt(self):
         material = RawMaterial.objects.create(name='Gift chemistry', material_type='chemistry', unit='kg')

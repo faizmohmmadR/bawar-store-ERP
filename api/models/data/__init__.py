@@ -9,5 +9,3 @@ from .withdrawal import Withdrawal  # noqa: F401
 from .loan import Loan, LoanPayment  # noqa: F401
 from .equipment import Equipment  # noqa: F401
 from .payment import Payment  # noqa: F401
-from .salesman_commission_payment import SalesmanCommissionPayment  # noqa: F401
-from .salesmen import Salesman  # noqa: F401
